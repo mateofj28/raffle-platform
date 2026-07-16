@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Raffle images - authenticated users from same tenant can read
+    match /tenants/{tenantId}/raffles/{allPaths=**} {
+      allow read: if request.auth != null
+        && request.auth.token.tenantId == tenantId;
+      allow write: if request.auth != null
+        && request.auth.token.tenantId == tenantId
+        && request.auth.token.role == 'admin';
+    }
+
+    // Export files - only admins can read their own exports
+    match /tenants/{tenantId}/exports/{allPaths=**} {
+      allow read: if request.auth != null
+        && request.auth.token.tenantId == tenantId
+        && request.auth.token.role == 'admin';
+      allow write: if false; // Only via Cloud Functions
+    }
+  }
+}
