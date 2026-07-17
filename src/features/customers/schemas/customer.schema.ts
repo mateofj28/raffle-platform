@@ -12,8 +12,9 @@ export const customerSchema = z.object({
     .min(1, "Teléfono es requerido")
     .max(10, "Máximo 10 dígitos")
     .regex(/^\d+$/, "Solo se permiten números"),
+  department: z.string().min(1, "Departamento es requerido"),
+  city: z.string().min(1, "Ciudad es requerida"),
   address: z.string().max(200, "Máximo 200 caracteres"),
-  city: z.string().max(50, "Máximo 50 caracteres"),
 });
 
 export type CustomerFormData = z.infer<typeof customerSchema>;

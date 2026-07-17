@@ -1,12 +1,26 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Card, CardContent, Separator } from "@heroui/react";
-import { Save, User, Phone, MapPin } from "lucide-react";
+import { useEffect } from "react";
+import {
+  Button,
+  Card,
+  CardContent,
+  Separator,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectIndicator,
+  SelectPopover,
+  ListBox,
+  ListBoxItem,
+} from "@heroui/react";
+import { Save, User, Phone, MapPin, ChevronDown } from "lucide-react";
 import { customerSchema, type CustomerFormData } from "../schemas/customer.schema";
 import { FormField } from "@/components/ui/form-field";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
+import { DEPARTMENT_LIST, getCitiesByDepartment } from "@/constants/colombia-locations";
 
 interface CustomerFormProps {
   defaultValues?: Partial<CustomerFormData>;
@@ -26,6 +40,8 @@ export function CustomerForm({
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
@@ -33,13 +49,24 @@ export function CustomerForm({
       name: "",
       document: "",
       phone: "",
-      address: "",
+      department: "",
       city: "",
+      address: "",
       ...defaultValues,
     },
   });
 
   const busy = isLoading || isSubmitting;
+
+  const selectedDepartment = useWatch({ control, name: "department" });
+  const cities = selectedDepartment ? getCitiesByDepartment(selectedDepartment) : [];
+
+  // Reset city when department changes
+  useEffect(() => {
+    if (selectedDepartment && !defaultValues?.department) {
+      setValue("city", "");
+    }
+  }, [selectedDepartment, setValue, defaultValues?.department]);
 
   const numericOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!/[\d\b]/.test(e.key) && !["Backspace", "Tab", "Delete", "ArrowLeft", "ArrowRight"].includes(e.key)) {
@@ -117,15 +144,86 @@ export function CustomerForm({
               Ubicación
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Ciudad"
-                {...register("city")}
-                placeholder="Bogotá"
-                hint="Opcional"
-                error={errors.city?.message}
-                disabled={busy}
-              />
+              {/* Departamento */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">
+                  Departamento<span className="text-danger ml-0.5">*</span>
+                </label>
+                <Controller
+                  name="department"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      aria-label="Departamento"
+                      selectedKey={field.value || null}
+                      onSelectionChange={(key) => field.onChange(String(key ?? ""))}
+                      isDisabled={busy}
+                      placeholder="Seleccionar departamento"
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                        <SelectIndicator>
+                          <ChevronDown className="h-4 w-4" />
+                        </SelectIndicator>
+                      </SelectTrigger>
+                      <SelectPopover>
+                        <ListBox>
+                          {DEPARTMENT_LIST.map((dept) => (
+                            <ListBoxItem key={dept} id={dept} textValue={dept}>
+                              {dept}
+                            </ListBoxItem>
+                          ))}
+                        </ListBox>
+                      </SelectPopover>
+                    </Select>
+                  )}
+                />
+                {errors.department && (
+                  <p className="text-xs text-danger" role="alert">{errors.department.message}</p>
+                )}
+              </div>
+
+              {/* Ciudad */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">
+                  Ciudad<span className="text-danger ml-0.5">*</span>
+                </label>
+                <Controller
+                  name="city"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      aria-label="Ciudad"
+                      selectedKey={field.value || null}
+                      onSelectionChange={(key) => field.onChange(String(key ?? ""))}
+                      isDisabled={busy || !selectedDepartment}
+                      placeholder={selectedDepartment ? "Seleccionar ciudad" : "Primero elige departamento"}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                        <SelectIndicator>
+                          <ChevronDown className="h-4 w-4" />
+                        </SelectIndicator>
+                      </SelectTrigger>
+                      <SelectPopover>
+                        <ListBox>
+                          {cities.map((city) => (
+                            <ListBoxItem key={city} id={city} textValue={city}>
+                              {city}
+                            </ListBoxItem>
+                          ))}
+                        </ListBox>
+                      </SelectPopover>
+                    </Select>
+                  )}
+                />
+                {errors.city && (
+                  <p className="text-xs text-danger" role="alert">{errors.city.message}</p>
+                )}
+              </div>
             </div>
+
+            {/* Dirección - full width */}
             <div className="mt-4">
               <FormField
                 label="Dirección"

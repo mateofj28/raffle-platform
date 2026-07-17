@@ -24,18 +24,18 @@ export default function NewCustomerPage() {
               name: data.name,
               document: data.document,
               phone: data.phone,
-          whatsapp: data.phone, // Mismo número como WhatsApp
+          whatsapp: data.phone,
           address: data.address || "",
-          city: data.city || "",
+          city: `${data.city}, ${data.department}`,
       });
-          router.push("/customers");
-      } catch (err) {
-          const message =
-              err instanceof Error ? err.message : "Error al crear el cliente. Intenta de nuevo.";
-          setServerError(message);
-      } finally {
-          setIsLoading(false);
-      }
+        router.push("/customers");
+    } catch (err) {
+        const message =
+            err instanceof Error ? err.message : "Error al crear el cliente. Intenta de nuevo.";
+        setServerError(message);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
     return (
