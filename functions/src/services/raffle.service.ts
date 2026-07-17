@@ -101,6 +101,10 @@ export const createRaffle = onCall(
                 updatedAt: FieldValue.serverTimestamp(),
             });
 
+            // Generate tickets for the raffle
+            const { generateTickets } = await import("./ticket.service");
+            await generateTickets(context.tenantId, raffleId, data.totalTickets, data.ticketPrice);
+
             return { raffleId };
         } catch (error) {
             handleError(error);
