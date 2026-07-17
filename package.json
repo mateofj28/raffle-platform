@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx scripts/seed-admin.ts"
+    "seed": "tsx scripts/seed-admin.ts",
+    "seed:emulator": "tsx scripts/seed-emulator.ts",
+    "emulators": "firebase emulators:start",
+    "emulators:build": "npm --prefix functions run build",
+    "dev:full": "npm run emulators:build && start cmd /c \"firebase emulators:start\" && timeout /t 5 && npm run seed:emulator && npm run dev"
   },
   "dependencies": {
     "@heroui/react": "^3.2.2",

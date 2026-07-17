@@ -3,16 +3,25 @@ import {
     signInWithEmailAndPassword,
     signOut as firebaseSignOut,
     onAuthStateChanged,
+    connectAuthEmulator,
     type User,
     type Auth,
 } from "firebase/auth";
 import { getFirebaseApp } from "./config";
 
 let _auth: Auth | null = null;
+let _emulatorConnected = false;
 
 function getAuthInstance(): Auth {
     if (_auth) return _auth;
     _auth = getAuth(getFirebaseApp());
+
+    // Connect to emulator in development
+    if (process.env.NODE_ENV === "development" && !_emulatorConnected && typeof window !== "undefined") {
+        connectAuthEmulator(_auth, "http://localhost:9099", { disableWarnings: true });
+        _emulatorConnected = true;
+    }
+
     return _auth;
 }
 

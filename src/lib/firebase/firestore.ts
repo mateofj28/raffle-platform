@@ -1,5 +1,6 @@
 import {
     getFirestore,
+    connectFirestoreEmulator,
     collection,
     doc,
     query,
@@ -17,23 +18,25 @@ import {
 import { getFirebaseApp } from "./config";
 
 let _db: Firestore | null = null;
+let _emulatorConnected = false;
 
 function getDb(): Firestore {
     if (_db) return _db;
     _db = getFirestore(getFirebaseApp());
+
+    // Connect to emulator in development
+    if (process.env.NODE_ENV === "development" && !_emulatorConnected && typeof window !== "undefined") {
+        connectFirestoreEmulator(_db, "localhost", 8080);
+        _emulatorConnected = true;
+    }
+
     return _db;
 }
 
-/**
- * Returns a reference to a tenant-scoped collection.
- */
 export function tenantCollection(tenantId: string, collectionName: string) {
     return collection(getDb(), "tenants", tenantId, collectionName);
 }
 
-/**
- * Returns a reference to a document within a tenant-scoped collection.
- */
 export function tenantDoc(
     tenantId: string,
     collectionName: string,

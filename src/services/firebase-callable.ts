@@ -1,17 +1,24 @@
-import { getFunctions, httpsCallable, type Functions } from "firebase/functions";
+import { getFunctions, httpsCallable, connectFunctionsEmulator, type Functions } from "firebase/functions";
 import { getFirebaseApp } from "@/lib/firebase/config";
 
 let _functions: Functions | null = null;
+let _emulatorConnected = false;
 
 function getFunctionsInstance(): Functions {
     if (_functions) return _functions;
     _functions = getFunctions(getFirebaseApp());
+
+    // Connect to emulator in development
+    if (process.env.NODE_ENV === "development" && !_emulatorConnected && typeof window !== "undefined") {
+        connectFunctionsEmulator(_functions, "localhost", 5001);
+        _emulatorConnected = true;
+    }
+
     return _functions;
 }
 
 /**
  * Generic wrapper for calling Firebase Cloud Functions.
- * Provides typed request/response handling.
  */
 export async function callFunction<TResponse, TRequest = unknown>(
     name: string,
