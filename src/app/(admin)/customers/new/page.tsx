@@ -19,43 +19,43 @@ export default function NewCustomerPage() {
         setServerError(null);
         setIsLoading(true);
 
-        try {
-            await customerService.create({
-                name: data.name,
-                document: data.document,
-                phone: data.phone,
-                whatsapp: data.whatsapp || "",
-                address: data.address || "",
-                city: data.city || "",
-            });
-            router.push("/customers");
-        } catch (err) {
-            const message =
-                err instanceof Error ? err.message : "Error al crear el cliente. Intenta de nuevo.";
-            setServerError(message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      try {
+          await customerService.create({
+              name: data.name,
+              document: data.document,
+              phone: data.phone,
+          whatsapp: data.phone, // Mismo número como WhatsApp
+          address: data.address || "",
+          city: data.city || "",
+      });
+          router.push("/customers");
+      } catch (err) {
+          const message =
+              err instanceof Error ? err.message : "Error al crear el cliente. Intenta de nuevo.";
+          setServerError(message);
+      } finally {
+          setIsLoading(false);
+      }
+  };
 
     return (
         <div>
-          <PageHeader
-              title="Nuevo Cliente"
-              description="Registra un nuevo cliente en el sistema"
-              actions={
-                  <Link href="/customers">
-                      <Button variant="ghost" size="sm">
-                          <ArrowLeft className="h-4 w-4" /> Volver
-                      </Button>
-                  </Link>
-              }
-          />
-          <CustomerForm
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              serverError={serverError}
-          />
-      </div>
+            <PageHeader
+                title="Nuevo Cliente"
+                description="Registra un nuevo cliente en el sistema"
+                actions={
+                    <Link href="/customers">
+                        <Button variant="ghost" size="sm">
+                            <ArrowLeft className="h-4 w-4" /> Volver
+                        </Button>
+                    </Link>
+                }
+            />
+            <CustomerForm
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                serverError={serverError}
+            />
+        </div>
   );
 }

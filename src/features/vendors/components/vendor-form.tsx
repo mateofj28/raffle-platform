@@ -16,12 +16,6 @@ interface VendorFormProps {
     submitLabel?: string;
 }
 
-/**
- * Vendor form component.
- * - Open/Closed: extensible via props (defaultValues, submitLabel)
- * - Single Responsibility: only handles vendor form UI + validation
- * - Dependency Inversion: depends on abstractions (onSubmit callback)
- */
 export function VendorForm({
     defaultValues,
     onSubmit,
@@ -39,19 +33,25 @@ export function VendorForm({
             name: "",
             document: "",
             phone: "",
-            whatsapp: "",
-            email: "",
-            ...defaultValues,
-        },
-    });
+          email: "",
+          ...defaultValues,
+      },
+  });
 
     const busy = isLoading || isSubmitting;
 
+    // Prevents non-numeric input at keystroke level
+    const numericOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!/[\d\b]/.test(e.key) && !["Backspace", "Tab", "Delete", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+            e.preventDefault();
+        }
+    };
+
     return (
-      <Card className="max-w-2xl">
-          <CardContent className="p-6">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  <FormErrorBanner message={serverError} />
+        <Card className="max-w-2xl">
+            <CardContent className="p-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    <FormErrorBanner message={serverError} />
 
                   {/* Información personal */}
                   <div>
@@ -69,12 +69,15 @@ export function VendorForm({
                               required
                           />
                           <FormField
-                              label="Documento de identidad"
+                              label="Cédula"
                               {...register("document")}
                               placeholder="1234567890"
                               error={errors.document?.message}
                               disabled={busy}
                               required
+                              maxLength={10}
+                              inputMode="numeric"
+                              onKeyDown={numericOnly}
                           />
                       </div>
                   </div>
@@ -89,22 +92,16 @@ export function VendorForm({
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
-                              label="Teléfono"
+                              label="Teléfono / WhatsApp"
                               {...register("phone")}
                               type="tel"
                               placeholder="3001234567"
                               error={errors.phone?.message}
                               disabled={busy}
                               required
-                          />
-                          <FormField
-                              label="WhatsApp"
-                              {...register("whatsapp")}
-                              type="tel"
-                              placeholder="3001234567"
-                              hint="Opcional"
-                              error={errors.whatsapp?.message}
-                              disabled={busy}
+                              maxLength={10}
+                              inputMode="numeric"
+                              onKeyDown={numericOnly}
                           />
                       </div>
                   </div>

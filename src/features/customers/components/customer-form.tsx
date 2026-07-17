@@ -16,12 +16,6 @@ interface CustomerFormProps {
   submitLabel?: string;
 }
 
-/**
- * Customer form component.
- * - Open/Closed: extensible via props for create/edit modes
- * - Single Responsibility: only handles customer form UI + validation
- * - Dependency Inversion: depends on abstractions (onSubmit callback)
- */
 export function CustomerForm({
   defaultValues,
   onSubmit,
@@ -39,7 +33,6 @@ export function CustomerForm({
       name: "",
       document: "",
       phone: "",
-      whatsapp: "",
       address: "",
       city: "",
       ...defaultValues,
@@ -47,6 +40,12 @@ export function CustomerForm({
   });
 
   const busy = isLoading || isSubmitting;
+
+  const numericOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!/[\d\b]/.test(e.key) && !["Backspace", "Tab", "Delete", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
 
   return (
     <Card className="max-w-2xl">
@@ -70,13 +69,16 @@ export function CustomerForm({
                 required
               />
               <FormField
-                label="Documento de identidad"
+                label="Cédula"
                 {...register("document")}
                 placeholder="1234567890"
-                hint="Cédula o NIT"
+                hint="Solo números, máximo 10 dígitos"
                 error={errors.document?.message}
                 disabled={busy}
                 required
+                maxLength={10}
+                inputMode="numeric"
+                onKeyDown={numericOnly}
               />
             </div>
           </div>
@@ -91,22 +93,17 @@ export function CustomerForm({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
-                label="Teléfono"
+                label="Teléfono / WhatsApp"
                 {...register("phone")}
                 type="tel"
                 placeholder="3001234567"
+                hint="Solo números, máximo 10 dígitos"
                 error={errors.phone?.message}
                 disabled={busy}
                 required
-              />
-              <FormField
-                label="WhatsApp"
-                {...register("whatsapp")}
-                type="tel"
-                placeholder="3001234567"
-                hint="Opcional"
-                error={errors.whatsapp?.message}
-                disabled={busy}
+                maxLength={10}
+                inputMode="numeric"
+                onKeyDown={numericOnly}
               />
             </div>
           </div>

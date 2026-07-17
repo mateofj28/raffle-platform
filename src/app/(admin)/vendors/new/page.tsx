@@ -19,42 +19,42 @@ export default function NewVendorPage() {
         setServerError(null);
         setIsLoading(true);
 
-        try {
-            await vendorService.create({
-                name: data.name,
-                document: data.document,
-                phone: data.phone,
-                whatsapp: data.whatsapp || "",
-                userId: "", // Will be linked when user is created in Auth
-            });
-            router.push("/vendors");
-        } catch (err) {
-            const message =
-                err instanceof Error ? err.message : "Error al crear el vendedor. Intenta de nuevo.";
-            setServerError(message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      try {
+          await vendorService.create({
+              name: data.name,
+              document: data.document,
+              phone: data.phone,
+          whatsapp: data.phone, // Mismo número como WhatsApp
+          userId: "",
+      });
+          router.push("/vendors");
+      } catch (err) {
+          const message =
+              err instanceof Error ? err.message : "Error al crear el vendedor. Intenta de nuevo.";
+          setServerError(message);
+      } finally {
+          setIsLoading(false);
+      }
+  };
 
     return (
         <div>
-          <PageHeader
-              title="Nuevo Vendedor"
-              description="Registra un nuevo vendedor en el sistema"
-              actions={
-                  <Link href="/vendors">
-                      <Button variant="ghost" size="sm">
-                          <ArrowLeft className="h-4 w-4" /> Volver
-                      </Button>
-                  </Link>
-              }
-          />
-          <VendorForm
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              serverError={serverError}
-          />
-      </div>
+            <PageHeader
+                title="Nuevo Vendedor"
+                description="Registra un nuevo vendedor en el sistema"
+                actions={
+                    <Link href="/vendors">
+                        <Button variant="ghost" size="sm">
+                            <ArrowLeft className="h-4 w-4" /> Volver
+                        </Button>
+                    </Link>
+                }
+            />
+            <VendorForm
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                serverError={serverError}
+            />
+        </div>
   );
 }
