@@ -6,15 +6,15 @@
  */
 
 import { onCall, type CallableRequest } from "firebase-functions/v2/https";
-import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth.js";
-import { handleError } from "../utils/errors.js";
-import { getDb } from "../utils/firestore.js";
+import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth";
+import { handleError } from "../utils/errors";
+import { getDb } from "../utils/firestore";
 import type {
     SalesMetrics,
     RaffleMetrics,
     PeopleMetrics,
     FinancialMetrics,
-} from "../types/index.js";
+} from "../types/index";
 
 // --- Default values ---
 

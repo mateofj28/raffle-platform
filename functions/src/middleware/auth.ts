@@ -1,5 +1,5 @@
 import { type CallableRequest } from "firebase-functions/v2/https";
-import { AppError, AppErrorCode } from "../utils/errors.js";
+import { AppError, AppErrorCode } from "../utils/errors";
 
 export interface AuthContext {
     uid: string;

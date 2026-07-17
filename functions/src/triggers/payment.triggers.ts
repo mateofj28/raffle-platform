@@ -8,7 +8,7 @@
 
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { FieldValue } from "firebase-admin/firestore";
-import { getDb } from "../utils/firestore.js";
+import { getDb } from "../utils/firestore";
 
 /**
  * Triggered when a payment document is created.

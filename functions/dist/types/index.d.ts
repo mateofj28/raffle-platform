@@ -154,4 +154,3 @@ export interface FinancialMetrics {
     monthlyIncome: number;
     lastUpdated: string;
 }
-//# sourceMappingURL=index.d.ts.map

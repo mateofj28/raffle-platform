@@ -7,6 +7,10 @@ export function useDashboardMetrics() {
     return useQuery({
         queryKey: ["dashboard-metrics"],
         queryFn: () => dashboardService.getMetrics(),
-        refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
-    });
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+      refetchInterval: 5 * 60 * 1000,
+      // Don't hang forever - fail fast
+      gcTime: 10 * 60 * 1000,
+  });
 }

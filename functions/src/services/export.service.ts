@@ -7,10 +7,10 @@
 
 import { onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { z } from "zod";
-import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth.js";
-import { validateData } from "../middleware/validation.js";
-import { AppError, AppErrorCode, handleError } from "../utils/errors.js";
-import { tenantCollection } from "../utils/firestore.js";
+import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth";
+import { validateData } from "../middleware/validation";
+import { AppError, AppErrorCode, handleError } from "../utils/errors";
+import { tenantCollection } from "../utils/firestore";
 
 // --- Schema ---
 

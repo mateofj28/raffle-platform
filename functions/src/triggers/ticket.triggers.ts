@@ -7,7 +7,7 @@
 
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { FieldValue } from "firebase-admin/firestore";
-import { getDb } from "../utils/firestore.js";
+import { getDb } from "../utils/firestore";
 
 /**
  * Status fields in the metrics/raffles document that correspond to ticket statuses.

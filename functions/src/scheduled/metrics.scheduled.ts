@@ -10,7 +10,7 @@
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { FieldValue } from "firebase-admin/firestore";
-import { getDb } from "../utils/firestore.js";
+import { getDb } from "../utils/firestore";
 
 /**
  * Aggregates metrics for all tenants. Runs every 5 minutes.

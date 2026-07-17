@@ -1,5 +1,9 @@
-import { HttpsError } from "firebase-functions/v2/https";
-export var AppErrorCode;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AppError = exports.AppErrorCode = void 0;
+exports.handleError = handleError;
+const https_1 = require("firebase-functions/v2/https");
+var AppErrorCode;
 (function (AppErrorCode) {
     AppErrorCode["UNAUTHORIZED"] = "unauthorized";
     AppErrorCode["FORBIDDEN"] = "forbidden";
@@ -10,7 +14,7 @@ export var AppErrorCode;
     AppErrorCode["PAYMENT_EXCEEDS_BALANCE"] = "payment-exceeds-balance";
     AppErrorCode["ALREADY_REVERSED"] = "already-reversed";
     AppErrorCode["EXPORT_LIMIT_EXCEEDED"] = "export-limit-exceeded";
-})(AppErrorCode || (AppErrorCode = {}));
+})(AppErrorCode || (exports.AppErrorCode = AppErrorCode = {}));
 const ERROR_CODE_TO_HTTPS = {
     [AppErrorCode.UNAUTHORIZED]: "unauthenticated",
     [AppErrorCode.FORBIDDEN]: "permission-denied",
@@ -22,7 +26,7 @@ const ERROR_CODE_TO_HTTPS = {
     [AppErrorCode.ALREADY_REVERSED]: "failed-precondition",
     [AppErrorCode.EXPORT_LIMIT_EXCEEDED]: "resource-exhausted",
 };
-export class AppError extends Error {
+class AppError extends Error {
     code;
     fields;
     constructor(code, message, fields) {
@@ -33,20 +37,21 @@ export class AppError extends Error {
     }
     toHttpsError() {
         const httpCode = ERROR_CODE_TO_HTTPS[this.code];
-        return new HttpsError(httpCode, this.message, {
+        return new https_1.HttpsError(httpCode, this.message, {
             code: this.code,
             fields: this.fields,
         });
     }
 }
-export function handleError(error) {
+exports.AppError = AppError;
+function handleError(error) {
     if (error instanceof AppError) {
         throw error.toHttpsError();
     }
-    if (error instanceof HttpsError) {
+    if (error instanceof https_1.HttpsError) {
         throw error;
     }
     console.error("Unexpected error:", error);
-    throw new HttpsError("internal", "An unexpected error occurred.");
+    throw new https_1.HttpsError("internal", "An unexpected error occurred.");
 }
 //# sourceMappingURL=errors.js.map

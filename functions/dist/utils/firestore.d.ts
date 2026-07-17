@@ -18,4 +18,3 @@ export declare function tenantCollection(tenantId: string, collectionName: strin
  * BATCH_SIZE constant for Firestore batch operations.
  */
 export declare const BATCH_SIZE = 500;
-//# sourceMappingURL=firestore.d.ts.map

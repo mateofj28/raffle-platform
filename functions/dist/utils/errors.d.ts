@@ -17,4 +17,3 @@ export declare class AppError extends Error {
     toHttpsError(): HttpsError;
 }
 export declare function handleError(error: unknown): never;
-//# sourceMappingURL=errors.d.ts.map

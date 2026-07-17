@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AppError, AppErrorCode } from "../utils/errors.js";
+import { AppError, AppErrorCode } from "../utils/errors";
 
 /**
  * Validates request data against a Zod schema.

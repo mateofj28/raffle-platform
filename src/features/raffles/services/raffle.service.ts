@@ -1,6 +1,9 @@
 import { callFunction } from "@/services/firebase-callable";
 import type { Raffle, RaffleStatus } from "@/types/api.types";
 import type { CreateRaffleInput } from "../types/raffle.types";
+import { getDocs, orderBy, query } from "firebase/firestore";
+import { tenantCollection } from "@/lib/firebase/firestore";
+import { useAuthStore } from "@/store/auth.store";
 
 export const raffleService = {
     create: (data: CreateRaffleInput) =>
@@ -15,6 +18,22 @@ export const raffleService = {
     setWinner: (raffleId: string, winningNumber: number) =>
         callFunction<{ winner: string | null; message?: string }>("setWinningNumber", { raffleId, winningNumber }),
 
-    list: () =>
-        callFunction<{ raffles: Raffle[] }>("listRaffles").catch(() => ({ raffles: [] })),
+    list: async (): Promise<{ raffles: Raffle[] }> => {
+        const state = useAuthStore.getState();
+        const tenantId = state.user?.tenantId;
+        if (!tenantId) return { raffles: [] };
+
+        try {
+            const col = tenantCollection(tenantId, "raffles");
+            const q = query(col, orderBy("createdAt", "desc"));
+            const snap = await getDocs(q);
+            const raffles = snap.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            })) as Raffle[];
+            return { raffles };
+        } catch {
+            return { raffles: [] };
+        }
+    },
 };

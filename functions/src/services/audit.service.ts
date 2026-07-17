@@ -8,7 +8,7 @@
  */
 
 import { FieldValue } from "firebase-admin/firestore";
-import { getDb } from "../utils/firestore.js";
+import { getDb } from "../utils/firestore";
 
 /**
  * Creates an audit trail entry with retry logic (up to 3 attempts).

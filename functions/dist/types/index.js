@@ -1,5 +1,6 @@
+"use strict";
 // ==========================================
 // Raffle Platform - Shared Types
 // ==========================================
-export {};
+Object.defineProperty(exports, "__esModule", { value: true });
 //# sourceMappingURL=index.js.map

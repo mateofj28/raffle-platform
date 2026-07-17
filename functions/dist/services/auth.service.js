@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Auth Service - Cloud Functions for user authentication and custom claims.
  *
@@ -7,12 +8,14 @@
  * - recordLoginAttempt: Tracks failed login attempts with account lockout (5 attempts / 15 min)
  * - checkAccountLock: Checks if an account is currently locked
  */
-import { onCall } from "firebase-functions/v2/https";
-import { getAuth } from "firebase-admin/auth";
-import { FieldValue } from "firebase-admin/firestore";
-import { validateAuth, requireAdmin } from "../middleware/auth.js";
-import { AppError, AppErrorCode, handleError } from "../utils/errors.js";
-import { getDb, tenantCollection } from "../utils/firestore.js";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.checkAccountLock = exports.recordLoginAttempt = exports.createUser = exports.setCustomClaims = void 0;
+const https_1 = require("firebase-functions/v2/https");
+const auth_1 = require("firebase-admin/auth");
+const firestore_1 = require("firebase-admin/firestore");
+const auth_2 = require("../middleware/auth");
+const errors_1 = require("../utils/errors");
+const firestore_2 = require("../utils/firestore");
 // --- Constants ---
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
@@ -20,42 +23,42 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
-        throw new AppError(AppErrorCode.VALIDATION_ERROR, "A valid email address is required.", { email: "Invalid email format" });
+        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "A valid email address is required.", { email: "Invalid email format" });
     }
 }
 function validateRole(role) {
     if (role !== "admin" && role !== "vendor") {
-        throw new AppError(AppErrorCode.VALIDATION_ERROR, "Role must be 'admin' or 'vendor'.", { role: "Invalid role value" });
+        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Role must be 'admin' or 'vendor'.", { role: "Invalid role value" });
     }
 }
 function getLoginAttemptsRef(tenantId, email) {
-    return tenantCollection(tenantId, "loginAttempts").doc(email);
+    return (0, firestore_2.tenantCollection)(tenantId, "loginAttempts").doc(email);
 }
 // --- Callable Functions ---
 /**
  * Sets custom claims (tenantId, role, vendorId) on a user's auth token.
  * Only admins can set custom claims on other users.
  */
-export const setCustomClaims = onCall({ region: "us-central1" }, async (request) => {
+exports.setCustomClaims = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
     try {
-        const context = validateAuth(request);
-        requireAdmin(context);
+        const context = (0, auth_2.validateAuth)(request);
+        (0, auth_2.requireAdmin)(context);
         const data = request.data;
         // Validate required fields
         if (!data.uid || typeof data.uid !== "string") {
-            throw new AppError(AppErrorCode.VALIDATION_ERROR, "Target user UID is required.", { uid: "Required field" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Target user UID is required.", { uid: "Required field" });
         }
         if (!data.tenantId || typeof data.tenantId !== "string") {
-            throw new AppError(AppErrorCode.VALIDATION_ERROR, "Tenant ID is required.", { tenantId: "Required field" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Tenant ID is required.", { tenantId: "Required field" });
         }
         validateRole(data.role);
         // Admins can only set claims for their own tenant
         if (data.tenantId !== context.tenantId) {
-            throw new AppError(AppErrorCode.FORBIDDEN, "Cannot set claims for a different tenant.");
+            throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "Cannot set claims for a different tenant.");
         }
         // If role is vendor, vendorId is required
         if (data.role === "vendor" && !data.vendorId) {
-            throw new AppError(AppErrorCode.VALIDATION_ERROR, "Vendor ID is required when role is 'vendor'.", { vendorId: "Required for vendor role" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Vendor ID is required when role is 'vendor'.", { vendorId: "Required for vendor role" });
         }
         // Build claims object
         const claims = {
@@ -66,49 +69,49 @@ export const setCustomClaims = onCall({ region: "us-central1" }, async (request)
             claims.vendorId = data.vendorId;
         }
         // Set custom claims on the target user
-        await getAuth().setCustomUserClaims(data.uid, claims);
+        await (0, auth_1.getAuth)().setCustomUserClaims(data.uid, claims);
         return { success: true, message: "Custom claims updated successfully." };
     }
     catch (error) {
-        handleError(error);
+        (0, errors_1.handleError)(error);
     }
 });
 /**
  * Creates a new Firebase Auth user and assigns them to the caller's tenant.
  * Admin-only function.
  */
-export const createUser = onCall({ region: "us-central1" }, async (request) => {
+exports.createUser = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
     try {
-        const context = validateAuth(request);
-        requireAdmin(context);
+        const context = (0, auth_2.validateAuth)(request);
+        (0, auth_2.requireAdmin)(context);
         const data = request.data;
         // Validate required fields
         validateEmail(data.email);
         if (!data.password || data.password.length < 6) {
-            throw new AppError(AppErrorCode.VALIDATION_ERROR, "Password must be at least 6 characters.", { password: "Minimum 6 characters required" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Password must be at least 6 characters.", { password: "Minimum 6 characters required" });
         }
         if (!data.displayName || data.displayName.trim().length === 0) {
-            throw new AppError(AppErrorCode.VALIDATION_ERROR, "Display name is required.", { displayName: "Required field" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Display name is required.", { displayName: "Required field" });
         }
         validateRole(data.role);
         // If role is vendor, vendorId is required
         if (data.role === "vendor" && !data.vendorId) {
-            throw new AppError(AppErrorCode.VALIDATION_ERROR, "Vendor ID is required when role is 'vendor'.", { vendorId: "Required for vendor role" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Vendor ID is required when role is 'vendor'.", { vendorId: "Required for vendor role" });
         }
         // Check if user already exists with this email
         try {
-            await getAuth().getUserByEmail(data.email);
-            throw new AppError(AppErrorCode.CONFLICT, "A user with this email already exists.");
+            await (0, auth_1.getAuth)().getUserByEmail(data.email);
+            throw new errors_1.AppError(errors_1.AppErrorCode.CONFLICT, "A user with this email already exists.");
         }
         catch (error) {
             // If error is our AppError (CONFLICT), re-throw it
-            if (error instanceof AppError) {
+            if (error instanceof errors_1.AppError) {
                 throw error;
             }
             // Otherwise, user doesn't exist - this is expected, continue
         }
         // Create the Firebase Auth user
-        const userRecord = await getAuth().createUser({
+        const userRecord = await (0, auth_1.getAuth)().createUser({
             email: data.email,
             password: data.password,
             displayName: data.displayName.trim(),
@@ -121,9 +124,9 @@ export const createUser = onCall({ region: "us-central1" }, async (request) => {
         if (data.vendorId) {
             claims.vendorId = data.vendorId;
         }
-        await getAuth().setCustomUserClaims(userRecord.uid, claims);
+        await (0, auth_1.getAuth)().setCustomUserClaims(userRecord.uid, claims);
         // Store user record in tenant's users subcollection
-        const db = getDb();
+        const db = (0, firestore_2.getDb)();
         await db
             .collection("tenants")
             .doc(context.tenantId)
@@ -134,7 +137,7 @@ export const createUser = onCall({ region: "us-central1" }, async (request) => {
             displayName: data.displayName.trim(),
             role: data.role,
             vendorId: data.vendorId || null,
-            createdAt: FieldValue.serverTimestamp(),
+            createdAt: firestore_1.FieldValue.serverTimestamp(),
             createdBy: context.uid,
             disabled: false,
         });
@@ -145,16 +148,16 @@ export const createUser = onCall({ region: "us-central1" }, async (request) => {
         };
     }
     catch (error) {
-        handleError(error);
+        (0, errors_1.handleError)(error);
     }
 });
 /**
  * Records a failed login attempt and enforces account lockout.
  * Locks the account after MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_DURATION_MS.
  */
-export const recordLoginAttempt = onCall({ region: "us-central1" }, async (request) => {
+exports.recordLoginAttempt = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
     try {
-        const context = validateAuth(request);
+        const context = (0, auth_2.validateAuth)(request);
         const { email, success } = request.data;
         validateEmail(email);
         const attemptRef = getLoginAttemptsRef(context.tenantId, email);
@@ -169,7 +172,7 @@ export const recordLoginAttempt = onCall({ region: "us-central1" }, async (reque
             return { locked: false, attempts: 0 };
         }
         // Failed login attempt - use transaction for consistency
-        const result = await getDb().runTransaction(async (transaction) => {
+        const result = await (0, firestore_2.getDb)().runTransaction(async (transaction) => {
             const doc = await transaction.get(attemptRef);
             const data = doc.data();
             let attempts = 1;
@@ -211,15 +214,15 @@ export const recordLoginAttempt = onCall({ region: "us-central1" }, async (reque
         return result;
     }
     catch (error) {
-        handleError(error);
+        (0, errors_1.handleError)(error);
     }
 });
 /**
  * Checks if an account is currently locked due to too many failed login attempts.
  */
-export const checkAccountLock = onCall({ region: "us-central1" }, async (request) => {
+exports.checkAccountLock = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
     try {
-        const context = validateAuth(request);
+        const context = (0, auth_2.validateAuth)(request);
         const { email } = request.data;
         validateEmail(email);
         const attemptRef = getLoginAttemptsRef(context.tenantId, email);
@@ -251,7 +254,7 @@ export const checkAccountLock = onCall({ region: "us-central1" }, async (request
         };
     }
     catch (error) {
-        handleError(error);
+        (0, errors_1.handleError)(error);
     }
 });
 //# sourceMappingURL=auth.service.js.map

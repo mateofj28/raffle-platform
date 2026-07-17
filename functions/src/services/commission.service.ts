@@ -8,10 +8,10 @@
 import { onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
-import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth.js";
-import { validateData } from "../middleware/validation.js";
-import { AppError, AppErrorCode, handleError } from "../utils/errors.js";
-import { getDb } from "../utils/firestore.js";
+import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth";
+import { validateData } from "../middleware/validation";
+import { AppError, AppErrorCode, handleError } from "../utils/errors";
+import { getDb } from "../utils/firestore";
 
 // --- Zod Schemas ---
 

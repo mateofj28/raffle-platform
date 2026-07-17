@@ -18,4 +18,3 @@ export declare function requireAdmin(context: AuthContext): void;
  * Validates that a vendor is operating on their own data.
  */
 export declare function requireVendorOwnership(context: AuthContext, resourceVendorId: string): void;
-//# sourceMappingURL=auth.d.ts.map

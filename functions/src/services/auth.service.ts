@@ -11,9 +11,9 @@
 import { onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue } from "firebase-admin/firestore";
-import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth.js";
-import { AppError, AppErrorCode, handleError } from "../utils/errors.js";
-import { getDb, tenantCollection } from "../utils/firestore.js";
+import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth";
+import { AppError, AppErrorCode, handleError } from "../utils/errors";
+import { getDb, tenantCollection } from "../utils/firestore";
 
 // --- Constants ---
 
