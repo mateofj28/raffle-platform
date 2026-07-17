@@ -17,13 +17,13 @@ import type { Raffle, Ticket as TicketType } from "@/types/api.types";
 const TICKETS_PER_PAGE = 100;
 
 const TICKET_COLOR_MAP: Record<string, string> = {
-    available: "bg-default-100 text-default-600 border-default-200",
-    assigned: "bg-warning/10 text-warning border-warning/30",
-    sold: "bg-primary/10 text-primary border-primary/30",
-    paid: "bg-success/10 text-success border-success/30",
-    installment: "bg-secondary/10 text-secondary border-secondary/30",
-    cancelled: "bg-danger/10 text-danger border-danger/30",
-    winner: "bg-success/20 text-success border-success/50 ring-2 ring-success",
+    available: "bg-zinc-700 text-zinc-200 border-zinc-600",
+    assigned: "bg-amber-900/60 text-amber-300 border-amber-700",
+    sold: "bg-blue-900/60 text-blue-300 border-blue-700",
+    paid: "bg-emerald-900/60 text-emerald-300 border-emerald-700",
+    installment: "bg-purple-900/60 text-purple-300 border-purple-700",
+    cancelled: "bg-red-900/60 text-red-300 border-red-700",
+    winner: "bg-emerald-800 text-emerald-200 border-emerald-500 ring-2 ring-emerald-400",
 };
 
 export default function RaffleDetailPage() {
@@ -201,12 +201,12 @@ export default function RaffleDetailPage() {
 
             {/* Legend */}
             <div className="flex gap-3 flex-wrap mb-4 text-xs">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-default-100 border border-default-200" /> Disponible</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-warning/10 border border-warning/30" /> Asignada</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/10 border border-primary/30" /> Vendida</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-success/10 border border-success/30" /> Pagada</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-secondary/10 border border-secondary/30" /> Abonada</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-danger/10 border border-danger/30" /> Cancelada</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-zinc-700 border border-zinc-600" /> Disponible</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-900/60 border border-amber-700" /> Asignada</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-900/60 border border-blue-700" /> Vendida</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-900/60 border border-emerald-700" /> Pagada</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-900/60 border border-purple-700" /> Abonada</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-900/60 border border-red-700" /> Cancelada</span>
             </div>
 
             {/* Tickets Grid */}
@@ -249,23 +249,23 @@ function TicketCell({ ticket }: { ticket: TicketType }) {
             </button>
 
             {showDetail && (
-                <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-content1 border border-divider rounded-lg shadow-lg p-3 text-xs space-y-1.5">
+                <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl p-3 text-xs space-y-1.5">
                     <div className="flex justify-between items-center">
-                        <span className="font-bold">Boleta #{ticket.number}</span>
-                        <button onClick={() => setShowDetail(false)} className="text-default-400 hover:text-foreground">✕</button>
+                        <span className="font-bold text-white">Boleta #{ticket.number}</span>
+                        <button onClick={() => setShowDetail(false)} className="text-zinc-400 hover:text-white">✕</button>
                     </div>
                     <Separator />
-                    <div><span className="text-default-500">Estado:</span> <StatusBadge status={ticket.status} /></div>
-                    <div><span className="text-default-500">Valor:</span> {formatCurrency(ticket.value)}</div>
-                    <div><span className="text-default-500">Saldo:</span> {formatCurrency(ticket.pendingBalance)}</div>
+                    <div><span className="text-zinc-400">Estado:</span> <StatusBadge status={ticket.status} /></div>
+                    <div><span className="text-zinc-400">Valor:</span> <span className="text-white">{formatCurrency(ticket.value)}</span></div>
+                    <div><span className="text-zinc-400">Saldo:</span> <span className="text-white">{formatCurrency(ticket.pendingBalance)}</span></div>
                     {ticket.vendorId && (
-                        <div><span className="text-default-500">Vendedor:</span> <span className="font-medium">{ticket.vendorId}</span></div>
+                        <div><span className="text-zinc-400">Vendedor:</span> <span className="font-medium text-amber-300">{ticket.vendorId}</span></div>
                     )}
                     {ticket.customerId && (
-                        <div><span className="text-default-500">Cliente:</span> <span className="font-medium">{ticket.customerId}</span></div>
+                        <div><span className="text-zinc-400">Cliente:</span> <span className="font-medium text-blue-300">{ticket.customerId}</span></div>
                     )}
                     {ticket.saleDate && (
-                        <div><span className="text-default-500">Fecha venta:</span> {formatDate(ticket.saleDate)}</div>
+                        <div><span className="text-zinc-400">Fecha venta:</span> <span className="text-white">{formatDate(ticket.saleDate)}</span></div>
                     )}
                 </div>
             )}
