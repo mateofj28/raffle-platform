@@ -22,7 +22,7 @@ const createVendorSchema = z.object({
     document: z.string().min(1).max(20),
     phone: z.string().min(1).max(15),
     whatsapp: z.string().max(15).optional().default(""),
-    userId: z.string().min(1),
+    userId: z.string().optional().default(""),
 });
 
 const updateVendorSchema = z.object({
