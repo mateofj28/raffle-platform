@@ -26,7 +26,7 @@ export function FormField({ label, error, hint, ...inputProps }: FormFieldProps)
         aria-label={label}
         aria-invalid={!!error}
         aria-describedby={error ? `${label}-error` : undefined}
-        className={error ? "[&_input]:border-danger" : ""}
+        className={`w-full ${error ? "[&_input]:border-danger" : ""} ${inputProps.className || ""}`}
       />
       {error && (
         <p id={`${label}-error`} className="text-xs text-danger" role="alert">
