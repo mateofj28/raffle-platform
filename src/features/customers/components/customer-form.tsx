@@ -125,16 +125,16 @@ export function CustomerForm({
                 error={errors.city?.message}
                 disabled={busy}
               />
-              <div className="md:col-span-2">
-                <FormField
-                  label="Dirección"
-                  {...register("address")}
-                  placeholder="Calle 123 #45-67, Barrio Centro"
-                  hint="Opcional"
-                  error={errors.address?.message}
-                  disabled={busy}
-                />
-              </div>
+            </div>
+            <div className="mt-4">
+              <FormField
+                label="Dirección"
+                {...register("address")}
+                placeholder="Calle 123 #45-67, Barrio Centro"
+                hint="Opcional"
+                error={errors.address?.message}
+                disabled={busy}
+              />
             </div>
           </div>
 
