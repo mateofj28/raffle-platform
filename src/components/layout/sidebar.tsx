@@ -14,25 +14,27 @@ import {
     X,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { useRaffleStore } from "@/store/raffle.store";
 
 interface SidebarProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-const NAV_ITEMS = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/raffles", label: "Rifas", icon: Ticket },
-    { href: "/vendors", label: "Vendedores", icon: Users },
-    { href: "/customers", label: "Clientes", icon: UserCircle },
-    { href: "/payments", label: "Pagos", icon: CreditCard },
-    { href: "/reports", label: "Reportes", icon: BarChart3 },
-    { href: "/audit", label: "Auditoría", icon: Shield },
-    { href: "/settings", label: "Configuración", icon: Settings },
-];
-
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
+    const { activeRaffle } = useRaffleStore();
+
+    const NAV_ITEMS = [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: activeRaffle ? `/raffles/${activeRaffle.id}` : "/raffles", label: "Boletas", icon: Ticket },
+        { href: "/vendors", label: "Vendedores", icon: Users },
+        { href: "/customers", label: "Clientes", icon: UserCircle },
+        { href: "/payments", label: "Pagos", icon: CreditCard },
+        { href: "/reports", label: "Reportes", icon: BarChart3 },
+        { href: "/audit", label: "Auditoría", icon: Shield },
+        { href: "/settings", label: "Configuración", icon: Settings },
+    ];
 
     return (
         <>
