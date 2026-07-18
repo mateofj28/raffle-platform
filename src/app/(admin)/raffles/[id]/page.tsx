@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog } from "@heroui/react";
-import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, X, Check, ChevronDown } from "lucide-react";
+import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
@@ -46,13 +46,19 @@ export default function RaffleDetailPage() {
     const [hasMore, setHasMore] = useState(false);
     const [totalTickets, setTotalTickets] = useState(0);
 
-    // Selection mode
+    // Selection mode (assign)
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedTickets, setSelectedTickets] = useState<number[]>([]);
     const [selectedVendor, setSelectedVendor] = useState("");
     const [assigning, setAssigning] = useState(false);
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
+
+    // Unassign mode
+    const [unassignMode, setUnassignMode] = useState(false);
+    const [unassignSelected, setUnassignSelected] = useState<number[]>([]);
+    const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
+    const [unassigning, setUnassigning] = useState(false);
     const [showNoVendorsModal, setShowNoVendorsModal] = useState(false);
 
     // Load raffle
@@ -111,13 +117,18 @@ export default function RaffleDetailPage() {
         load();
     }, [tenantId]);
 
-    // Toggle ticket selection
+    // Toggle ticket selection (assign mode)
     const toggleTicket = (num: number, status: string) => {
-        if (!selectionMode) return;
-        if (status !== "available") return; // Only available tickets can be selected
-        setSelectedTickets((prev) =>
-            prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num]
-        );
+        if (selectionMode && status === "available") {
+            setSelectedTickets((prev) =>
+                prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num]
+            );
+        }
+        if (unassignMode && status === "assigned") {
+            setUnassignSelected((prev) =>
+                prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num]
+            );
+        }
     };
 
     // Assign selected tickets
@@ -159,6 +170,29 @@ export default function RaffleDetailPage() {
         setAssignError(null);
     };
 
+    const cancelUnassign = () => {
+        setUnassignMode(false);
+        setUnassignSelected([]);
+    };
+
+    const handleUnassign = async () => {
+        if (unassignSelected.length === 0) return;
+        setUnassigning(true);
+        try {
+            await callFunction("unassignTickets", { raffleId, ticketNumbers: unassignSelected });
+            setUnassignSelected([]);
+            setUnassignMode(false);
+            setShowUnassignConfirm(false);
+            setAssignSuccess(`✅ ${unassignSelected.length} boleta(s) liberada(s) correctamente.`);
+            // Reload tickets
+            const col = tenantCollection(tenantId!, `raffles/${raffleId}/tickets`);
+            const q = query(col, orderBy("number", "asc"), limit(TICKETS_PER_PAGE * page));
+            const snap = await getDocs(q);
+            setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
+        } catch (e) { console.error(e); }
+        finally { setUnassigning(false); }
+    };
+
     if (loading) return <div><PageHeader title="Detalle de Rifa" /><LoadingSkeleton rows={6} /></div>;
     if (!raffle) return <div><PageHeader title="Rifa no encontrada" /><p className="text-default-500">No se encontró la rifa.</p></div>;
 
@@ -173,7 +207,7 @@ export default function RaffleDetailPage() {
                 actions={
                     <div className="flex gap-2">
                 <Link href="/raffles"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button></Link>
-                {!selectionMode && (
+                        {!selectionMode && !unassignMode && (
                             <Button variant="primary" size="sm" onPress={() => {
                                 if (vendors.length === 0) {
                                     setShowNoVendorsModal(true);
@@ -181,9 +215,14 @@ export default function RaffleDetailPage() {
                                 }
                                 setSelectionMode(true);
                             }}>
-                        <UserPlus className="h-4 w-4" /> Asignar Boletas
+                                <UserPlus className="h-4 w-4" /> Asignar
+                            </Button>
+                        )}
+                        {!selectionMode && !unassignMode && (
+                            <Button variant="outline" size="sm" onPress={() => setUnassignMode(true)}>
+                                <UserMinus className="h-4 w-4" /> Desasignar
                     </Button>
-                      )}
+                        )}
                   </div>
               }
           />
@@ -273,11 +312,44 @@ export default function RaffleDetailPage() {
               </Card>
           )}
 
+            {/* Unassign Panel */}
+            {unassignMode && (
+                <Card className="mb-4 border-2 border-red-500/50">
+                    <CardContent className="p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <div className="flex-1">
+                                <p className="font-semibold text-red-300 mb-1">
+                                    Modo desasignación — Toca las boletas asignadas para liberarlas
+                                </p>
+                                <p className="text-xs text-default-500">
+                                    {unassignSelected.length === 0
+                                        ? "Ninguna boleta seleccionada"
+                                        : `${unassignSelected.length} boleta(s): ${unassignSelected.sort((a, b) => a - b).join(", ")}`}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    isDisabled={unassignSelected.length === 0}
+                                    onPress={() => setShowUnassignConfirm(true)}
+                                >
+                                    <UserMinus className="h-4 w-4" /> Liberar
+                                </Button>
+                                <Button variant="ghost" size="sm" onPress={cancelUnassign}>
+                                    <X className="h-4 w-4" /> Cancelar
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
           {assignSuccess && (
               <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">
                   {assignSuccess}
               </div>
-          )}
+            )}}
 
           {/* Status chips + Legend */}
           <div className="flex gap-2 flex-wrap mb-3">
@@ -303,7 +375,9 @@ export default function RaffleDetailPage() {
                                 key={ticket.number}
                                 ticket={ticket}
                                 selectionMode={selectionMode}
+                                unassignMode={unassignMode}
                                 isSelected={selectedTickets.includes(ticket.number)}
+                                isUnassignSelected={unassignSelected.includes(ticket.number)}
                                 onToggle={toggleTicket}
                                 vendors={vendors}
                             />
@@ -347,28 +421,62 @@ export default function RaffleDetailPage() {
                     </AlertDialog.Dialog>
                 </AlertDialog.Container>
             </AlertDialog.Backdrop>
+
+            {/* Unassign confirmation dialog */}
+            <AlertDialog.Backdrop isOpen={showUnassignConfirm} onOpenChange={(open) => { if (!open) setShowUnassignConfirm(false); }} isDismissable>
+                <AlertDialog.Container placement="center" size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.CloseTrigger />
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger" />
+                            <AlertDialog.Heading>¿Desasignar {unassignSelected.length} boleta(s)?</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <p>Las boletas <strong>#{unassignSelected.sort((a, b) => a - b).join(", #")}</strong> volverán a estar disponibles.</p>
+                            <p className="text-sm text-default-500 mt-2">Se quitarán del vendedor asignado y cualquiera podrá tomarlas.</p>
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">Cancelar</Button>
+                            <Button variant="danger" isDisabled={unassigning} onPress={handleUnassign}>
+                                {unassigning ? "Liberando..." : "Sí, liberar boletas"}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </div>
     );
 }
 
 // --- Ticket Cell Component ---
 
-function TicketCell({ ticket, selectionMode, isSelected, onToggle, vendors }: {
+function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassignSelected, onToggle, vendors }: {
     ticket: TicketType;
     selectionMode: boolean;
+    unassignMode: boolean;
     isSelected: boolean;
+    isUnassignSelected: boolean;
     onToggle: (num: number, status: string) => void;
     vendors: Vendor[];
 }) {
     const [showDetail, setShowDetail] = useState(false);
     const isAvailable = ticket.status === "available";
-    const colorClass = isSelected
-        ? "bg-amber-500 text-black border-amber-400 ring-2 ring-amber-300"
-        : TICKET_COLOR_MAP[ticket.status] || TICKET_COLOR_MAP.available;
-    const canSelect = selectionMode && isAvailable;
+    const isAssigned = ticket.status === "assigned";
+    const inAnyMode = selectionMode || unassignMode;
+
+    let colorClass: string;
+    if (isSelected) {
+        colorClass = "bg-amber-500 text-black border-amber-400 ring-2 ring-amber-300";
+    } else if (isUnassignSelected) {
+        colorClass = "bg-red-500 text-white border-red-400 ring-2 ring-red-300";
+    } else {
+        colorClass = TICKET_COLOR_MAP[ticket.status] || TICKET_COLOR_MAP.available;
+    }
+
+    const canInteract = (selectionMode && isAvailable) || (unassignMode && isAssigned);
 
     const handleClick = () => {
-        if (selectionMode) {
+        if (inAnyMode) {
             onToggle(ticket.number, ticket.status);
         } else {
             setShowDetail(!showDetail);
@@ -384,17 +492,18 @@ function TicketCell({ ticket, selectionMode, isSelected, onToggle, vendors }: {
               onClick={handleClick}
               className={`w-full aspect-square flex items-center justify-center rounded-md border text-xs font-mono transition-all
           ${colorClass}
-          ${canSelect ? "cursor-pointer hover:scale-110 hover:ring-1 hover:ring-amber-400" : ""}
-          ${selectionMode && !isAvailable ? "opacity-40 cursor-not-allowed" : ""}
-          ${!selectionMode ? "cursor-pointer hover:scale-105" : ""}`}
+          ${canInteract ? "cursor-pointer hover:scale-110" : ""}
+          ${selectionMode && canInteract ? "hover:ring-1 hover:ring-amber-400" : ""}
+          ${unassignMode && canInteract ? "hover:ring-1 hover:ring-red-400" : ""}
+          ${inAnyMode && !canInteract ? "opacity-40 cursor-not-allowed" : ""}
+          ${!inAnyMode ? "cursor-pointer hover:scale-105" : ""}`}
               title={`#${ticket.number} - ${ticket.status}`}
-              disabled={selectionMode && !isAvailable}
+                disabled={inAnyMode && !canInteract}
           >
               {ticket.number}
           </button>
 
-          {/* Detail popup - only when NOT in selection mode */}
-          {showDetail && !selectionMode && (
+            {showDetail && !inAnyMode && (
               <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl p-3 text-xs space-y-1.5">
                   <div className="flex justify-between items-center">
                       <span className="font-bold text-white">Boleta #{ticket.number}</span>
