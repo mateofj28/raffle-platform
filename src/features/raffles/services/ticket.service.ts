@@ -5,6 +5,9 @@ export const ticketService = {
     assign: (data: AssignTicketsInput) =>
         callFunction<{ assigned: number; skipped: number }>("assignTickets", data),
 
+    unassign: (raffleId: string, ticketNumbers: number[]) =>
+        callFunction<{ unassigned: number; skipped: number }>("unassignTickets", { raffleId, ticketNumbers }),
+
     sell: (data: SellTicketInput) =>
         callFunction<{ success: boolean }>("sellTicket", data),
 

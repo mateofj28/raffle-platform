@@ -6,7 +6,7 @@
  * are exported from here.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.cancelTicket = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.createUser = exports.setCustomClaims = void 0;
+exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.unassignTickets = exports.cancelTicket = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.createUser = exports.setCustomClaims = void 0;
 // Initialize Firebase Admin
 const firestore_1 = require("./utils/firestore");
 (0, firestore_1.initAdmin)();
@@ -27,6 +27,7 @@ var ticket_service_1 = require("./services/ticket.service");
 Object.defineProperty(exports, "assignTickets", { enumerable: true, get: function () { return ticket_service_1.assignTickets; } });
 Object.defineProperty(exports, "sellTicket", { enumerable: true, get: function () { return ticket_service_1.sellTicket; } });
 Object.defineProperty(exports, "cancelTicket", { enumerable: true, get: function () { return ticket_service_1.cancelTicket; } });
+Object.defineProperty(exports, "unassignTickets", { enumerable: true, get: function () { return ticket_service_1.unassignTickets; } });
 var ticket_service_2 = require("./services/ticket.service");
 Object.defineProperty(exports, "generateTickets", { enumerable: true, get: function () { return ticket_service_2.generateTickets; } });
 var payment_service_1 = require("./services/payment.service");

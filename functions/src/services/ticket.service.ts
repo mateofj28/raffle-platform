@@ -27,6 +27,11 @@ const assignTicketsSchema = z.object({
     ticketNumbers: z.array(z.number().int().min(1)).optional(),
 });
 
+const unassignTicketsSchema = z.object({
+    raffleId: z.string().min(1),
+    ticketNumbers: z.array(z.number().int().min(1)).min(1),
+});
+
 const sellTicketSchema = z.object({
     raffleId: z.string().min(1),
     ticketNumber: z.number().int().min(1),
@@ -307,6 +312,57 @@ export const cancelTicket = onCall(
             });
 
             return { success: true };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
+
+/**
+ * Unassigns tickets - returns them to "available" status.
+ * Admin-only. Only tickets in "assigned" state can be unassigned.
+ */
+export const unassignTickets = onCall(
+    { region: "us-central1" },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const data = validateData(unassignTicketsSchema, request.data);
+            const { raffleId, ticketNumbers } = data;
+
+            const db = getDb();
+            const ticketsBasePath = `tenants/${context.tenantId}/raffles/${raffleId}/tickets`;
+            let unassigned = 0;
+            let skipped = 0;
+
+            for (let i = 0; i < ticketNumbers.length; i += BATCH_SIZE) {
+                const batch = db.batch();
+                const chunk = ticketNumbers.slice(i, i + BATCH_SIZE);
+
+                for (const num of chunk) {
+                    const docId = padTicketNumber(num);
+                    const ticketRef = db.collection(ticketsBasePath).doc(docId);
+                    const ticketSnap = await ticketRef.get();
+
+                    if (!ticketSnap.exists) { skipped++; continue; }
+
+                    const ticket = ticketSnap.data()!;
+                    if (ticket.status !== "assigned") { skipped++; continue; }
+
+                    batch.update(ticketRef, {
+                        status: "available",
+                        vendorId: null,
+                        updatedAt: FieldValue.serverTimestamp(),
+                    });
+                    unassigned++;
+                }
+
+                await batch.commit();
+            }
+
+            return { unassigned, skipped };
         } catch (error) {
             handleError(error);
         }

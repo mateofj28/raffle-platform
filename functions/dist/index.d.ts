@@ -6,7 +6,7 @@
  */
 export { setCustomClaims, createUser, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
 export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber } from "./services/raffle.service";
-export { assignTickets, sellTicket, cancelTicket } from "./services/ticket.service";
+export { assignTickets, sellTicket, cancelTicket, unassignTickets } from "./services/ticket.service";
 export { generateTickets } from "./services/ticket.service";
 export { registerPayment, reversePayment } from "./services/payment.service";
 export { createCustomer, updateCustomer } from "./services/customer.service";
