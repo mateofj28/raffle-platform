@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Button, Card, CardContent, Separator, Chip } from "@heroui/react";
-import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, X, Check } from "lucide-react";
+import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
+import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -214,16 +214,27 @@ export default function RaffleDetailPage() {
                               </p>
                           </div>
                           <div className="flex items-center gap-2 w-full sm:w-auto">
-                              <select
-                                  value={selectedVendor}
-                                  onChange={(e) => setSelectedVendor(e.target.value)}
-                                  className="rounded-lg border border-default-200 bg-zinc-800 px-3 py-2 text-sm flex-1 sm:w-48"
+                                <Select
+                                    aria-label="Vendedor"
+                                    selectedKey={selectedVendor || null}
+                                    onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))}
+                                    placeholder="Seleccionar vendedor"
+                                    className="flex-1 sm:w-52"
                               >
-                                  <option value="">Seleccionar vendedor</option>
-                                  {vendors.map((v) => (
-                                      <option key={v.id} value={v.id}>{v.name}</option>
-                                  ))}
-                              </select>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                        <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
+                                    </SelectTrigger>
+                                    <SelectPopover>
+                                        <ListBox>
+                                            {vendors.map((v) => (
+                                                <ListBoxItem key={v.id} id={v.id} textValue={v.name}>
+                                                    {v.name}
+                                                </ListBoxItem>
+                                            ))}
+                                        </ListBox>
+                                    </SelectPopover>
+                                </Select>
                               <Button
                                   variant="primary"
                                   size="sm"
@@ -268,41 +279,94 @@ export default function RaffleDetailPage() {
           {ticketsLoading ? <LoadingSkeleton rows={5} /> : (
               <>
                   <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15 gap-1.5">
-                      {tickets.map((ticket) => {
-                          const isSelected = selectedTickets.includes(ticket.number);
-                          const isAvailable = ticket.status === "available";
-                          const colorClass = isSelected
-                              ? "bg-amber-500 text-black border-amber-400 ring-2 ring-amber-300"
-                              : TICKET_COLOR_MAP[ticket.status] || TICKET_COLOR_MAP.available;
-                          const canSelect = selectionMode && isAvailable;
+                        {tickets.map((ticket) => (
+                            <TicketCell
+                                key={ticket.number}
+                                ticket={ticket}
+                                selectionMode={selectionMode}
+                                isSelected={selectedTickets.includes(ticket.number)}
+                                onToggle={toggleTicket}
+                                vendors={vendors}
+                            />
+                        ))}
+                    </div>
 
-                          return (
-                              <button
-                                  key={ticket.number}
-                                  type="button"
-                                  onClick={() => toggleTicket(ticket.number, ticket.status)}
-                                  className={`aspect-square flex items-center justify-center rounded-md border text-xs font-mono transition-all
-                    ${colorClass}
-                    ${canSelect ? "cursor-pointer hover:scale-110 hover:ring-1 hover:ring-amber-400" : ""}
-                    ${selectionMode && !isAvailable ? "opacity-40 cursor-not-allowed" : ""}
-                    ${!selectionMode ? "cursor-default" : ""}`}
-                                  title={`#${ticket.number} - ${ticket.status}${ticket.vendorId ? ` | Vendedor: ${ticket.vendorId}` : ""}`}
-                                  disabled={selectionMode && !isAvailable}
-                              >
-                                  {ticket.number}
-                              </button>
-                          );
-                      })}
+                    {hasMore && (
+                        <div className="mt-4 text-center">
+                            <Button variant="outline" size="sm" onPress={() => setPage((p) => p + 1)}>
+                                Cargar más boletas
+                            </Button>
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}
+
+// --- Ticket Cell Component ---
+
+function TicketCell({ ticket, selectionMode, isSelected, onToggle, vendors }: {
+    ticket: TicketType;
+    selectionMode: boolean;
+    isSelected: boolean;
+    onToggle: (num: number, status: string) => void;
+    vendors: Vendor[];
+}) {
+    const [showDetail, setShowDetail] = useState(false);
+    const isAvailable = ticket.status === "available";
+    const colorClass = isSelected
+        ? "bg-amber-500 text-black border-amber-400 ring-2 ring-amber-300"
+        : TICKET_COLOR_MAP[ticket.status] || TICKET_COLOR_MAP.available;
+    const canSelect = selectionMode && isAvailable;
+
+    const handleClick = () => {
+        if (selectionMode) {
+            onToggle(ticket.number, ticket.status);
+        } else {
+            setShowDetail(!showDetail);
+        }
+    };
+
+    const vendorName = ticket.vendorId ? vendors.find((v) => v.id === ticket.vendorId)?.name || ticket.vendorId : null;
+
+    return (
+      <div className="relative">
+          <button
+              type="button"
+              onClick={handleClick}
+              className={`w-full aspect-square flex items-center justify-center rounded-md border text-xs font-mono transition-all
+          ${colorClass}
+          ${canSelect ? "cursor-pointer hover:scale-110 hover:ring-1 hover:ring-amber-400" : ""}
+          ${selectionMode && !isAvailable ? "opacity-40 cursor-not-allowed" : ""}
+          ${!selectionMode ? "cursor-pointer hover:scale-105" : ""}`}
+              title={`#${ticket.number} - ${ticket.status}`}
+              disabled={selectionMode && !isAvailable}
+          >
+              {ticket.number}
+          </button>
+
+          {/* Detail popup - only when NOT in selection mode */}
+          {showDetail && !selectionMode && (
+              <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl p-3 text-xs space-y-1.5">
+                  <div className="flex justify-between items-center">
+                      <span className="font-bold text-white">Boleta #{ticket.number}</span>
+                      <button onClick={() => setShowDetail(false)} className="text-zinc-400 hover:text-white">✕</button>
                   </div>
-
-                  {hasMore && (
-                      <div className="mt-4 text-center">
-                          <Button variant="outline" size="sm" onPress={() => setPage((p) => p + 1)}>
-                              Cargar más boletas
-                          </Button>
-                      </div>
+                  <Separator />
+                  <div><span className="text-zinc-400">Estado:</span> <StatusBadge status={ticket.status} /></div>
+                  <div><span className="text-zinc-400">Valor:</span> <span className="text-white">{formatCurrency(ticket.value)}</span></div>
+                  <div><span className="text-zinc-400">Saldo:</span> <span className="text-white">{formatCurrency(ticket.pendingBalance)}</span></div>
+                  {vendorName && (
+                      <div><span className="text-zinc-400">Vendedor:</span> <span className="font-medium text-amber-300">{vendorName}</span></div>
                   )}
-              </>
+                  {ticket.customerId && (
+                      <div><span className="text-zinc-400">Cliente:</span> <span className="font-medium text-blue-300">{ticket.customerId}</span></div>
+                  )}
+                  {ticket.saleDate && (
+                      <div><span className="text-zinc-400">Fecha venta:</span> <span className="text-white">{formatDate(ticket.saleDate)}</span></div>
+                  )}
+              </div>
           )}
       </div>
   );
