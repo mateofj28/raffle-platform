@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, Modal, ModalBackdrop, ModalContainer, ModalDialog, ModalHeader, ModalHeading, ModalBody, ModalFooter, useOverlayState } from "@heroui/react";
+import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,7 +51,7 @@ export default function RaffleDetailPage() {
     const [assigning, setAssigning] = useState(false);
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
-    const noVendorsModal = useOverlayState();
+    const [showNoVendorsModal, setShowNoVendorsModal] = useState(false);
 
     // Load raffle
     useEffect(() => {
@@ -166,7 +166,7 @@ export default function RaffleDetailPage() {
                 {!selectionMode && (
                             <Button variant="primary" size="sm" onPress={() => {
                                 if (vendors.length === 0) {
-                                    noVendorsModal.open();
+                                    setShowNoVendorsModal(true);
                                     return;
                                 }
                                 setSelectionMode(true);
@@ -310,36 +310,33 @@ export default function RaffleDetailPage() {
                 </>
             )}
 
-            {/* Modal: No vendors */}
-            <Modal state={noVendorsModal}>
-                <ModalBackdrop isDismissable />
-                <ModalContainer placement="center" size="sm">
-                    <ModalDialog>
-                        <ModalHeader>
-                            <ModalHeading>No hay vendedores registrados</ModalHeading>
-                        </ModalHeader>
-                        <ModalBody>
-                            <p className="text-default-600">
-                                Para asignar boletas necesitas tener al menos un vendedor creado en el sistema.
-                            </p>
-                            <p className="text-default-500 text-sm mt-2">
-                                ¿Deseas ir a crear un vendedor ahora?
-                            </p>
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button variant="ghost" onPress={() => noVendorsModal.close()}>
+            {/* AlertDialog: No vendors */}
+            <AlertDialog.Backdrop isOpen={showNoVendorsModal} onOpenChange={setShowNoVendorsModal} isDismissable>
+                <AlertDialog.Container placement="center" size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.CloseTrigger />
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="warning" />
+                            <AlertDialog.Heading>No hay vendedores registrados</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <p>Para asignar boletas necesitas tener al menos un vendedor creado en el sistema.</p>
+                            <p className="text-sm text-default-500 mt-2">¿Deseas ir a crear un vendedor ahora?</p>
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">
                                 Cancelar
                             </Button>
                             <Button variant="primary" onPress={() => {
-                                noVendorsModal.close();
+                                setShowNoVendorsModal(false);
                                 router.push("/vendors/new");
                             }}>
                                 Crear Vendedor
                             </Button>
-                        </ModalFooter>
-                    </ModalDialog>
-                </ModalContainer>
-            </Modal>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </div>
     );
 }
