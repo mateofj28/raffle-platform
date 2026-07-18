@@ -349,7 +349,7 @@ export default function RaffleDetailPage() {
               <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">
                   {assignSuccess}
               </div>
-            )}}
+            )}
 
           {/* Status chips + Legend */}
           <div className="flex gap-2 flex-wrap mb-3">
