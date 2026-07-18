@@ -21,8 +21,10 @@ import { getDb, BATCH_SIZE } from "../utils/firestore";
 const assignTicketsSchema = z.object({
     raffleId: z.string().min(1),
     vendorId: z.string().min(1),
-    fromNumber: z.number().int().min(1),
-    toNumber: z.number().int().min(1),
+    // Supports either a range (fromNumber/toNumber) or a list of specific numbers
+    fromNumber: z.number().int().min(1).optional(),
+    toNumber: z.number().int().min(1).optional(),
+    ticketNumbers: z.array(z.number().int().min(1)).optional(),
 });
 
 const sellTicketSchema = z.object({
@@ -96,11 +98,11 @@ export const assignTickets = onCall(
             requireAdmin(context);
 
             const data = validateData(assignTicketsSchema, request.data);
-            const { raffleId, vendorId, fromNumber, toNumber } = data;
+            const { raffleId, vendorId, fromNumber, toNumber, ticketNumbers } = data;
 
             const db = getDb();
 
-            // Validate raffle exists and is active
+            // Validate raffle exists and is active or draft
             const raffleRef = db.doc(`tenants/${context.tenantId}/raffles/${raffleId}`);
             const raffleSnap = await raffleRef.get();
 
@@ -110,27 +112,35 @@ export const assignTickets = onCall(
 
             const raffle = raffleSnap.data()!;
 
-            if (raffle.status !== "active") {
+            if (raffle.status !== "active" && raffle.status !== "draft") {
                 throw new AppError(
                     AppErrorCode.INVALID_TRANSITION,
-                    "Raffle must be active to assign tickets."
+                    "Raffle must be active or draft to assign tickets."
                 );
             }
 
-            // Validate range
-            if (fromNumber > toNumber) {
-                throw new AppError(
-                    AppErrorCode.VALIDATION_ERROR,
-                    "fromNumber must be less than or equal to toNumber.",
-                    { fromNumber: "Must be <= toNumber" }
-                );
-            }
+            // Determine which tickets to assign
+            let numbersToAssign: number[] = [];
 
-            if (toNumber > raffle.totalTickets) {
+            if (ticketNumbers && ticketNumbers.length > 0) {
+                // Mode: specific ticket numbers
+                numbersToAssign = ticketNumbers;
+            } else if (fromNumber && toNumber) {
+                // Mode: range
+                if (fromNumber > toNumber) {
+                    throw new AppError(
+                        AppErrorCode.VALIDATION_ERROR,
+                        "fromNumber must be less than or equal to toNumber.",
+                        { fromNumber: "Must be <= toNumber" }
+                    );
+                }
+                for (let n = fromNumber; n <= toNumber; n++) {
+                    numbersToAssign.push(n);
+                }
+            } else {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "toNumber exceeds total tickets in raffle.",
-                    { toNumber: "Exceeds raffle total tickets" }
+                    "Provide either ticketNumbers array or fromNumber/toNumber range."
                 );
             }
 
@@ -139,11 +149,11 @@ export const assignTickets = onCall(
             let assigned = 0;
             let skipped = 0;
 
-            for (let i = fromNumber; i <= toNumber; i += BATCH_SIZE) {
+            for (let i = 0; i < numbersToAssign.length; i += BATCH_SIZE) {
                 const batch = db.batch();
-                const end = Math.min(i + BATCH_SIZE - 1, toNumber);
+                const chunk = numbersToAssign.slice(i, i + BATCH_SIZE);
 
-                for (let num = i; num <= end; num++) {
+                for (const num of chunk) {
                     const docId = padTicketNumber(num);
                     const ticketRef = db.collection(ticketsBasePath).doc(docId);
                     const ticketSnap = await ticketRef.get();
