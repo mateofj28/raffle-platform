@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, Modal, ModalBackdrop, ModalContainer, ModalDialog, ModalHeader, ModalHeading, ModalBody, ModalFooter } from "@heroui/react";
+import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, Modal, ModalBackdrop, ModalContainer, ModalDialog, ModalHeader, ModalHeading, ModalBody, ModalFooter, useOverlayState } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,7 +51,7 @@ export default function RaffleDetailPage() {
     const [assigning, setAssigning] = useState(false);
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
-    const [showNoVendorsModal, setShowNoVendorsModal] = useState(false);
+    const noVendorsModal = useOverlayState();
 
     // Load raffle
     useEffect(() => {
@@ -166,7 +166,7 @@ export default function RaffleDetailPage() {
                 {!selectionMode && (
                             <Button variant="primary" size="sm" onPress={() => {
                                 if (vendors.length === 0) {
-                                    setShowNoVendorsModal(true);
+                                    noVendorsModal.open();
                                     return;
                                 }
                                 setSelectionMode(true);
@@ -311,9 +311,9 @@ export default function RaffleDetailPage() {
             )}
 
             {/* Modal: No vendors */}
-            <Modal isOpen={showNoVendorsModal} onOpenChange={(open) => setShowNoVendorsModal(open)}>
-                <ModalBackdrop />
-                <ModalContainer>
+            <Modal state={noVendorsModal}>
+                <ModalBackdrop isDismissable />
+                <ModalContainer placement="center" size="sm">
                     <ModalDialog>
                         <ModalHeader>
                             <ModalHeading>No hay vendedores registrados</ModalHeading>
@@ -327,11 +327,11 @@ export default function RaffleDetailPage() {
                             </p>
                         </ModalBody>
                         <ModalFooter>
-                            <Button variant="ghost" onPress={() => setShowNoVendorsModal(false)}>
+                            <Button variant="ghost" onPress={() => noVendorsModal.close()}>
                                 Cancelar
                             </Button>
                             <Button variant="primary" onPress={() => {
-                                setShowNoVendorsModal(false);
+                                noVendorsModal.close();
                                 router.push("/vendors/new");
                             }}>
                                 Crear Vendedor
