@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
+import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, toast } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -30,6 +31,7 @@ const TICKET_COLOR_MAP: Record<string, string> = {
 
 export default function RaffleDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const raffleId = params.id as string;
     const tenantId = useAuthStore((s) => s.user?.tenantId);
 
@@ -161,7 +163,16 @@ export default function RaffleDetailPage() {
                     <div className="flex gap-2">
                 <Link href="/raffles"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button></Link>
                 {!selectionMode && (
-                    <Button variant="primary" size="sm" onPress={() => setSelectionMode(true)}>
+                            <Button variant="primary" size="sm" onPress={() => {
+                                if (vendors.length === 0) {
+                                    toast.warning("No puedes asignar boletas sin vendedores registrados.", {
+                                        description: "Primero crea al menos un vendedor.",
+                                        onClose: () => router.push("/vendors/new"),
+                                    });
+                                    return;
+                                }
+                                setSelectionMode(true);
+                            }}>
                         <UserPlus className="h-4 w-4" /> Asignar Boletas
                     </Button>
                       )}
