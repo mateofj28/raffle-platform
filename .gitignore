@@ -55,3 +55,6 @@ ui-debug.log
 
 # firebase emulator logs
 *-debug.log
+
+# firebase emulator data persistence
+emulator-data/
