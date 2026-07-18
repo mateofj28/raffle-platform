@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, toast } from "@heroui/react";
+import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, Modal, ModalBackdrop, ModalContainer, ModalDialog, ModalHeader, ModalHeading, ModalBody, ModalFooter } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,6 +51,7 @@ export default function RaffleDetailPage() {
     const [assigning, setAssigning] = useState(false);
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
+    const [showNoVendorsModal, setShowNoVendorsModal] = useState(false);
 
     // Load raffle
     useEffect(() => {
@@ -165,10 +166,7 @@ export default function RaffleDetailPage() {
                 {!selectionMode && (
                             <Button variant="primary" size="sm" onPress={() => {
                                 if (vendors.length === 0) {
-                                    toast.warning("No puedes asignar boletas sin vendedores registrados.", {
-                                        description: "Primero crea al menos un vendedor.",
-                                        onClose: () => router.push("/vendors/new"),
-                                    });
+                                    setShowNoVendorsModal(true);
                                     return;
                                 }
                                 setSelectionMode(true);
@@ -311,6 +309,37 @@ export default function RaffleDetailPage() {
                     )}
                 </>
             )}
+
+            {/* Modal: No vendors */}
+            <Modal isOpen={showNoVendorsModal} onOpenChange={(open) => setShowNoVendorsModal(open)}>
+                <ModalBackdrop />
+                <ModalContainer>
+                    <ModalDialog>
+                        <ModalHeader>
+                            <ModalHeading>No hay vendedores registrados</ModalHeading>
+                        </ModalHeader>
+                        <ModalBody>
+                            <p className="text-default-600">
+                                Para asignar boletas necesitas tener al menos un vendedor creado en el sistema.
+                            </p>
+                            <p className="text-default-500 text-sm mt-2">
+                                ¿Deseas ir a crear un vendedor ahora?
+                            </p>
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button variant="ghost" onPress={() => setShowNoVendorsModal(false)}>
+                                Cancelar
+                            </Button>
+                            <Button variant="primary" onPress={() => {
+                                setShowNoVendorsModal(false);
+                                router.push("/vendors/new");
+                            }}>
+                                Crear Vendedor
+                            </Button>
+                        </ModalFooter>
+                    </ModalDialog>
+                </ModalContainer>
+            </Modal>
         </div>
     );
 }
