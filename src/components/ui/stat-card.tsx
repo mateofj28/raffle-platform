@@ -15,32 +15,25 @@ interface StatCardProps {
 export function StatCard({ title, value, icon, trend }: StatCardProps) {
     return (
         <Card>
-            <CardContent className="flex flex-row items-center gap-4 p-4">
-                {icon && (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        {icon}
-                    </div>
-                )}
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm text-default-500 truncate">{title}</p>
-                    <p className="text-2xl font-bold">{value}</p>
-                </div>
-                {trend && (
-                    <div
-                        className={cn(
-                            "flex items-center gap-1 text-sm font-medium",
-                            trend.isPositive ? "text-success" : "text-danger"
-                        )}
-                    >
-                        {trend.isPositive ? (
-                            <TrendingUp className="h-4 w-4" />
-                        ) : (
-                            <TrendingDown className="h-4 w-4" />
-                        )}
-                        <span>{trend.value}%</span>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
+          <CardContent className="flex flex-col gap-3 p-4">
+              <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-default-500 uppercase tracking-wide">{title}</p>
+                  {icon && (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          {icon}
+                      </div>
+                  )}
+              </div>
+              <div className="flex items-end justify-between">
+                  <p className="text-2xl font-bold leading-none">{value}</p>
+                  {trend && (
+                      <div className={cn("flex items-center gap-1 text-xs font-medium", trend.isPositive ? "text-success" : "text-danger")}>
+                          {trend.isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          <span>{trend.value}%</span>
+                      </div>
+                  )}
+              </div>
+          </CardContent>
+      </Card>
+  );
 }
