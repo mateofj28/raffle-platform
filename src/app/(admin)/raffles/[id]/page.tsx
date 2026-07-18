@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
+import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import { callFunction } from "@/services/firebase-callable";
@@ -34,6 +35,7 @@ export default function RaffleDetailPage() {
     const router = useRouter();
     const raffleId = params.id as string;
     const tenantId = useAuthStore((s) => s.user?.tenantId);
+    const { setActiveRaffle } = useRaffleStore();
 
     const [raffle, setRaffle] = useState<Raffle | null>(null);
     const [tickets, setTickets] = useState<TicketType[]>([]);
@@ -60,14 +62,22 @@ export default function RaffleDetailPage() {
           try {
               const raffleDoc = await getDoc(doc(getDb(), "tenants", tenantId, "raffles", raffleId));
               if (raffleDoc.exists()) {
-                  setRaffle({ id: raffleDoc.id, ...raffleDoc.data() } as Raffle);
-                  setTotalTickets(raffleDoc.data().totalTickets || 0);
+                  const data = raffleDoc.data();
+                  setRaffle({ id: raffleDoc.id, ...data } as Raffle);
+                  setTotalTickets(data.totalTickets || 0);
+                  setActiveRaffle({
+                      id: raffleDoc.id,
+                      name: data.name,
+                      status: data.status,
+                      ticketPrice: data.ticketPrice,
+                      totalTickets: data.totalTickets,
+                  });
               }
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
       load();
-  }, [tenantId, raffleId]);
+    }, [tenantId, raffleId, setActiveRaffle]);
 
     // Load tickets
     useEffect(() => {
