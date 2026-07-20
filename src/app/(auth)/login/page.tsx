@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { Ticket, BarChart3, Users, DollarSign } from "lucide-react";
 
@@ -39,12 +40,12 @@ export default function LoginPage() {
           <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
               <div className="w-full max-w-sm">
                   {/* Logo */}
-                  <div className="flex items-center gap-2 mb-10">
+                    <Link href="/" className="flex items-center gap-2 mb-10 hover:opacity-80 transition-opacity">
                       <div className="p-2 rounded-lg bg-primary/10">
                           <Ticket className="h-6 w-6 text-primary" />
                       </div>
                       <span className="text-xl font-bold">Raffle Platform</span>
-                  </div>
+                    </Link>
 
                   {/* Welcome text */}
                   <h1 className="text-3xl font-bold mb-2">Bienvenido</h1>
