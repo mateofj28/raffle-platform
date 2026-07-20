@@ -1,1 +1,14 @@
 @import "@heroui/styles";
+/* Ticket/Boleta shape using CSS */
+.ticket-shape {
+    position: relative;
+    border-radius: 8px;
+    mask-image:
+        radial-gradient(circle 5px at 0% 50%, transparent 5px, black 5.5px),
+        radial-gradient(circle 5px at 100% 50%, transparent 5px, black 5.5px);
+    mask-composite: intersect;
+    -webkit-mask-image:
+        radial-gradient(circle 5px at 0% 50%, transparent 5px, black 5.5px),
+        radial-gradient(circle 5px at 100% 50%, transparent 5px, black 5.5px);
+    -webkit-mask-composite: source-in;
+}

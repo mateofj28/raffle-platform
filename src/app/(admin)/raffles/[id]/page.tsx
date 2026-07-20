@@ -21,13 +21,13 @@ import type { Raffle, Ticket as TicketType, Vendor } from "@/types/api.types";
 const TICKETS_PER_PAGE = 200;
 
 const TICKET_COLOR_MAP: Record<string, string> = {
-    available: "bg-zinc-700 text-zinc-200 border-zinc-600",
-    assigned: "bg-amber-900/60 text-amber-300 border-amber-700",
-    sold: "bg-blue-900/60 text-blue-300 border-blue-700",
-    paid: "bg-emerald-900/60 text-emerald-300 border-emerald-700",
-    installment: "bg-purple-900/60 text-purple-300 border-purple-700",
-    cancelled: "bg-red-900/60 text-red-300 border-red-700",
-    winner: "bg-emerald-800 text-emerald-200 border-emerald-500 ring-2 ring-emerald-400",
+    available: "bg-zinc-700 text-zinc-300",
+    assigned: "bg-amber-800 text-amber-200",
+    sold: "bg-blue-800 text-blue-200",
+    paid: "bg-emerald-800 text-emerald-200",
+    installment: "bg-purple-800 text-purple-200",
+    cancelled: "bg-red-900 text-red-300",
+    winner: "bg-emerald-700 text-emerald-100 ring-2 ring-emerald-400",
 };
 
 export default function RaffleDetailPage() {
@@ -468,9 +468,9 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
 
     let colorClass: string;
     if (isSelected) {
-        colorClass = "bg-amber-500 text-black border-amber-400 ring-2 ring-amber-300";
+        colorClass = "bg-amber-500 text-black ring-2 ring-amber-300";
     } else if (isUnassignSelected) {
-        colorClass = "bg-red-500 text-white border-red-400 ring-2 ring-red-300";
+        colorClass = "bg-red-500 text-white ring-2 ring-red-300";
     } else {
         colorClass = TICKET_COLOR_MAP[ticket.status] || TICKET_COLOR_MAP.available;
     }
@@ -505,7 +505,7 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
           <button
               type="button"
               onClick={handleClick}
-              className={`w-full aspect-square flex items-center justify-center rounded-md border text-xs font-mono transition-all
+                className={`ticket-shape w-full aspect-square flex items-center justify-center text-xs font-mono font-bold transition-all
           ${colorClass}
           ${canInteract ? "cursor-pointer hover:scale-110" : ""}
           ${selectionMode && canInteract ? "hover:ring-1 hover:ring-amber-400" : ""}
