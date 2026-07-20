@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@heroui/react";
 import { Home, ArrowLeft } from "lucide-react";
@@ -21,7 +23,7 @@ export default function NotFound() {
               <Home className="h-4 w-4" /> Ir al inicio
             </Button>
           </Link>
-          <Button variant="outline" onPress={() => history.back()}>
+          <Button variant="outline" onPress={() => window.history.back()}>
             <ArrowLeft className="h-4 w-4" /> Volver atrás
           </Button>
         </div>
