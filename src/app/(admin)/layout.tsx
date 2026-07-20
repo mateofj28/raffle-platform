@@ -18,18 +18,20 @@ export default function AdminLayout({
     const { activeRaffle } = useRaffleStore();
     const pathname = usePathname();
 
-    // Pages that don't need the full admin shell (sidebar/header)
     const isRaffleSelection = pathname === "/raffles" || pathname === "/raffles/new";
     const showShell = activeRaffle && !isRaffleSelection;
 
     return (
         <AuthGuard requiredRole={ROLES.ADMIN}>
-          {showShell ? (
-              <div className="flex min-h-dvh">
+            {showShell ? (
+              <div className="flex h-dvh overflow-hidden">
+                  {/* Sidebar: fixed height, scrolls internally if needed */}
                   <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                  <div className="flex flex-1 flex-col">
+
+                  {/* Right panel: header fixed + content scrolls */}
+                  <div className="flex flex-1 flex-col h-dvh overflow-hidden">
                       <Header onMenuToggle={() => setSidebarOpen(true)} />
-                      <main className="flex-1 p-4 md:p-6">
+                      <main className="flex-1 overflow-y-auto p-4 md:p-6">
                           <div className="mb-4"><Breadcrumbs /></div>
                           {children}
                       </main>
@@ -38,9 +40,9 @@ export default function AdminLayout({
           ) : (
               <div className="min-h-dvh bg-background">
                   <main className="max-w-5xl mx-auto p-6 md:p-10">
-                          {children}
-                      </main>
-                  </div>
+                      {children}
+                  </main>
+              </div>
           )}
       </AuthGuard>
   );
