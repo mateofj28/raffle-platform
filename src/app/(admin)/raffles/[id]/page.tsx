@@ -460,6 +460,7 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
     vendors: Vendor[];
 }) {
     const [showDetail, setShowDetail] = useState(false);
+    const [showHover, setShowHover] = useState(false);
     const isAvailable = ticket.status === "available";
     const isAssigned = ticket.status === "assigned";
     const inAnyMode = selectionMode || unassignMode;
@@ -485,8 +486,15 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
 
     const vendorName = ticket.vendorId ? vendors.find((v) => v.id === ticket.vendorId)?.name || ticket.vendorId : null;
 
+    // Show popup: on click (normal mode) OR on hover (unassign mode for assigned tickets)
+    const shouldShowPopup = (!inAnyMode && showDetail) || (unassignMode && isAssigned && showHover);
+
     return (
-      <div className="relative">
+        <div
+            className="relative"
+            onMouseEnter={() => { if (unassignMode && isAssigned) setShowHover(true); }}
+            onMouseLeave={() => setShowHover(false)}
+        >
           <button
               type="button"
               onClick={handleClick}
@@ -503,11 +511,11 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
               {ticket.number}
           </button>
 
-            {showDetail && !inAnyMode && (
-              <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl p-3 text-xs space-y-1.5">
+            {shouldShowPopup && (
+                <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl p-3 text-xs space-y-1.5 pointer-events-none">
                   <div className="flex justify-between items-center">
                       <span className="font-bold text-white">Boleta #{ticket.number}</span>
-                      <button onClick={() => setShowDetail(false)} className="text-zinc-400 hover:text-white">✕</button>
+                        {!inAnyMode && <button onClick={() => setShowDetail(false)} className="text-zinc-400 hover:text-white pointer-events-auto">✕</button>}
                   </div>
                   <Separator />
                   <div><span className="text-zinc-400">Estado:</span> <StatusBadge status={ticket.status} /></div>
