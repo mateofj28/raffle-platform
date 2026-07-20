@@ -20,10 +20,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-                {children}
-                <ToastProvider placement="top-right" />
-            </ThemeProvider>
-        </QueryClientProvider>
+          <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+          >
+              {children}
+              <ToastProvider placement="top-right" />
+          </ThemeProvider>
+      </QueryClientProvider>
   );
 }
