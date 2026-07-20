@@ -1,14 +1,9 @@
 @import "@heroui/styles";
-/* Ticket/Boleta shape using CSS */
+/* Ticket/Boleta shape - semicircle cutouts on left and right */
 .ticket-shape {
-    position: relative;
-    border-radius: 8px;
-    mask-image:
-        radial-gradient(circle 5px at 0% 50%, transparent 5px, black 5.5px),
-        radial-gradient(circle 5px at 100% 50%, transparent 5px, black 5.5px);
-    mask-composite: intersect;
-    -webkit-mask-image:
-        radial-gradient(circle 5px at 0% 50%, transparent 5px, black 5.5px),
-        radial-gradient(circle 5px at 100% 50%, transparent 5px, black 5.5px);
-    -webkit-mask-composite: source-in;
+position: relative;
+border-radius: 10px;
+    -webkit-mask:
+        radial-gradient(circle 6px at left, transparent 97%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle 6px at right, transparent 97%, #000) right / 51% 100% no-repeat;
 }
