@@ -29,7 +29,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
     }, []);
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-divider bg-content1 px-4 md:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-divider/50 bg-background/70 backdrop-blur-xl backdrop-saturate-150 px-4 md:px-6">
             {/* Mobile menu button */}
             <Button
                 variant="ghost"
