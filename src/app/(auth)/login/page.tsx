@@ -1,7 +1,7 @@
 "use client";
 
 import { LoginForm } from "@/features/auth/components/login-form";
-import { Ticket, BarChart3, Users, Shield, Zap, DollarSign } from "lucide-react";
+import { Ticket, BarChart3, Users, DollarSign } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -9,31 +9,35 @@ const BENEFITS = [
     {
         icon: Ticket,
         title: "Miles de boletas",
-        description: "Administra hasta 50,000 boletas por rifa con seguimiento en tiempo real.",
+        description: "Administra hasta 10,000 boletas por rifa con seguimiento en tiempo real.",
+        color: "text-amber-400 bg-amber-400/10",
     },
     {
         icon: Users,
         title: "Gestión de vendedores",
         description: "Asigna boletas, rastrea ventas y calcula comisiones automáticamente.",
+      color: "text-blue-400 bg-blue-400/10",
     },
     {
         icon: DollarSign,
         title: "Control financiero",
         description: "Pagos, abonos y reversiones con auditoría completa. Sin perder un peso.",
+      color: "text-emerald-400 bg-emerald-400/10",
     },
     {
         icon: BarChart3,
         title: "Reportes en vivo",
         description: "Dashboard con métricas actualizadas: ventas, recaudo y progreso.",
+      color: "text-purple-400 bg-purple-400/10",
     },
 ];
 
 export default function LoginPage() {
     return (
-      <div className="flex min-h-dvh">
-          {/* Left: Login Form */}
-          <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:px-16">
-              <div className="w-full max-w-md mx-auto">
+        <div className="flex min-h-dvh">
+            {/* Left: Login Form */}
+          <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
+              <div className="w-full max-w-sm">
                   {/* Logo */}
                   <div className="flex items-center gap-2 mb-10">
                       <div className="p-2 rounded-lg bg-primary/10">
@@ -64,16 +68,16 @@ export default function LoginPage() {
                           const Icon = benefit.icon;
                           return (
                               <div key={benefit.title} className="flex gap-4">
-                                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                                      <Icon className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div>
-                                      <h3 className="font-semibold text-sm">{benefit.title}</h3>
-                                      <p className="text-xs text-default-500 mt-0.5">{benefit.description}</p>
-                                  </div>
-                              </div>
-                          );
-                      })}
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${benefit.color}`}>
+                            <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-sm">{benefit.title}</h3>
+                            <p className="text-xs text-default-500 mt-0.5">{benefit.description}</p>
+                        </div>
+                    </div>
+                );
+            })}
                   </div>
 
                   {/* Footer quote */}
