@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, Check, ChevronDown } from "lucide-react";
@@ -461,6 +461,7 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
 }) {
     const [showDetail, setShowDetail] = useState(false);
     const [showHover, setShowHover] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
     const isAvailable = ticket.status === "available";
     const isAssigned = ticket.status === "assigned";
     const inAnyMode = selectionMode || unassignMode;
@@ -489,9 +490,15 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
     // Show popup: on click (normal mode) OR on hover (unassign mode for assigned tickets)
     const shouldShowPopup = (!inAnyMode && showDetail) || (unassignMode && isAssigned && showHover);
 
+    // Detect if popup would overflow right edge
+    const isNearRightEdge = containerRef.current
+        ? containerRef.current.getBoundingClientRect().right + 210 > window.innerWidth
+        : false;
+
     return (
         <div
             className="relative"
+            ref={containerRef}
             onMouseEnter={() => { if (unassignMode && isAssigned) setShowHover(true); }}
             onMouseLeave={() => setShowHover(false)}
         >
@@ -512,7 +519,7 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
           </button>
 
             {shouldShowPopup && (
-                <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl p-3 text-xs space-y-1.5 pointer-events-none">
+                <div className={`absolute z-50 top-full mt-1 w-52 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl p-3 text-xs space-y-1.5 pointer-events-none ${isNearRightEdge ? "right-0" : "left-0"}`}>
                   <div className="flex justify-between items-center">
                       <span className="font-bold text-white">Boleta #{ticket.number}</span>
                         {!inAnyMode && <button onClick={() => setShowDetail(false)} className="text-zinc-400 hover:text-white pointer-events-auto">✕</button>}
