@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, CardContent, Separator, Chip, AlertDialog } from "@heroui/react";
-import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus } from "lucide-react";
+import { Button, Card, CardContent, Separator, Chip, AlertDialog, Input, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
+import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, ChevronDown, Plus } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -13,9 +13,10 @@ import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
+import { callFunction } from "@/services/firebase-callable";
 import { getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
-import type { Vendor, Ticket as TicketType } from "@/types/api.types";
+import type { Vendor, Ticket as TicketType, Customer } from "@/types/api.types";
 
 interface TicketWithCustomer extends TicketType {
     customerName?: string;
@@ -32,9 +33,16 @@ export default function VendorDetailPage() {
 
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [tickets, setTickets] = useState<TicketWithCustomer[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [ticketsLoading, setTicketsLoading] = useState(true);
     const [reloadKey, setReloadKey] = useState(0);
+
+    // Sell modal state
+    const [sellTicketNum, setSellTicketNum] = useState<number | null>(null);
+    const [sellCustomerId, setSellCustomerId] = useState("");
+    const [selling, setSelling] = useState(false);
+    const [sellError, setSellError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!activeRaffle) router.push("/raffles");
@@ -59,7 +67,12 @@ export default function VendorDetailPage() {
             try {
                 const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
                 const customersMap = new Map<string, string>();
-                customersSnap.docs.forEach(d => customersMap.set(d.id, d.data().name));
+                const customersList: Customer[] = [];
+                customersSnap.docs.forEach(d => {
+                    customersMap.set(d.id, d.data().name);
+                    customersList.push({ id: d.id, ...d.data() } as Customer);
+                });
+                setCustomers(customersList);
 
                 const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
                 const q = query(ticketsCol, where("vendorId", "==", vendorId), orderBy("number", "asc"));
@@ -74,6 +87,27 @@ export default function VendorDetailPage() {
         };
         load();
     }, [tenantId, vendorId, activeRaffle, reloadKey]);
+
+    // Sell ticket to customer
+    const handleSell = async () => {
+        if (!sellTicketNum || !sellCustomerId || !activeRaffle) return;
+        setSelling(true);
+        setSellError(null);
+        try {
+            await callFunction("sellTicket", {
+                raffleId: activeRaffle.id,
+                ticketNumber: sellTicketNum,
+                customerId: sellCustomerId,
+            });
+            setSellTicketNum(null);
+            setSellCustomerId("");
+            setReloadKey(k => k + 1);
+        } catch (e) {
+            setSellError(e instanceof Error ? e.message : "Error al vender la boleta");
+        } finally {
+            setSelling(false);
+        }
+    };
 
     if (!activeRaffle) return null;
     if (loading) return <div><PageHeader title="Vendedor" /><LoadingSkeleton rows={6} /></div>;
@@ -131,17 +165,75 @@ export default function VendorDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este vendedor no tiene boletas en esta rifa" icon={<Ticket className="h-12 w-12" />} />
                   ) : (
-                      <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} />
+                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} customers={customers} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => setSellTicketNum(num)} />
                   )}
               </>
           )}
+
+            {/* Sell ticket modal */}
+            <AlertDialog.Backdrop isOpen={sellTicketNum !== null} onOpenChange={(open) => { if (!open) { setSellTicketNum(null); setSellCustomerId(""); setSellError(null); } }} isDismissable>
+                <AlertDialog.Container placement="center" size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.CloseTrigger />
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="accent" />
+                            <AlertDialog.Heading>Vender boleta #{sellTicketNum}</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <p className="text-sm text-default-500 mb-4">Selecciona el cliente que compra esta boleta. Quedará como "Vendida" con saldo pendiente.</p>
+
+                            {customers.length > 0 ? (
+                                <div className="space-y-3">
+                                    <label className="text-sm font-medium">Cliente</label>
+                                    <Select
+                                        aria-label="Cliente"
+                                        selectedKey={sellCustomerId || null}
+                                        onSelectionChange={(key) => setSellCustomerId(String(key ?? ""))}
+                                        placeholder="Seleccionar cliente"
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                            <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
+                                        </SelectTrigger>
+                                        <SelectPopover>
+                                            <ListBox>
+                                                {customers.map((c) => (
+                                                    <ListBoxItem key={c.id} id={c.id} textValue={`${c.name} - ${c.document}`}>
+                                                        <span className="font-medium">{c.name}</span>
+                                                        <span className="text-xs text-default-500 ml-2">CC {c.document}</span>
+                                                    </ListBoxItem>
+                                                ))}
+                                            </ListBox>
+                                        </SelectPopover>
+                                    </Select>
+                                </div>
+                            ) : (
+                                <div className="text-center py-4">
+                                    <p className="text-sm text-default-500 mb-3">No hay clientes registrados.</p>
+                                    <Link href="/customers/new">
+                                        <Button variant="outline" size="sm"><Plus className="h-4 w-4" /> Crear cliente</Button>
+                                    </Link>
+                                </div>
+                            )}
+
+                            {sellError && <p className="text-xs text-danger mt-3">{sellError}</p>}
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">Cancelar</Button>
+                            <Button variant="primary" isDisabled={!sellCustomerId || selling} onPress={handleSell}>
+                                {selling ? "Vendiendo..." : "Confirmar venta"}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
       </div>
   );
 }
 
 // --- Table with unassign (SRP) ---
 
-function TicketsTableWithUnassign({ tickets, raffleId, onReload }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void }) {
+function TicketsTableWithUnassign({ tickets, raffleId, customers, onReload, onSell }: { tickets: TicketWithCustomer[]; raffleId: string; customers: Customer[]; onReload: () => void; onSell: (ticketNum: number) => void }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
 
@@ -194,9 +286,14 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload }: { tickets: Ti
                     </td>
                     <td className="px-4 py-3 text-center">
                         {ticket.status === "assigned" && (
-                            <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
-                                <UserMinus className="h-4 w-4 text-danger" />
-                            </Button>
+                                      <div className="flex items-center justify-center gap-1">
+                                          <Button variant="ghost" size="sm" onPress={() => onSell(ticket.number)} aria-label="Vender">
+                                              <ShoppingCart className="h-4 w-4 text-blue-400" />
+                                          </Button>
+                                          <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
+                                              <UserMinus className="h-4 w-4 text-danger" />
+                                          </Button>
+                                      </div>
                         )}
                     </td>
               </tr>
