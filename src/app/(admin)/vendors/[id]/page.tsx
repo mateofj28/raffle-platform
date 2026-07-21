@@ -148,6 +148,16 @@ export default function VendorDetailPage() {
 function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 20;
+
+    const totalPages = Math.ceil(tickets.length / PAGE_SIZE);
+    const paginatedTickets = tickets.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const [page, setPage] = useState(1);
+    const perPage = 20;
+
+    const totalPages = Math.ceil(tickets.length / perPage);
+    const paginatedTickets = tickets.slice((page - 1) * perPage, page * perPage);
 
     const handleUnassign = async () => {
         if (confirmTicket === null) return;
@@ -175,7 +185,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tic
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-default-200">
-                      {tickets.map((ticket) => (
+                        {paginatedTickets.map((ticket) => (
               <tr key={ticket.number} className="hover:bg-default-50">
                     <td className="px-4 py-3 font-mono font-bold">{ticket.number}</td>
                     <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
@@ -213,6 +223,24 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tic
                   </tbody>
               </table>
           </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 px-1">
+                    <p className="text-xs text-default-500">
+                        Mostrando {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, tickets.length)} de {tickets.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" isDisabled={page === 1} onPress={() => setPage(p => p - 1)}>
+                            Anterior
+                        </Button>
+                        <span className="text-xs text-default-500 px-2">{page} / {totalPages}</span>
+                        <Button variant="ghost" size="sm" isDisabled={page === totalPages} onPress={() => setPage(p => p + 1)}>
+                            Siguiente
+                        </Button>
+                    </div>
+                </div>
+            )}
 
           {/* Confirmation dialog */}
           <AlertDialog.Backdrop isOpen={confirmTicket !== null} onOpenChange={(open) => { if (!open) setConfirmTicket(null); }} isDismissable>
