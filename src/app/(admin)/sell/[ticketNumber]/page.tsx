@@ -227,14 +227,19 @@ export default function SellTicketPage() {
                 <div className="mt-3 pl-4 border-l-2 border-amber-500/30">
                   <label className="text-sm font-medium mb-2 block">Monto del abono</label>
                   <Input
-                    type="number"
+                    type="text"
                     placeholder="Ej: 30000"
                     value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="w-full"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setPaymentAmount(val);
+                    }}
+                    className="w-full [&_input]:[-moz-appearance:textfield] [&_input::-webkit-outer-spin-button]:appearance-none [&_input::-webkit-inner-spin-button]:appearance-none"
                     inputMode="numeric"
                   />
-                  <p className="text-xs text-default-500 mt-1">Máximo: {formatCurrency(activeRaffle.ticketPrice)}</p>
+                  <p className="text-xs text-default-500 mt-1">
+                    {paymentAmount ? `Abono: ${formatCurrency(parseInt(paymentAmount))} — ` : ""}Máximo: {formatCurrency(activeRaffle.ticketPrice)}
+                  </p>
                 </div>
               )}
             </div>

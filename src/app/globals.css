@@ -1,5 +1,15 @@
 @import "@heroui/styles";
 
+/* Remove number input spinners globally */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
 /* Ticket/Boleta shape - semicircle cutouts on left and right */
 .ticket-shape {
 position: relative;
