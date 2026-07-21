@@ -233,10 +233,8 @@ export default function SellTicketPage() {
                     onChange={(e) => {
                       const raw = e.target.value.replace(/\D/g, "");
                       const num = parseInt(raw || "0");
-                      // Cap at ticket price
-                      if (num > activeRaffle.ticketPrice) {
+                      if (num >= activeRaffle.ticketPrice) {
                         setPaymentAmount(String(activeRaffle.ticketPrice));
-                        // If equals full price, switch to full payment
                         setPaymentOption("full");
                       } else {
                         setPaymentAmount(raw);
@@ -269,7 +267,7 @@ export default function SellTicketPage() {
           </Button>
           <Button
             variant="primary"
-            isDisabled={!selectedCustomerId || selling}
+            isDisabled={!selectedCustomerId || selling || (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < 1000))}
             onPress={handleSell}
           >
             <Ticket className="h-4 w-4" />
