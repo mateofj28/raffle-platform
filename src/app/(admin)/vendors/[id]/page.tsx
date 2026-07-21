@@ -186,7 +186,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tic
                                 {ticket.pendingBalance === 0 && <span className="ml-1 text-xs">(Pagado ✓)</span>}
                             </span>
                         ) : (
-                            <span className="text-default-400 italic">Sin cliente</span>
+                                          <span className="text-danger italic">Sin cliente</span>
                         )}
                     </td>
                     <td className="px-4 py-3 text-right">{formatCurrency(ticket.value)}</td>

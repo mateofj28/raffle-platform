@@ -23,7 +23,7 @@ export const TICKET_STATUSES: Record<TicketStatus, { label: string; color: strin
     assigned: { label: "Asignada", color: "warning" },
     sold: { label: "Vendida", color: "primary" },
     paid: { label: "Pagada", color: "success" },
-    installment: { label: "Abonada", color: "secondary" },
+    installment: { label: "Abonada", color: "warning" },
     cancelled: { label: "Cancelada", color: "danger" },
     winner: { label: "Ganadora", color: "success" },
 };
