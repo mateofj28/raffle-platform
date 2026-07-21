@@ -1,8 +1,5 @@
 @import "@heroui/styles";
-/* Font: Poppins as default */
-@theme inline {
-    --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
-}
+
 /* Ticket/Boleta shape - semicircle cutouts on left and right */
 .ticket-shape {
 position: relative;
@@ -10,4 +7,13 @@ position: relative;
     -webkit-mask:
         radial-gradient(circle 6px at left, transparent 97%, #000) left / 51% 100% no-repeat,
         radial-gradient(circle 6px at right, transparent 97%, #000) right / 51% 100% no-repeat;
+}
+
+/* Force Poppins as the global font */
+body,
+button,
+input,
+select,
+textarea {
+    font-family: var(--font-poppins), "Poppins", ui-sans-serif, system-ui, sans-serif !important;
 }
