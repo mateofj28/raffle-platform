@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, CardContent, Separator, Chip, AlertDialog, Input, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
-import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, ChevronDown, Plus } from "lucide-react";
+import { Button, Card, CardContent, Separator, Chip, AlertDialog } from "@heroui/react";
+import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -13,10 +13,9 @@ import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
-import { callFunction } from "@/services/firebase-callable";
 import { getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
-import type { Vendor, Ticket as TicketType, Customer } from "@/types/api.types";
+import type { Vendor, Ticket as TicketType } from "@/types/api.types";
 
 interface TicketWithCustomer extends TicketType {
     customerName?: string;
@@ -33,19 +32,9 @@ export default function VendorDetailPage() {
 
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [tickets, setTickets] = useState<TicketWithCustomer[]>([]);
-    const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [ticketsLoading, setTicketsLoading] = useState(true);
     const [reloadKey, setReloadKey] = useState(0);
-
-    // Sell modal state
-    const [sellTicketNum, setSellTicketNum] = useState<number | null>(null);
-    const [sellCustomerId, setSellCustomerId] = useState("");
-    const [sellPaymentOption, setSellPaymentOption] = useState<"none" | "full" | "partial">("none");
-    const [sellPaymentAmount, setSellPaymentAmount] = useState("");
-    const [customerSearch, setCustomerSearch] = useState("");
-    const [selling, setSelling] = useState(false);
-    const [sellError, setSellError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!activeRaffle) router.push("/raffles");
@@ -70,12 +59,9 @@ export default function VendorDetailPage() {
             try {
                 const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
                 const customersMap = new Map<string, string>();
-                const customersList: Customer[] = [];
                 customersSnap.docs.forEach(d => {
                     customersMap.set(d.id, d.data().name);
-                    customersList.push({ id: d.id, ...d.data() } as Customer);
                 });
-                setCustomers(customersList);
 
                 const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
                 const q = query(ticketsCol, where("vendorId", "==", vendorId), orderBy("number", "asc"));
@@ -91,55 +77,6 @@ export default function VendorDetailPage() {
         load();
     }, [tenantId, vendorId, activeRaffle, reloadKey]);
 
-    // Sell ticket to customer
-    const handleSell = async () => {
-        if (!sellTicketNum || !sellCustomerId || !activeRaffle) return;
-        setSelling(true);
-        setSellError(null);
-        try {
-            // 1. Sell the ticket
-            await callFunction("sellTicket", {
-                raffleId: activeRaffle.id,
-                ticketNumber: sellTicketNum,
-                customerId: sellCustomerId,
-            });
-
-            // 2. Register payment if selected
-            if (sellPaymentOption === "full") {
-                await callFunction("registerPayment", {
-                    raffleId: activeRaffle.id,
-                    ticketNumber: sellTicketNum,
-                    amount: activeRaffle.ticketPrice,
-                    type: "payment",
-                    method: "cash",
-                    observations: "Pago completo al momento de la venta",
-                });
-            } else if (sellPaymentOption === "partial" && sellPaymentAmount) {
-                const amount = parseInt(sellPaymentAmount);
-                if (amount > 0) {
-                    await callFunction("registerPayment", {
-                        raffleId: activeRaffle.id,
-                        ticketNumber: sellTicketNum,
-                        amount,
-                        type: "installment",
-                        method: "cash",
-                        observations: "Abono al momento de la venta",
-                    });
-                }
-            }
-
-            setSellTicketNum(null);
-            setSellCustomerId("");
-            setSellPaymentOption("none");
-            setSellPaymentAmount("");
-            setCustomerSearch("");
-            setReloadKey(k => k + 1);
-        } catch (e) {
-            setSellError(e instanceof Error ? e.message : "Error al vender la boleta");
-        } finally {
-            setSelling(false);
-        }
-    };
 
     if (!activeRaffle) return null;
     if (loading) return <div><PageHeader title="Vendedor" /><LoadingSkeleton rows={6} /></div>;
@@ -197,91 +134,18 @@ export default function VendorDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este vendedor no tiene boletas en esta rifa" icon={<Ticket className="h-12 w-12" />} />
                   ) : (
-                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} customers={customers} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => setSellTicketNum(num)} />
+                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} />
                   )}
               </>
           )}
 
-            {/* Sell ticket modal */}
-            <AlertDialog.Backdrop isOpen={sellTicketNum !== null} onOpenChange={(open) => { if (!open) { setSellTicketNum(null); setSellCustomerId(""); setSellError(null); setSellPaymentOption("none"); setSellPaymentAmount(""); setCustomerSearch(""); } }} isDismissable>
-                <AlertDialog.Container placement="center" size="md">
-                    <AlertDialog.Dialog>
-                        <AlertDialog.CloseTrigger />
-                        <AlertDialog.Header>
-                            <AlertDialog.Icon status="accent" />
-                            <AlertDialog.Heading>Vender boleta #{sellTicketNum}</AlertDialog.Heading>
-                        </AlertDialog.Header>
-                        <AlertDialog.Body>
-                            {/* Customer search */}
-                            <div className="space-y-2 mb-5">
-                                <label className="text-sm font-medium">Cliente</label>
-                                <Input
-                                    placeholder="Buscar por nombre o cédula..."
-                                    value={customerSearch}
-                                    onChange={(e) => { setCustomerSearch(e.target.value); setSellCustomerId(""); }}
-                                    className="w-full"
-                                />
-                                {customerSearch.length >= 2 && !sellCustomerId && (
-                                    <div className="max-h-32 overflow-y-auto rounded-lg border border-default-200 divide-y divide-default-100">
-                                        {customers
-                                            .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.document.includes(customerSearch))
-                                            .slice(0, 5)
-                                            .map(c => (
-                                                <button key={c.id} type="button" onClick={() => { setSellCustomerId(c.id); setCustomerSearch(c.name); }}
-                                                    className="w-full text-left px-3 py-2 text-sm hover:bg-default-100 transition-colors">
-                                                    <span className="font-medium">{c.name}</span>
-                                                    <span className="text-default-500 ml-2 text-xs">CC {c.document}</span>
-                                                </button>
-                                            ))
-                                        }
-                                        {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.document.includes(customerSearch)).length === 0 && (
-                                            <div className="px-3 py-2 text-xs text-default-500">No encontrado. <Link href="/customers/new" className="text-primary underline">Crear cliente</Link></div>
-                                        )}
-                                    </div>
-                                )}
-                                {sellCustomerId && <p className="text-xs text-success">✓ Cliente seleccionado</p>}
-                            </div>
-
-                            {/* Payment options */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">¿Cómo paga?</label>
-                                <div className="grid grid-cols-1 gap-2">
-                                    <button type="button" onClick={() => setSellPaymentOption("none")} className={`text-left p-3 rounded-lg border text-sm transition-colors ${sellPaymentOption === "none" ? "border-primary bg-primary/5" : "border-default-200 hover:bg-default-50"}`}>
-                                        <span className="font-medium">Solo asignar al cliente</span>
-                                        <span className="text-xs text-default-500 block mt-0.5">Queda pendiente. Pagará después.</span>
-                                    </button>
-                                    <button type="button" onClick={() => setSellPaymentOption("full")} className={`text-left p-3 rounded-lg border text-sm transition-colors ${sellPaymentOption === "full" ? "border-emerald-500 bg-emerald-500/5" : "border-default-200 hover:bg-default-50"}`}>
-                                        <span className="font-medium">Pago completo</span>
-                                        <span className="text-xs text-default-500 block mt-0.5">Paga {formatCurrency(activeRaffle?.ticketPrice || 0)} ahora.</span>
-                                    </button>
-                                    <button type="button" onClick={() => setSellPaymentOption("partial")} className={`text-left p-3 rounded-lg border text-sm transition-colors ${sellPaymentOption === "partial" ? "border-amber-500 bg-amber-500/5" : "border-default-200 hover:bg-default-50"}`}>
-                                        <span className="font-medium">Abono parcial</span>
-                                        <span className="text-xs text-default-500 block mt-0.5">Paga una parte ahora.</span>
-                                    </button>
-                                </div>
-                                {sellPaymentOption === "partial" && (
-                                    <Input type="number" placeholder="Monto del abono" value={sellPaymentAmount} onChange={(e) => setSellPaymentAmount(e.target.value)} className="w-full mt-2" inputMode="numeric" />
-                                )}
-                            </div>
-
-                            {sellError && <p className="text-xs text-danger mt-3">{sellError}</p>}
-                        </AlertDialog.Body>
-                        <AlertDialog.Footer>
-                            <Button slot="close" variant="tertiary">Cancelar</Button>
-                            <Button variant="primary" isDisabled={!sellCustomerId || selling} onPress={handleSell}>
-                                {selling ? "Procesando..." : "Confirmar venta"}
-                            </Button>
-                        </AlertDialog.Footer>
-                    </AlertDialog.Dialog>
-                </AlertDialog.Container>
-            </AlertDialog.Backdrop>
       </div>
   );
 }
 
 // --- Table with unassign (SRP) ---
 
-function TicketsTableWithUnassign({ tickets, raffleId, customers, onReload, onSell }: { tickets: TicketWithCustomer[]; raffleId: string; customers: Customer[]; onReload: () => void; onSell: (ticketNum: number) => void }) {
+function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
 
