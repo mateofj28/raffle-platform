@@ -83,7 +83,7 @@ export default function SellTicketPage() {
         });
       } else if (paymentOption === "partial" && paymentAmount) {
         const amount = parseInt(paymentAmount);
-        if (amount > 0) {
+        if (amount >= 1000) {
           await callFunction("registerPayment", {
             raffleId: activeRaffle.id,
             ticketNumber,
@@ -228,18 +228,34 @@ export default function SellTicketPage() {
                   <label className="text-sm font-medium mb-2 block">Monto del abono</label>
                   <Input
                     type="text"
-                    placeholder="Ej: 30000"
-                    value={paymentAmount}
+                    placeholder="Ej: 30.000"
+                    value={paymentAmount ? parseInt(paymentAmount).toLocaleString("es-CO") : ""}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "");
-                      setPaymentAmount(val);
+                      const raw = e.target.value.replace(/\D/g, "");
+                      const num = parseInt(raw || "0");
+                      // Cap at ticket price
+                      if (num > activeRaffle.ticketPrice) {
+                        setPaymentAmount(String(activeRaffle.ticketPrice));
+                        // If equals full price, switch to full payment
+                        setPaymentOption("full");
+                      } else {
+                        setPaymentAmount(raw);
+                      }
                     }}
-                    className="w-full [&_input]:[-moz-appearance:textfield] [&_input::-webkit-outer-spin-button]:appearance-none [&_input::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full"
                     inputMode="numeric"
                   />
-                  <p className="text-xs text-default-500 mt-1">
-                    {paymentAmount ? `Abono: ${formatCurrency(parseInt(paymentAmount))} — ` : ""}Máximo: {formatCurrency(activeRaffle.ticketPrice)}
-                  </p>
+                  {paymentAmount && parseInt(paymentAmount) < 1000 && (
+                    <p className="text-xs text-danger mt-1">Mínimo: $1.000</p>
+                  )}
+                  {paymentAmount && parseInt(paymentAmount) >= 1000 && (
+                    <p className="text-xs text-default-500 mt-1">
+                      Abono: {formatCurrency(parseInt(paymentAmount))} — Restante: {formatCurrency(activeRaffle.ticketPrice - parseInt(paymentAmount))}
+                    </p>
+                  )}
+                  {!paymentAmount && (
+                    <p className="text-xs text-default-500 mt-1">Mínimo: $1.000 — Máximo: {formatCurrency(activeRaffle.ticketPrice)}</p>
+                  )}
                 </div>
               )}
             </div>
