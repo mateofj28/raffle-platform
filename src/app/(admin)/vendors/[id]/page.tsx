@@ -153,11 +153,6 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tic
 
     const totalPages = Math.ceil(tickets.length / PAGE_SIZE);
     const paginatedTickets = tickets.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-    const [page, setPage] = useState(1);
-    const perPage = 20;
-
-    const totalPages = Math.ceil(tickets.length / perPage);
-    const paginatedTickets = tickets.slice((page - 1) * perPage, page * perPage);
 
     const handleUnassign = async () => {
         if (confirmTicket === null) return;
