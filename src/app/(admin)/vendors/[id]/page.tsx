@@ -128,7 +128,7 @@ export default function VendorDetailPage() {
                       <Chip size="sm" variant="soft" color="warning">Asignadas: {assigned}</Chip>
                       <Chip size="sm" variant="soft" color="accent">Vendidas: {sold}</Chip>
                       <Chip size="sm" variant="soft" color="success">Pagadas: {paid}</Chip>
-                        <Chip size="sm" variant="soft" color="warning">Abonadas: {installment}</Chip>
+                        <Chip size="sm" variant="soft" color="danger">Abonadas: {installment}</Chip>
                   </div>
 
                   {tickets.length === 0 ? (
