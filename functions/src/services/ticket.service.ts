@@ -246,10 +246,10 @@ export const sellTicket = onCall(
 
                 const raffle = raffleSnap.data()!;
 
-                if (raffle.status !== "active") {
+                if (raffle.status === "finished" || raffle.status === "cancelled") {
                     throw new AppError(
                         AppErrorCode.INVALID_TRANSITION,
-                        "Raffle is not active."
+                        "No se puede vender en una rifa finalizada o cancelada."
                     );
                 }
 

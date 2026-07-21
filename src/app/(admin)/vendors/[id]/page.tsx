@@ -41,6 +41,9 @@ export default function VendorDetailPage() {
     // Sell modal state
     const [sellTicketNum, setSellTicketNum] = useState<number | null>(null);
     const [sellCustomerId, setSellCustomerId] = useState("");
+    const [sellPaymentOption, setSellPaymentOption] = useState<"none" | "full" | "partial">("none");
+    const [sellPaymentAmount, setSellPaymentAmount] = useState("");
+    const [customerSearch, setCustomerSearch] = useState("");
     const [selling, setSelling] = useState(false);
     const [sellError, setSellError] = useState<string | null>(null);
 
@@ -94,13 +97,42 @@ export default function VendorDetailPage() {
         setSelling(true);
         setSellError(null);
         try {
+            // 1. Sell the ticket
             await callFunction("sellTicket", {
                 raffleId: activeRaffle.id,
                 ticketNumber: sellTicketNum,
                 customerId: sellCustomerId,
             });
+
+            // 2. Register payment if selected
+            if (sellPaymentOption === "full") {
+                await callFunction("registerPayment", {
+                    raffleId: activeRaffle.id,
+                    ticketNumber: sellTicketNum,
+                    amount: activeRaffle.ticketPrice,
+                    type: "payment",
+                    method: "cash",
+                    observations: "Pago completo al momento de la venta",
+                });
+            } else if (sellPaymentOption === "partial" && sellPaymentAmount) {
+                const amount = parseInt(sellPaymentAmount);
+                if (amount > 0) {
+                    await callFunction("registerPayment", {
+                        raffleId: activeRaffle.id,
+                        ticketNumber: sellTicketNum,
+                        amount,
+                        type: "installment",
+                        method: "cash",
+                        observations: "Abono al momento de la venta",
+                    });
+                }
+            }
+
             setSellTicketNum(null);
             setSellCustomerId("");
+            setSellPaymentOption("none");
+            setSellPaymentAmount("");
+            setCustomerSearch("");
             setReloadKey(k => k + 1);
         } catch (e) {
             setSellError(e instanceof Error ? e.message : "Error al vender la boleta");
@@ -171,8 +203,8 @@ export default function VendorDetailPage() {
           )}
 
             {/* Sell ticket modal */}
-            <AlertDialog.Backdrop isOpen={sellTicketNum !== null} onOpenChange={(open) => { if (!open) { setSellTicketNum(null); setSellCustomerId(""); setSellError(null); } }} isDismissable>
-                <AlertDialog.Container placement="center" size="sm">
+            <AlertDialog.Backdrop isOpen={sellTicketNum !== null} onOpenChange={(open) => { if (!open) { setSellTicketNum(null); setSellCustomerId(""); setSellError(null); setSellPaymentOption("none"); setSellPaymentAmount(""); setCustomerSearch(""); } }} isDismissable>
+                <AlertDialog.Container placement="center" size="md">
                     <AlertDialog.Dialog>
                         <AlertDialog.CloseTrigger />
                         <AlertDialog.Header>
@@ -180,48 +212,64 @@ export default function VendorDetailPage() {
                             <AlertDialog.Heading>Vender boleta #{sellTicketNum}</AlertDialog.Heading>
                         </AlertDialog.Header>
                         <AlertDialog.Body>
-                            <p className="text-sm text-default-500 mb-4">Selecciona el cliente que compra esta boleta. Quedará como "Vendida" con saldo pendiente.</p>
+                            {/* Customer search */}
+                            <div className="space-y-2 mb-5">
+                                <label className="text-sm font-medium">Cliente</label>
+                                <Input
+                                    placeholder="Buscar por nombre o cédula..."
+                                    value={customerSearch}
+                                    onChange={(e) => { setCustomerSearch(e.target.value); setSellCustomerId(""); }}
+                                    className="w-full"
+                                />
+                                {customerSearch.length >= 2 && !sellCustomerId && (
+                                    <div className="max-h-32 overflow-y-auto rounded-lg border border-default-200 divide-y divide-default-100">
+                                        {customers
+                                            .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.document.includes(customerSearch))
+                                            .slice(0, 5)
+                                            .map(c => (
+                                                <button key={c.id} type="button" onClick={() => { setSellCustomerId(c.id); setCustomerSearch(c.name); }}
+                                                    className="w-full text-left px-3 py-2 text-sm hover:bg-default-100 transition-colors">
+                                                    <span className="font-medium">{c.name}</span>
+                                                    <span className="text-default-500 ml-2 text-xs">CC {c.document}</span>
+                                                </button>
+                                            ))
+                                        }
+                                        {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.document.includes(customerSearch)).length === 0 && (
+                                            <div className="px-3 py-2 text-xs text-default-500">No encontrado. <Link href="/customers/new" className="text-primary underline">Crear cliente</Link></div>
+                                        )}
+                                    </div>
+                                )}
+                                {sellCustomerId && <p className="text-xs text-success">✓ Cliente seleccionado</p>}
+                            </div>
 
-                            {customers.length > 0 ? (
-                                <div className="space-y-3">
-                                    <label className="text-sm font-medium">Cliente</label>
-                                    <Select
-                                        aria-label="Cliente"
-                                        selectedKey={sellCustomerId || null}
-                                        onSelectionChange={(key) => setSellCustomerId(String(key ?? ""))}
-                                        placeholder="Seleccionar cliente"
-                                    >
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue />
-                                            <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
-                                        </SelectTrigger>
-                                        <SelectPopover>
-                                            <ListBox>
-                                                {customers.map((c) => (
-                                                    <ListBoxItem key={c.id} id={c.id} textValue={`${c.name} - ${c.document}`}>
-                                                        <span className="font-medium">{c.name}</span>
-                                                        <span className="text-xs text-default-500 ml-2">CC {c.document}</span>
-                                                    </ListBoxItem>
-                                                ))}
-                                            </ListBox>
-                                        </SelectPopover>
-                                    </Select>
+                            {/* Payment options */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">¿Cómo paga?</label>
+                                <div className="grid grid-cols-1 gap-2">
+                                    <button type="button" onClick={() => setSellPaymentOption("none")} className={`text-left p-3 rounded-lg border text-sm transition-colors ${sellPaymentOption === "none" ? "border-primary bg-primary/5" : "border-default-200 hover:bg-default-50"}`}>
+                                        <span className="font-medium">Solo asignar al cliente</span>
+                                        <span className="text-xs text-default-500 block mt-0.5">Queda pendiente. Pagará después.</span>
+                                    </button>
+                                    <button type="button" onClick={() => setSellPaymentOption("full")} className={`text-left p-3 rounded-lg border text-sm transition-colors ${sellPaymentOption === "full" ? "border-emerald-500 bg-emerald-500/5" : "border-default-200 hover:bg-default-50"}`}>
+                                        <span className="font-medium">Pago completo</span>
+                                        <span className="text-xs text-default-500 block mt-0.5">Paga {formatCurrency(activeRaffle?.ticketPrice || 0)} ahora.</span>
+                                    </button>
+                                    <button type="button" onClick={() => setSellPaymentOption("partial")} className={`text-left p-3 rounded-lg border text-sm transition-colors ${sellPaymentOption === "partial" ? "border-amber-500 bg-amber-500/5" : "border-default-200 hover:bg-default-50"}`}>
+                                        <span className="font-medium">Abono parcial</span>
+                                        <span className="text-xs text-default-500 block mt-0.5">Paga una parte ahora.</span>
+                                    </button>
                                 </div>
-                            ) : (
-                                <div className="text-center py-4">
-                                    <p className="text-sm text-default-500 mb-3">No hay clientes registrados.</p>
-                                    <Link href="/customers/new">
-                                        <Button variant="outline" size="sm"><Plus className="h-4 w-4" /> Crear cliente</Button>
-                                    </Link>
-                                </div>
-                            )}
+                                {sellPaymentOption === "partial" && (
+                                    <Input type="number" placeholder="Monto del abono" value={sellPaymentAmount} onChange={(e) => setSellPaymentAmount(e.target.value)} className="w-full mt-2" inputMode="numeric" />
+                                )}
+                            </div>
 
                             {sellError && <p className="text-xs text-danger mt-3">{sellError}</p>}
                         </AlertDialog.Body>
                         <AlertDialog.Footer>
                             <Button slot="close" variant="tertiary">Cancelar</Button>
                             <Button variant="primary" isDisabled={!sellCustomerId || selling} onPress={handleSell}>
-                                {selling ? "Vendiendo..." : "Confirmar venta"}
+                                {selling ? "Procesando..." : "Confirmar venta"}
                             </Button>
                         </AlertDialog.Footer>
                     </AlertDialog.Dialog>
