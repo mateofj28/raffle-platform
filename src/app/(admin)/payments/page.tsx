@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, CardContent, Chip, Input } from "@heroui/react";
-import { CreditCard, Filter, X } from "lucide-react";
+import { Button, Card, CardContent, Chip, Input, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
+import { CreditCard, Filter, X, ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -111,29 +111,49 @@ export default function PaymentsPage() {
                                   className="w-full sm:w-64"
                               />
 
-                              <select
-                                  value={filterType}
-                                  onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
-                                  className="rounded-lg border border-default-200 bg-transparent px-3 py-2 text-sm"
+                                    <Select
+                                        aria-label="Tipo de pago"
+                                        selectedKey={filterType || null}
+                                        onSelectionChange={(key) => { setFilterType(key ? String(key) : ""); setPage(1); }}
+                                        placeholder="Todos los tipos"
+                                        className="w-44"
                               >
-                                  <option value="">Todos los tipos</option>
-                                  <option value="payment">Pago completo</option>
-                                  <option value="installment">Abono</option>
-                              </select>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                            <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
+                                        </SelectTrigger>
+                                        <SelectPopover>
+                                            <ListBox>
+                                                <ListBoxItem id="" textValue="Todos los tipos">Todos los tipos</ListBoxItem>
+                                                <ListBoxItem id="payment" textValue="Pago completo">Pago completo</ListBoxItem>
+                                                <ListBoxItem id="installment" textValue="Abono">Abono</ListBoxItem>
+                                            </ListBox>
+                                        </SelectPopover>
+                                    </Select>
 
-                              <select
-                                  value={filterMethod}
-                                  onChange={(e) => { setFilterMethod(e.target.value); setPage(1); }}
-                                  className="rounded-lg border border-default-200 bg-transparent px-3 py-2 text-sm"
+                                    <Select
+                                        aria-label="Método de pago"
+                                        selectedKey={filterMethod || null}
+                                        onSelectionChange={(key) => { setFilterMethod(key ? String(key) : ""); setPage(1); }}
+                                        placeholder="Todos los métodos"
+                                        className="w-48"
                               >
-                                  <option value="">Todos los métodos</option>
-                                  <option value="cash">Efectivo</option>
-                                  <option value="transfer">Transferencia</option>
-                                  <option value="nequi">Nequi</option>
-                                  <option value="daviplata">Daviplata</option>
-                                  <option value="card">Tarjeta</option>
-                                  <option value="other">Otro</option>
-                              </select>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                            <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
+                                        </SelectTrigger>
+                                        <SelectPopover>
+                                            <ListBox>
+                                                <ListBoxItem id="" textValue="Todos los métodos">Todos los métodos</ListBoxItem>
+                                                <ListBoxItem id="cash" textValue="Efectivo">Efectivo</ListBoxItem>
+                                                <ListBoxItem id="transfer" textValue="Transferencia">Transferencia</ListBoxItem>
+                                                <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
+                                                <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
+                                                <ListBoxItem id="card" textValue="Tarjeta">Tarjeta</ListBoxItem>
+                                                <ListBoxItem id="other" textValue="Otro">Otro</ListBoxItem>
+                                            </ListBox>
+                                        </SelectPopover>
+                                    </Select>
 
                               {hasFilters && (
                                   <Button variant="ghost" size="sm" onPress={clearFilters}>
