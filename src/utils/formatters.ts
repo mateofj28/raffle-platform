@@ -11,10 +11,33 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
- * Formats a date string to local display format.
+ * Safely converts a Firestore value to a Date.
+ * Handles: ISO string, Firestore Timestamp object, null, undefined.
  */
-export function formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
+function toDate(value: unknown): Date | null {
+    if (!value) return null;
+    // Firestore Timestamp (has .toDate() method)
+    if (typeof value === "object" && value !== null && "toDate" in value && typeof (value as { toDate: unknown }).toDate === "function") {
+        return (value as { toDate: () => Date }).toDate();
+    }
+    // ISO string
+    if (typeof value === "string") {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    // Number (unix ms)
+    if (typeof value === "number") {
+        return new Date(value);
+    }
+    return null;
+}
+
+/**
+ * Formats a date to local display format.
+ */
+export function formatDate(dateStr: unknown): string {
+    const date = toDate(dateStr);
+    if (!date) return "—";
     return new Intl.DateTimeFormat("es-CO", {
         year: "numeric",
         month: "short",
@@ -23,10 +46,11 @@ export function formatDate(dateStr: string): string {
 }
 
 /**
- * Formats a date string to include time.
+ * Formats a date to include time.
  */
-export function formatDateTime(dateStr: string): string {
-    const date = new Date(dateStr);
+export function formatDateTime(dateStr: unknown): string {
+    const date = toDate(dateStr);
+    if (!date) return "—";
     return new Intl.DateTimeFormat("es-CO", {
         year: "numeric",
         month: "short",
