@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip } from "@heroui/react";
-import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign } from "lucide-react";
+import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -134,7 +134,7 @@ export default function VendorDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este vendedor no tiene boletas en esta rifa" icon={<Ticket className="h-12 w-12" />} />
                   ) : (
-                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} />
+                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} />
                   )}
               </>
           )}
@@ -145,7 +145,7 @@ export default function VendorDetailPage() {
 
 // --- Table with unassign (SRP) ---
 
-function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void }) {
+function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, onEditTicket }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
     const [page, setPage] = useState(1);
@@ -239,6 +239,16 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay }
                                                         </Button>
                                                     </Tooltip.Trigger>
                                                     <Tooltip.Content>Registrar abono</Tooltip.Content>
+                                                </Tooltip>
+                                            )}
+                                            {(ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
+                                                <Tooltip>
+                                                    <Tooltip.Trigger>
+                                                        <Button variant="ghost" size="sm" onPress={() => onEditTicket(ticket.number, "client")} aria-label="Editar cliente">
+                                                            <Pencil className="h-4 w-4 text-amber-400" />
+                                                        </Button>
+                                                    </Tooltip.Trigger>
+                                                    <Tooltip.Content>Editar cliente</Tooltip.Content>
                                                 </Tooltip>
                                             )}
                                         </div>
