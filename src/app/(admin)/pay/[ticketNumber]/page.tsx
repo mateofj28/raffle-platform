@@ -39,8 +39,8 @@ export default function PayTicketPage() {
 
     const payAmount = paymentType === "full" ? activeRaffle.ticketPrice : parseInt(amount || "0");
 
-    if (payAmount < 1000) {
-      setError("El monto mínimo es $1.000");
+    if (payAmount < 5000) {
+      setError("El monto mínimo es $5.000");
       setProcessing(false);
       return;
     }
@@ -55,8 +55,17 @@ export default function PayTicketPage() {
         observations,
       });
       router.back();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al registrar el pago");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("internal") || msg.includes("INTERNAL")) {
+        setError("La boleta debe estar en estado 'Vendida' para poder registrar un pago. Primero vende la boleta a un cliente.");
+      } else if (msg.includes("sold or installment")) {
+        setError("La boleta debe estar en estado 'Vendida' o 'Abonada' para aceptar pagos.");
+      } else if (msg.includes("exceeds") || msg.includes("PAYMENT_EXCEEDS")) {
+        setError("El monto excede el saldo pendiente de la boleta.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setProcessing(false);
     }
@@ -125,10 +134,10 @@ export default function PayTicketPage() {
                   className="w-full"
                   inputMode="numeric"
                 />
-                {amount && parseInt(amount) < 1000 && (
-                  <p className="text-xs text-danger mt-1">Mínimo: $1.000</p>
+                {amount && parseInt(amount) < 5000 && (
+                  <p className="text-xs text-danger mt-1">Mínimo: $5.000</p>
                 )}
-                {amount && parseInt(amount) >= 1000 && (
+                {amount && parseInt(amount) >= 5000 && (
                   <p className="text-xs text-default-500 mt-1">Abono: {formatCurrency(parseInt(amount))}</p>
                 )}
               </div>
@@ -174,7 +183,7 @@ export default function PayTicketPage() {
           <Button variant="ghost" onPress={() => router.back()}>Cancelar</Button>
           <Button
             variant="primary"
-            isDisabled={processing || (paymentType === "partial" && (!amount || parseInt(amount) < 1000))}
+            isDisabled={processing || (paymentType === "partial" && (!amount || parseInt(amount) < 5000))}
             onPress={handlePay}
           >
             <DollarSign className="h-4 w-4" />
