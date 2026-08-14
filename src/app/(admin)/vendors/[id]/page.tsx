@@ -213,23 +213,32 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay }
                                         <div className="flex items-center justify-center gap-1">
                                             {ticket.status === "assigned" && (
                                                 <>
-                                                    <Tooltip content="Vender a cliente">
-                                                        <Button variant="ghost" size="sm" onPress={() => onSell(ticket.number)} aria-label="Vender">
-                                                            <ShoppingCart className="h-4 w-4 text-blue-400" />
-                                                        </Button>
+                                                    <Tooltip>
+                                                        <Tooltip.Trigger>
+                                                            <Button variant="ghost" size="sm" onPress={() => onSell(ticket.number)} aria-label="Vender">
+                                                                <ShoppingCart className="h-4 w-4 text-blue-400" />
+                                                            </Button>
+                                                        </Tooltip.Trigger>
+                                                        <Tooltip.Content>Vender a cliente</Tooltip.Content>
                                                     </Tooltip>
-                                                    <Tooltip content="Desasignar boleta">
-                                                        <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
-                                                            <UserMinus className="h-4 w-4 text-danger" />
-                                                        </Button>
+                                                    <Tooltip>
+                                                        <Tooltip.Trigger>
+                                                            <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
+                                                                <UserMinus className="h-4 w-4 text-danger" />
+                                                            </Button>
+                                                        </Tooltip.Trigger>
+                                                        <Tooltip.Content>Desasignar boleta</Tooltip.Content>
                                                     </Tooltip>
                                                 </>
                                             )}
                                             {canPay && (
-                                                <Tooltip content="Registrar abono">
-                                                    <Button variant="ghost" size="sm" onPress={() => onPay(ticket.number)} aria-label="Abonar">
-                                                        <DollarSign className="h-4 w-4 text-emerald-400" />
-                                                    </Button>
+                                                <Tooltip>
+                                                    <Tooltip.Trigger>
+                                                        <Button variant="ghost" size="sm" onPress={() => onPay(ticket.number)} aria-label="Abonar">
+                                                            <DollarSign className="h-4 w-4 text-emerald-400" />
+                                                        </Button>
+                                                    </Tooltip.Trigger>
+                                                    <Tooltip.Content>Registrar abono</Tooltip.Content>
                                                 </Tooltip>
                                             )}
                                         </div>
