@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Separator, Chip, AlertDialog } from "@heroui/react";
-import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -134,7 +134,7 @@ export default function VendorDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este vendedor no tiene boletas en esta rifa" icon={<Ticket className="h-12 w-12" />} />
                   ) : (
-                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} />
+                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} />
                   )}
               </>
           )}
@@ -145,7 +145,7 @@ export default function VendorDetailPage() {
 
 // --- Table with unassign (SRP) ---
 
-function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void }) {
+function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
     const [page, setPage] = useState(1);
@@ -174,13 +174,16 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tic
                           <th className="px-4 py-3 text-left font-medium">#</th>
                           <th className="px-4 py-3 text-left font-medium">Estado</th>
                           <th className="px-4 py-3 text-left font-medium">Cliente</th>
-                          <th className="px-4 py-3 text-right font-medium">Valor</th>
+                            <th className="px-4 py-3 text-right font-medium">Abonado</th>
                           <th className="px-4 py-3 text-right font-medium">Saldo</th>
                           <th className="px-4 py-3 text-center font-medium">Acción</th>
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-default-200">
-                        {paginatedTickets.map((ticket) => (
+                        {paginatedTickets.map((ticket) => {
+                            const amountPaid = ticket.value - ticket.pendingBalance;
+                            const canPay = (ticket.status === "sold" || ticket.status === "installment") && ticket.pendingBalance > 0;
+                            return (
               <tr key={ticket.number} className="hover:bg-default-50">
                     <td className="px-4 py-3 font-mono font-bold">{ticket.number}</td>
                     <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
@@ -194,27 +197,40 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell }: { tic
                                           <span className="text-danger italic">Sin cliente</span>
                         )}
                     </td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(ticket.value)}</td>
+                                    <td className="px-4 py-3 text-right">
+                                        {amountPaid > 0
+                                            ? <span className="text-success font-medium">{formatCurrency(amountPaid)}</span>
+                                            : <span className="text-default-400">$0</span>
+                                        }
+                                    </td>
                     <td className="px-4 py-3 text-right">
                         {ticket.pendingBalance === 0
                             ? <span className="text-success font-medium">$0</span>
                             : <span className="text-warning font-medium">{formatCurrency(ticket.pendingBalance)}</span>
                         }
                     </td>
-                    <td className="px-4 py-3 text-center">
-                        {ticket.status === "assigned" && (
-                                      <div className="flex items-center justify-center gap-1">
-                                          <Button variant="ghost" size="sm" onPress={() => onSell(ticket.number)} aria-label="Vender">
-                                              <ShoppingCart className="h-4 w-4 text-blue-400" />
-                                          </Button>
-                                          <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
-                                              <UserMinus className="h-4 w-4 text-danger" />
-                                          </Button>
-                                      </div>
-                        )}
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="flex items-center justify-center gap-1">
+                                            {ticket.status === "assigned" && (
+                                                <>
+                                                    <Button variant="ghost" size="sm" onPress={() => onSell(ticket.number)} aria-label="Vender">
+                                                        <ShoppingCart className="h-4 w-4 text-blue-400" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
+                                                        <UserMinus className="h-4 w-4 text-danger" />
+                                                    </Button>
+                                                </>
+                                            )}
+                                            {canPay && (
+                                                <Button variant="ghost" size="sm" onPress={() => onPay(ticket.number)} aria-label="Abonar">
+                                                    <DollarSign className="h-4 w-4 text-emerald-400" />
+                                                </Button>
+                                            )}
+                                        </div>
                     </td>
               </tr>
-            ))}
+                            );
+                        })}
                   </tbody>
               </table>
           </div>
