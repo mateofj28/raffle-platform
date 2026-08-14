@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, CardContent, Separator, Chip, AlertDialog } from "@heroui/react";
+import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip } from "@heroui/react";
 import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -213,18 +213,24 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay }
                                         <div className="flex items-center justify-center gap-1">
                                             {ticket.status === "assigned" && (
                                                 <>
-                                                    <Button variant="ghost" size="sm" onPress={() => onSell(ticket.number)} aria-label="Vender">
-                                                        <ShoppingCart className="h-4 w-4 text-blue-400" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
-                                                        <UserMinus className="h-4 w-4 text-danger" />
-                                                    </Button>
+                                                    <Tooltip content="Vender a cliente">
+                                                        <Button variant="ghost" size="sm" onPress={() => onSell(ticket.number)} aria-label="Vender">
+                                                            <ShoppingCart className="h-4 w-4 text-blue-400" />
+                                                        </Button>
+                                                    </Tooltip>
+                                                    <Tooltip content="Desasignar boleta">
+                                                        <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
+                                                            <UserMinus className="h-4 w-4 text-danger" />
+                                                        </Button>
+                                                    </Tooltip>
                                                 </>
                                             )}
                                             {canPay && (
-                                                <Button variant="ghost" size="sm" onPress={() => onPay(ticket.number)} aria-label="Abonar">
-                                                    <DollarSign className="h-4 w-4 text-emerald-400" />
-                                                </Button>
+                                                <Tooltip content="Registrar abono">
+                                                    <Button variant="ghost" size="sm" onPress={() => onPay(ticket.number)} aria-label="Abonar">
+                                                        <DollarSign className="h-4 w-4 text-emerald-400" />
+                                                    </Button>
+                                                </Tooltip>
                                             )}
                                         </div>
                     </td>
