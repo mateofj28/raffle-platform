@@ -71,11 +71,11 @@ export const registerPayment = onCall(
                 const ticket = ticketSnap.data()!;
 
                 // Validate ticket status can accept payment
-                const acceptableStatuses = ["sold", "installment"];
+                const acceptableStatuses = ["assigned", "sold", "installment"];
                 if (!acceptableStatuses.includes(ticket.status)) {
                     throw new AppError(
                         AppErrorCode.INVALID_TRANSITION,
-                        "Ticket must be in sold or installment status to accept payments."
+                        "Ticket must be assigned, sold, or in installment status to accept payments."
                     );
                 }
 
@@ -108,7 +108,8 @@ export const registerPayment = onCall(
 
                 if (newPendingBalance === 0) {
                     ticketStatus = "paid";
-                } else if (newPendingBalance > 0 && type === "installment") {
+                } else if (newPendingBalance > 0) {
+                    // Any partial payment moves to installment (whether from assigned, sold, or already installment)
                     ticketStatus = "installment";
                 } else {
                     ticketStatus = ticket.status;

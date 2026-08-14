@@ -182,7 +182,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay }
                   <tbody className="divide-y divide-default-200">
                         {paginatedTickets.map((ticket) => {
                             const amountPaid = ticket.value - ticket.pendingBalance;
-                            const canPay = (ticket.status === "sold" || ticket.status === "installment") && ticket.pendingBalance > 0;
+                            const canPay = (ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment") && ticket.pendingBalance > 0;
                             return (
               <tr key={ticket.number} className="hover:bg-default-50">
                     <td className="px-4 py-3 font-mono font-bold">{ticket.number}</td>
