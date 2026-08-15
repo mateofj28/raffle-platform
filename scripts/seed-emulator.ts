@@ -21,6 +21,7 @@ const db = getFirestore(app);
 const TENANT_ID = "empresa-principal";
 const ADMIN_EMAIL = "admin@rifas.com";
 const ADMIN_PASSWORD = "Admin123!";
+const ADMIN_NAME = "Mateo FJ";
 
 async function seed() {
   console.log("🚀 Seeding emulator...\n");
@@ -55,7 +56,7 @@ async function seed() {
     userRecord = await auth.createUser({
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
-      displayName: "Administrador Principal",
+      displayName: ADMIN_NAME,
     });
   }
 
@@ -69,7 +70,7 @@ async function seed() {
   // 5. Store user in tenant
   await db.doc(`tenants/${TENANT_ID}/users/${userRecord.uid}`).set({
     email: ADMIN_EMAIL,
-    displayName: "Administrador Principal",
+    displayName: ADMIN_NAME,
     role: "admin",
     vendorId: null,
     createdAt: FieldValue.serverTimestamp(),

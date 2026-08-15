@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, Chip, Input } from "@heroui/react";
-import { Shield, Search } from "lucide-react";
+import { Shield } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -17,6 +17,8 @@ interface AuditEntry {
     entityType: string;
     entityId: string;
     userId: string;
+    userName: string;
+    userRole: string;
     metadata: Record<string, unknown>;
     timestamp: string;
 }
@@ -36,35 +38,53 @@ const OPERATION_LABELS: Record<string, { label: string; color: "success" | "warn
     customer_created: { label: "Cliente creado", color: "default" },
 };
 
-function getOperationDescription(entry: AuditEntry): string {
+const METHOD_LABELS: Record<string, string> = {
+    cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata",
+    card: "Tarjeta", transfer: "Transferencia", other: "Otro",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+    draft: "Borrador", active: "Activa", finished: "Finalizada", cancelled: "Cancelada",
+};
+
+function getOperationDescription(entry: AuditEntry, usersMap: Map<string, { name: string; role: string }>): string {
     const meta = entry.metadata || {};
+    const method = METHOD_LABELS[meta.method as string] || (meta.method as string) || "";
+
     switch (entry.operationType) {
         case "payment_registered":
-            return `Registró ${meta.type === "payment" ? "pago completo" : "abono"} de $${(meta.amount as number)?.toLocaleString("es-CO")} en boleta ${meta.ticketNumber} (${meta.method})`;
+            return `Registró ${meta.type === "payment" ? "pago completo" : "abono"} de $${(meta.amount as number)?.toLocaleString("es-CO")} en boleta #${meta.ticketNumber} — ${method}`;
         case "payment_deleted":
             return `Eliminó pago de $${(meta.amount as number)?.toLocaleString("es-CO")} en boleta ${meta.ticketId}. Razón: ${meta.reason}`;
         case "payment_corrected":
-            return `Corrigió pago de $${(meta.oldAmount as number)?.toLocaleString("es-CO")} → $${(meta.newAmount as number)?.toLocaleString("es-CO")}. Razón: ${meta.reason}`;
-        case "ticket_sold":
-            return `Vendió boleta #${meta.ticketNumber} al cliente ${meta.customerId}`;
+            return `Corrigió pago: $${(meta.oldAmount as number)?.toLocaleString("es-CO")} → $${(meta.newAmount as number)?.toLocaleString("es-CO")}. Razón: ${meta.reason}`;
+        case "ticket_sold": {
+            const customerName = usersMap.get(meta.customerId as string)?.name || "cliente";
+            return `Vendió boleta #${meta.ticketNumber} a ${customerName}`;
+        }
         case "ticket_cancelled":
             return `Canceló boleta #${meta.ticketNumber}`;
-        case "tickets_assigned":
-            return `Asignó ${meta.assigned} boletas al vendedor ${meta.vendorId}`;
+        case "tickets_assigned": {
+            const vendorName = usersMap.get(meta.vendorId as string)?.name || "vendedor";
+            return `Asignó ${meta.assigned} boletas a ${vendorName}`;
+        }
         case "tickets_unassigned":
             return `Desasignó ${meta.unassigned} boletas`;
         case "raffle_created":
             return `Creó rifa "${meta.name}" con ${(meta.totalTickets as number)?.toLocaleString()} boletas a $${(meta.ticketPrice as number)?.toLocaleString("es-CO")}`;
-        case "raffle_status_changed":
-            return `Cambió estado de rifa: ${meta.from} → ${meta.to}`;
+        case "raffle_status_changed": {
+            const from = STATUS_LABELS[meta.from as string] || meta.from;
+            const to = STATUS_LABELS[meta.to as string] || meta.to;
+            return `Cambió estado de rifa: ${from} → ${to}`;
+        }
         case "winning_number_set":
-            return `Registró número ganador: ${meta.winningNumber} (boleta ${meta.winnerTicket})`;
+            return `Registró número ganador: ${meta.winningNumber}`;
         case "vendor_created":
             return `Creó vendedor "${meta.name}"`;
         case "customer_created":
             return `Creó cliente "${meta.name}"`;
         default:
-            return `${entry.operationType} en ${entry.entityType} (${entry.entityId})`;
+            return `Operación: ${entry.operationType}`;
     }
 }
 
@@ -73,7 +93,40 @@ export default function AuditPage() {
     const [entries, setEntries] = useState<AuditEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [usersMap, setUsersMap] = useState<Map<string, { name: string; role: string }>>(new Map());
 
+    // Load users to resolve names (from users collection + vendors + customers)
+    useEffect(() => {
+        if (!tenantId) return;
+        const loadUsers = async () => {
+            const map = new Map<string, { name: string; role: string }>();
+            try {
+                // Auth users (admin, vendors with login)
+                const usersSnap = await getDocs(tenantCollection(tenantId, "users"));
+                usersSnap.docs.forEach(d => {
+                    const data = d.data();
+                    const roleLabel = data.role === "admin" ? "Admin" : data.role === "vendor" ? "Cajero" : "Usuario";
+                    map.set(d.id, { name: data.displayName || data.email || "Usuario", role: roleLabel });
+                });
+                // Vendors (for vendorId references in metadata)
+                const vendorsSnap = await getDocs(tenantCollection(tenantId, "vendors"));
+                vendorsSnap.docs.forEach(d => {
+                    const data = d.data();
+                    if (!map.has(d.id)) map.set(d.id, { name: data.name, role: "Vendedor" });
+                    if (data.userId && !map.has(data.userId)) map.set(data.userId, { name: data.name, role: "Vendedor" });
+                });
+                // Customers (for customerId references in metadata)
+                const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
+                customersSnap.docs.forEach(d => {
+                    if (!map.has(d.id)) map.set(d.id, { name: d.data().name, role: "Cliente" });
+                });
+            } catch (e) { console.error(e); }
+            setUsersMap(map);
+        };
+        loadUsers();
+    }, [tenantId]);
+
+    // Load audit entries
     useEffect(() => {
         if (!tenantId) return;
         const load = async () => {
@@ -90,9 +143,11 @@ export default function AuditPage() {
 
     const filtered = searchTerm.length >= 2
         ? entries.filter(e => {
-            const desc = getOperationDescription(e).toLowerCase();
+            const desc = getOperationDescription(e, usersMap).toLowerCase();
             const op = OPERATION_LABELS[e.operationType]?.label.toLowerCase() || "";
-            return desc.includes(searchTerm.toLowerCase()) || op.includes(searchTerm.toLowerCase());
+            const userInfo = usersMap.get(e.userId);
+            const userName = userInfo ? `${userInfo.role} ${userInfo.name}`.toLowerCase() : "";
+            return desc.includes(searchTerm.toLowerCase()) || op.includes(searchTerm.toLowerCase()) || userName.includes(searchTerm.toLowerCase());
         })
         : entries;
 
@@ -124,6 +179,18 @@ export default function AuditPage() {
                 <div className="space-y-2">
                     {filtered.map((entry) => {
                         const config = OPERATION_LABELS[entry.operationType] || { label: entry.operationType, color: "default" as const };
+                        // Use stored userName/userRole (new entries) or resolve from map (old entries)
+                        const storedRole = entry.userRole;
+                        const storedName = entry.userName;
+                        let userDisplay: string;
+                        if (storedRole && storedName) {
+                            userDisplay = `${storedRole} — ${storedName}`;
+                        } else {
+                            const userInfo = usersMap.get(entry.userId);
+                            userDisplay = userInfo
+                                ? `${userInfo.role || "Usuario"} — ${userInfo.name || "Sin nombre"}`
+                                : "Administrador";
+                        }
                         return (
                             <Card key={entry.id}>
                                 <CardContent className="p-4">
@@ -131,13 +198,12 @@ export default function AuditPage() {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <Chip size="sm" variant="soft" color={config.color}>{config.label}</Chip>
-                                                <span className="text-xs text-default-400">{entry.entityType}/{entry.entityId?.slice(0, 8)}</span>
+                                                <span className="text-xs font-medium text-default-600">{userDisplay}</span>
                                             </div>
-                                            <p className="text-sm text-default-700">{getOperationDescription(entry)}</p>
+                                            <p className="text-sm text-default-700">{getOperationDescription(entry, usersMap)}</p>
                                         </div>
                                         <div className="text-right shrink-0">
                                             <p className="text-xs text-default-500">{entry.timestamp ? formatDateTime(entry.timestamp) : "—"}</p>
-                                            <p className="text-xs text-default-400 mt-0.5">ID: {entry.userId?.slice(0, 8)}</p>
                                         </div>
                                     </div>
                                 </CardContent>

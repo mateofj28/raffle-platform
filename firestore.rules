@@ -76,6 +76,12 @@ service cloud.firestore {
         allow write: if false; // Only via Cloud Functions
       }
 
+      // Users
+      match /users/{userId} {
+        allow read: if belongsToTenant(tenantId) && isAdmin();
+        allow write: if false; // Only via Cloud Functions
+      }
+
       // Metrics
       match /metrics/{metricId} {
         allow read: if belongsToTenant(tenantId) && isAdmin();

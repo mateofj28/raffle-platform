@@ -12,6 +12,7 @@ import { getDb } from "../utils/firestore";
 
 /**
  * Creates an audit trail entry with retry logic (up to 3 attempts).
+ * Resolves the user's display name and role from the users collection.
  * Audit failures are logged but never thrown — they must not break the calling operation.
  */
 export async function createAuditEntry(
@@ -26,6 +27,21 @@ export async function createAuditEntry(
     const maxRetries = 3;
     const baseDelay = 100; // ms
 
+    // Resolve user name and role
+    let userName = "Desconocido";
+    let userRole = "usuario";
+    try {
+        const db = getDb();
+        const userDoc = await db.doc(`tenants/${tenantId}/users/${userId}`).get();
+        if (userDoc.exists) {
+            const data = userDoc.data()!;
+            userName = data.displayName || data.email || "Sin nombre";
+            userRole = data.role === "admin" ? "Admin" : data.role === "vendor" ? "Cajero" : "Usuario";
+        }
+    } catch {
+        // Swallow — use defaults
+    }
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const db = getDb();
@@ -38,6 +54,8 @@ export async function createAuditEntry(
                 entityType,
                 entityId,
                 userId,
+                userName,
+                userRole,
                 tenantId,
                 ipAddress,
                 metadata,
