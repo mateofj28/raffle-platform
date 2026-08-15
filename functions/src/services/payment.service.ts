@@ -13,6 +13,7 @@ import { validateAuth, requireAdmin, requireVendorOwnership, type AuthContext } 
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb } from "../utils/firestore";
+import { createAuditEntry } from "./audit.service";
 
 // --- Zod Schemas ---
 
@@ -140,6 +141,11 @@ export const registerPayment = onCall(
                 return { newPendingBalance, ticketStatus };
             });
 
+            // Audit trail
+            await createAuditEntry(context.tenantId, "payment_registered", "payment", paymentRef.id, context.uid, null, {
+                ticketNumber, raffleId, amount, type, method,
+            });
+
             return {
                 paymentId: paymentRef.id,
                 newPendingBalance: result.newPendingBalance,
@@ -248,6 +254,11 @@ export const reversePayment = onCall(
                 return { newPendingBalance: finalBalance, ticketStatus: finalStatus };
             });
 
+            // Audit trail
+            await createAuditEntry(context.tenantId, "payment_deleted", "payment", paymentId, context.uid, null, {
+                amount: effectiveAmount, reason, ticketId: payment.ticketId,
+            });
+
             return {
                 adjustmentId: effectiveAmount > 0 ? adjustmentRef.id : null,
                 newPendingBalance: result.newPendingBalance,
@@ -337,6 +348,11 @@ export const correctPayment = onCall(
                     authorizedBy: context.uid,
                     createdAt: FieldValue.serverTimestamp(),
                 });
+            });
+
+            // Audit trail
+            await createAuditEntry(context.tenantId, "payment_corrected", "payment", paymentId, context.uid, null, {
+                oldAmount, newAmount, reason,
             });
 
             return { success: true, oldAmount, newAmount };

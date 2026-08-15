@@ -15,6 +15,7 @@ import { validateAuth, requireAdmin, requireVendorOwnership, type AuthContext } 
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb, BATCH_SIZE } from "../utils/firestore";
+import { createAuditEntry } from "./audit.service";
 
 // --- Zod Schemas ---
 
@@ -280,6 +281,11 @@ export const sellTicket = onCall(
                 });
             });
 
+            // Audit trail
+            await createAuditEntry(context.tenantId, "ticket_sold", "ticket", ticketDocId, context.uid, null, {
+                raffleId, ticketNumber, customerId,
+            });
+
             return { success: true };
         } catch (error) {
             handleError(error);
@@ -327,6 +333,11 @@ export const cancelTicket = onCall(
             await ticketRef.update({
                 status: "cancelled",
                 updatedAt: FieldValue.serverTimestamp(),
+            });
+
+            // Audit trail
+            await createAuditEntry(context.tenantId, "ticket_cancelled", "ticket", ticketDocId, context.uid, null, {
+                raffleId, ticketNumber,
             });
 
             return { success: true };

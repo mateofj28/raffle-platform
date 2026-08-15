@@ -15,6 +15,7 @@ import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { tenantCollection } from "../utils/firestore";
+import { createAuditEntry } from "./audit.service";
 import type { RaffleStatus } from "../types/index";
 
 // --- Schemas ---
@@ -123,6 +124,11 @@ export const createRaffle = onCall(
             const { generateTickets } = await import("./ticket.service");
             await generateTickets(context.tenantId, raffleId, data.totalTickets, data.ticketPrice, data.numbersPerTicket);
 
+            // Audit trail
+            await createAuditEntry(context.tenantId, "raffle_created", "raffle", raffleId, context.uid, null, {
+                name: data.name, totalTickets: data.totalTickets, ticketPrice: data.ticketPrice,
+            });
+
             return { raffleId };
         } catch (error) {
             handleError(error);
@@ -222,6 +228,11 @@ export const transitionRaffleState = onCall(
                 updatedAt: FieldValue.serverTimestamp(),
             });
 
+            // Audit trail
+            await createAuditEntry(context.tenantId, "raffle_status_changed", "raffle", data.raffleId, context.uid, null, {
+                from: currentStatus, to: data.targetState,
+            });
+
             return { success: true, newStatus: data.targetState };
         } catch (error) {
             handleError(error);
@@ -285,6 +296,11 @@ export const setWinningNumber = onCall(
             await winningTicketDoc.ref.update({
                 status: "winner",
                 updatedAt: FieldValue.serverTimestamp(),
+            });
+
+            // Audit trail
+            await createAuditEntry(context.tenantId, "winning_number_set", "raffle", data.raffleId, context.uid, null, {
+                winningNumber: data.winningNumber, winnerTicket: winningTicketDoc.id,
             });
 
             return { winner: winningTicketDoc.id };
