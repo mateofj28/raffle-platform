@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Card, CardContent, Input, AlertDialog, Separator } from "@heroui/react";
-import { ArrowLeft, Pencil, Trash2, DollarSign, Calendar, CreditCard } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, DollarSign, Calendar, CreditCard, Printer } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
@@ -12,8 +12,8 @@ import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
-import { getDocs, query, where, orderBy } from "firebase/firestore";
-import { tenantCollection } from "@/lib/firebase/firestore";
+import { getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
+import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
 
 const TYPE_LABELS: Record<string, string> = { payment: "Pago completo", installment: "Abono" };
@@ -35,12 +35,28 @@ export default function CorrectPaymentPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
+  const [customerName, setCustomerName] = useState<string>("");
 
   const ticketPrice = activeRaffle?.ticketPrice || 60000;
 
   useEffect(() => {
     if (!activeRaffle) router.push("/raffles");
   }, [activeRaffle, router]);
+
+  // Load customer name from ticket
+  useEffect(() => {
+    if (!tenantId || !activeRaffle) return;
+    const padded = String(ticketNumber).padStart(5, "0");
+    const ticketRef = doc(getDb(), "tenants", tenantId, "raffles", activeRaffle.id, "tickets", padded);
+    getDoc(ticketRef).then((snap) => {
+      if (snap.exists() && snap.data().customerId) {
+        const customerRef = doc(getDb(), "tenants", tenantId, "customers", snap.data().customerId);
+        getDoc(customerRef).then((cSnap) => {
+          if (cSnap.exists()) setCustomerName(cSnap.data().name);
+        });
+      }
+    });
+  }, [tenantId, activeRaffle, ticketNumber]);
 
   const loadPayments = async () => {
     if (!tenantId) return;
@@ -59,6 +75,53 @@ export default function CorrectPaymentPage() {
 
   const totalAbonado = payments.reduce((sum, p) => sum + p.amount, 0);
   const pendiente = ticketPrice - totalAbonado;
+
+  const printReceipt = (payment: Payment) => {
+    const receiptWindow = window.open("", "_blank", "width=400,height=600");
+    if (!receiptWindow) return;
+
+    const methodLabels: Record<string, string> = { cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata", card: "Tarjeta", transfer: "Transferencia", other: "Otro" };
+
+    receiptWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Comprobante de Abono</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Segoe UI', sans-serif; padding: 24px; max-width: 380px; margin: 0 auto; }
+          .header { text-align: center; margin-bottom: 24px; border-bottom: 2px dashed #ccc; padding-bottom: 16px; }
+          .header h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+          .header p { font-size: 12px; color: #666; }
+          .field { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+          .field-label { font-size: 12px; color: #666; }
+          .field-value { font-size: 13px; font-weight: 600; text-align: right; }
+          .amount { font-size: 24px; font-weight: 700; text-align: center; margin: 20px 0; padding: 16px; background: #f0fdf4; border-radius: 8px; color: #16a34a; }
+          .footer { text-align: center; margin-top: 24px; padding-top: 16px; border-top: 2px dashed #ccc; font-size: 11px; color: #999; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Comprobante de Abono</h1>
+          <p>${activeRaffle?.name || "Rifa"}</p>
+        </div>
+        <div class="amount">$ ${payment.amount.toLocaleString("es-CO")}</div>
+        <div class="field"><span class="field-label">Cliente</span><span class="field-value">${customerName || "—"}</span></div>
+        <div class="field"><span class="field-label">Boleta #</span><span class="field-value">${ticketNumber}</span></div>
+        <div class="field"><span class="field-label">Método de pago</span><span class="field-value">${methodLabels[payment.method] || payment.method}</span></div>
+        <div class="field"><span class="field-label">Fecha</span><span class="field-value">${payment.createdAt ? formatDateTime(payment.createdAt) : "—"}</span></div>
+        <div class="field"><span class="field-label">Tipo</span><span class="field-value">${payment.type === "payment" ? "Pago completo" : "Abono"}</span></div>
+        <div class="footer">
+          <p>Gracias por tu pago</p>
+          <p style="margin-top: 4px;">Documento generado el ${new Date().toLocaleString("es-CO")}</p>
+        </div>
+        <script>window.onload = function() { window.print(); }</script>
+      </body>
+      </html>
+    `);
+    receiptWindow.document.close();
+  };
 
   const handleCorrect = async (paymentId: string) => {
     const amount = parseInt(newAmount || "0");
@@ -201,6 +264,9 @@ export default function CorrectPaymentPage() {
                         {/* Action buttons */}
                         {editingId !== payment.id && (
                           <div className="flex flex-col gap-1">
+                            <Button variant="ghost" size="sm" isIconOnly onPress={() => printReceipt(payment)} aria-label="Imprimir comprobante">
+                              <Printer className="h-4 w-4 text-blue-400" />
+                            </Button>
                             <Button variant="ghost" size="sm" isIconOnly onPress={() => { setEditingId(payment.id); setNewAmount(String(payment.amount)); setError(null); setSuccess(null); }} aria-label="Editar">
                               <Pencil className="h-4 w-4 text-amber-400" />
                             </Button>

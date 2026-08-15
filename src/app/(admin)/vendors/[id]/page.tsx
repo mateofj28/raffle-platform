@@ -87,6 +87,15 @@ export default function VendorDetailPage() {
     const paid = tickets.filter(t => t.status === "paid").length;
     const installment = tickets.filter(t => t.status === "installment").length;
 
+    // Financial metrics
+    const paidTickets = tickets.filter(t => t.status === "paid");
+    const installmentTickets = tickets.filter(t => t.status === "installment");
+
+    const totalAbonado = tickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
+    const recaudadoPagadas = paidTickets.reduce((sum, t) => sum + t.value, 0);
+    const recaudadoAbonadas = installmentTickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
+    const commission = Math.floor(totalAbonado * 0.10);
+
     return (
       <div>
           <PageHeader
@@ -124,11 +133,31 @@ export default function VendorDetailPage() {
           {ticketsLoading ? <LoadingSkeleton rows={5} /> : (
               <>
                   <div className="flex gap-2 flex-wrap mb-4">
-                      <Chip size="sm" variant="soft">Total: {tickets.length}</Chip>
-                      <Chip size="sm" variant="soft" color="warning">Asignadas: {assigned}</Chip>
-                      <Chip size="sm" variant="soft" color="accent">Vendidas: {sold}</Chip>
-                      <Chip size="sm" variant="soft" color="success">Pagadas: {paid}</Chip>
-                        <Chip size="sm" variant="soft" color="danger">Abonadas: {installment}</Chip>
+                        <Chip size="sm" variant="soft" className="px-3">Total: {tickets.length}</Chip>
+                        <Chip size="sm" variant="soft" color="warning" className="px-3">Asignadas: {assigned}</Chip>
+                        <Chip size="sm" variant="soft" color="accent" className="px-3">Vendidas: {sold}</Chip>
+                        <Chip size="sm" variant="soft" color="success" className="px-3">Pagadas: {paid}</Chip>
+                        <Chip size="sm" variant="soft" color="danger" className="px-3">Abonadas: {installment}</Chip>
+                    </div>
+
+                    {/* Financial metrics */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                        <div className="p-4 rounded-lg border border-default-200 bg-default-50">
+                            <p className="text-xs text-default-500 mb-1">Total abonado</p>
+                            <p className="text-lg font-bold">{formatCurrency(totalAbonado)}</p>
+                        </div>
+                        <div className="p-4 rounded-lg border border-success/20 bg-success/5">
+                            <p className="text-xs text-default-500 mb-1">Recaudado (pagadas)</p>
+                            <p className="text-lg font-bold text-success">{formatCurrency(recaudadoPagadas)}</p>
+                        </div>
+                        <div className="p-4 rounded-lg border border-blue-500/20 bg-blue-500/5">
+                            <p className="text-xs text-default-500 mb-1">Recaudado (abonadas)</p>
+                            <p className="text-lg font-bold text-blue-500">{formatCurrency(recaudadoAbonadas)}</p>
+                        </div>
+                        <div className="p-4 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                            <p className="text-xs text-default-500 mb-1">Comisión acumulada</p>
+                            <p className="text-lg font-bold text-amber-500">{formatCurrency(commission)}</p>
+                        </div>
                   </div>
 
                   {tickets.length === 0 ? (

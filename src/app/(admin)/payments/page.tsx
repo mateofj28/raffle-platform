@@ -177,10 +177,15 @@ export default function PaymentsPage() {
                                   <th className="px-4 py-3 text-left font-medium">Tipo</th>
                                   <th className="px-4 py-3 text-left font-medium">Método</th>
                                   <th className="px-4 py-3 text-right font-medium">Monto</th>
+                                        <th className="px-4 py-3 text-right font-medium">Comisión</th>
+                                        <th className="px-4 py-3 text-right font-medium">Empresa</th>
                               </tr>
                           </thead>
                           <tbody className="divide-y divide-default-200">
-                              {paginated.map((payment) => (
+                                    {paginated.map((payment) => {
+                                        const vendorCommission = Math.floor(payment.amount * 0.10);
+                                        const companyProfit = payment.amount - vendorCommission;
+                                        return (
                                   <tr key={payment.id} className="hover:bg-default-50">
                                       <td className="px-4 py-3 text-xs text-default-500">
                                           {payment.createdAt ? formatDateTime(payment.createdAt) : "—"}
@@ -195,8 +200,11 @@ export default function PaymentsPage() {
                                       </td>
                                       <td className="px-4 py-3 text-default-600"><PaymentMethodBadge method={payment.method} /></td>
                                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(payment.amount)}</td>
+                                          <td className="px-4 py-3 text-right text-amber-500 font-medium">{formatCurrency(vendorCommission)}</td>
+                                          <td className="px-4 py-3 text-right text-success font-medium">{formatCurrency(companyProfit)}</td>
                                   </tr>
-                              ))}
+                                  );
+                              })}
                           </tbody>
                       </table>
                   </div>
