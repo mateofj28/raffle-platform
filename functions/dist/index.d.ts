@@ -8,7 +8,7 @@ export { setCustomClaims, createUser, recordLoginAttempt, checkAccountLock } fro
 export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber } from "./services/raffle.service";
 export { assignTickets, sellTicket, cancelTicket, unassignTickets, updateTicketClient } from "./services/ticket.service";
 export { generateTickets } from "./services/ticket.service";
-export { registerPayment, reversePayment } from "./services/payment.service";
+export { registerPayment, reversePayment, correctPayment } from "./services/payment.service";
 export { createCustomer, updateCustomer } from "./services/customer.service";
 export { createVendor, updateVendor, getVendorMetrics } from "./services/vendor.service";
 export { getDashboardMetrics } from "./services/dashboard.service";

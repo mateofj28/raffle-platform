@@ -134,7 +134,7 @@ export default function VendorDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este vendedor no tiene boletas en esta rifa" icon={<Ticket className="h-12 w-12" />} />
                   ) : (
-                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} />
+                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} onCorrectPayment={(num) => router.push(`/correct-payment/${num}`)} />
                   )}
               </>
           )}
@@ -145,7 +145,7 @@ export default function VendorDetailPage() {
 
 // --- Table with unassign (SRP) ---
 
-function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, onEditTicket }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void }) {
+function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, onEditTicket, onCorrectPayment }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void; onCorrectPayment: (ticketNum: number) => void }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
     const [page, setPage] = useState(1);
@@ -249,6 +249,16 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                                         </Button>
                                                     </Tooltip.Trigger>
                                                     <Tooltip.Content>Editar cliente</Tooltip.Content>
+                                                </Tooltip>
+                                            )}
+                                            {amountPaid > 0 && (
+                                                <Tooltip>
+                                                    <Tooltip.Trigger>
+                                                        <Button variant="ghost" size="sm" onPress={() => onCorrectPayment(ticket.number)} aria-label="Corregir abono">
+                                                            <DollarSign className="h-4 w-4 text-cyan-400" />
+                                                        </Button>
+                                                    </Tooltip.Trigger>
+                                                    <Tooltip.Content>Corregir abono</Tooltip.Content>
                                                 </Tooltip>
                                             )}
                                         </div>

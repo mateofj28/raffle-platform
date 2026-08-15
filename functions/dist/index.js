@@ -6,7 +6,7 @@
  * are exported from here.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.cancelTicket = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.createUser = exports.setCustomClaims = void 0;
+exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.cancelTicket = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.createUser = exports.setCustomClaims = void 0;
 // Initialize Firebase Admin
 const firestore_1 = require("./utils/firestore");
 (0, firestore_1.initAdmin)();
@@ -34,6 +34,7 @@ Object.defineProperty(exports, "generateTickets", { enumerable: true, get: funct
 var payment_service_1 = require("./services/payment.service");
 Object.defineProperty(exports, "registerPayment", { enumerable: true, get: function () { return payment_service_1.registerPayment; } });
 Object.defineProperty(exports, "reversePayment", { enumerable: true, get: function () { return payment_service_1.reversePayment; } });
+Object.defineProperty(exports, "correctPayment", { enumerable: true, get: function () { return payment_service_1.correctPayment; } });
 var customer_service_1 = require("./services/customer.service");
 Object.defineProperty(exports, "createCustomer", { enumerable: true, get: function () { return customer_service_1.createCustomer; } });
 Object.defineProperty(exports, "updateCustomer", { enumerable: true, get: function () { return customer_service_1.updateCustomer; } });

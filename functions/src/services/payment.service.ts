@@ -260,3 +260,90 @@ export const reversePayment = onCall(
         }
     }
 );
+
+
+/**
+ * Corrects a payment amount. Admin-only.
+ * Reverses the original payment and creates a new one with the correct amount.
+ */
+export const correctPayment = onCall(
+    { region: "us-central1" },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const schema = z.object({
+                paymentId: z.string().min(1),
+                newAmount: z.number().int().min(1),
+                reason: z.string().min(1).default("Corrección de monto"),
+            });
+
+            const data = validateData(schema, request.data);
+            const { paymentId, newAmount, reason } = data;
+
+            const db = getDb();
+            const paymentRef = db.doc(`tenants/${context.tenantId}/payments/${paymentId}`);
+            const paymentSnap = await paymentRef.get();
+
+            if (!paymentSnap.exists) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Payment not found.");
+            }
+
+            const payment = paymentSnap.data()!;
+            const oldAmount = payment.amount as number;
+            const ticketDocId = payment.ticketId as string;
+            const raffleId = payment.raffleId as string;
+
+            // Get ticket
+            const ticketRef = db.doc(`tenants/${context.tenantId}/raffles/${raffleId}/tickets/${ticketDocId}`);
+
+            await db.runTransaction(async (transaction) => {
+                const ticketSnap = await transaction.get(ticketRef);
+                if (!ticketSnap.exists) throw new AppError(AppErrorCode.NOT_FOUND, "Ticket not found.");
+
+                const ticket = ticketSnap.data()!;
+                const currentBalance = ticket.pendingBalance as number;
+
+                // Calculate new balance: add back old amount, subtract new amount
+                const newBalance = currentBalance + oldAmount - newAmount;
+
+                if (newBalance < 0) {
+                    throw new AppError(AppErrorCode.PAYMENT_EXCEEDS_BALANCE, "New amount exceeds ticket value.");
+                }
+
+                // Update the payment document with new amount
+                transaction.update(paymentRef, {
+                    amount: newAmount,
+                    observations: `${payment.observations || ""} [Corregido: $${oldAmount.toLocaleString()} → $${newAmount.toLocaleString()}. ${reason}]`,
+                    updatedAt: FieldValue.serverTimestamp(),
+                    correctedBy: context.uid,
+                });
+
+                // Update ticket balance
+                const newStatus = newBalance === 0 ? "paid" : "installment";
+                transaction.update(ticketRef, {
+                    pendingBalance: newBalance,
+                    status: newStatus,
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+
+                // Create audit adjustment record
+                const adjustmentsCol = db.collection(`tenants/${context.tenantId}/adjustments`);
+                transaction.set(adjustmentsCol.doc(), {
+                    paymentId,
+                    ticketId: ticketDocId,
+                    raffleId,
+                    amount: newAmount - oldAmount, // difference (can be positive or negative)
+                    reason: `Corrección: $${oldAmount.toLocaleString()} → $${newAmount.toLocaleString()}. ${reason}`,
+                    authorizedBy: context.uid,
+                    createdAt: FieldValue.serverTimestamp(),
+                });
+            });
+
+            return { success: true, oldAmount, newAmount };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
