@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil, Trash2, DollarSign, Calendar, CreditCard } from "luc
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
+import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -185,7 +186,7 @@ export default function CorrectPaymentPage() {
                                 {TYPE_LABELS[payment.type]}
                               </span>
                               <span className="text-xs text-default-500 flex items-center gap-1">
-                                <CreditCard className="h-3 w-3" /> {METHOD_LABELS[payment.method]}
+                                <PaymentMethodBadge method={payment.method} />
                               </span>
                               <span className="text-xs text-default-500 flex items-center gap-1">
                                 <Calendar className="h-3 w-3" /> {formatDateTime(payment.createdAt)}

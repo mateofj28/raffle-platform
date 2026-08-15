@@ -28,6 +28,7 @@ export default function SellTicketPage() {
   const [selectedCustomerName, setSelectedCustomerName] = useState("");
   const [paymentOption, setPaymentOption] = useState<"none" | "full" | "partial">("none");
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [selling, setSelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,7 +79,7 @@ export default function SellTicketPage() {
           ticketNumber,
           amount: activeRaffle.ticketPrice,
           type: "payment",
-          method: "cash",
+          method: paymentMethod,
           observations: "Pago completo al momento de la venta",
         });
       } else if (paymentOption === "partial" && paymentAmount) {
@@ -89,7 +90,7 @@ export default function SellTicketPage() {
             ticketNumber,
             amount,
             type: "installment",
-            method: "cash",
+            method: paymentMethod,
             observations: "Abono al momento de la venta",
           });
         }
@@ -228,7 +229,7 @@ export default function SellTicketPage() {
                   <label className="text-sm font-medium mb-2 block">Monto del abono</label>
                   <Input
                     type="text"
-                    placeholder="Ej: 30.000"
+                    placeholder="Ej: 30,000"
                     value={paymentAmount ? parseInt(paymentAmount).toLocaleString("es-CO") : ""}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/\D/g, "");
@@ -254,6 +255,31 @@ export default function SellTicketPage() {
                   {!paymentAmount && (
                     <p className="text-xs text-default-500 mt-1">Mínimo: $1.000 — Máximo: {formatCurrency(activeRaffle.ticketPrice)}</p>
                   )}
+                </div>
+              )}
+
+              {/* Payment method - visible when full or partial is selected */}
+              {(paymentOption === "full" || paymentOption === "partial") && (
+                <div className="mt-4 pt-4 border-t border-default-100">
+                  <label className="text-sm font-medium mb-2 block">Método de pago</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: "cash", label: "Efectivo" },
+                      { id: "nequi", label: "Nequi" },
+                      { id: "daviplata", label: "Daviplata" },
+                      { id: "card", label: "Tarjeta" },
+                      { id: "other", label: "Otro" },
+                    ].map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setPaymentMethod(m.id)}
+                        className={`p-2.5 rounded-lg border text-xs text-center transition-all ${paymentMethod === m.id ? "border-primary bg-primary/5 ring-1 ring-primary/30 font-medium" : "border-default-200 hover:bg-default-50"}`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

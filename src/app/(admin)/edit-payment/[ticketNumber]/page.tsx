@@ -6,6 +6,7 @@ import { Button, Card, CardContent, Input, AlertDialog } from "@heroui/react";
 import { ArrowLeft, DollarSign, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
+import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -139,7 +140,7 @@ export default function EditPaymentPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-default-500">
-                      <span>{METHOD_LABELS[payment.method] || payment.method}</span>
+                      <PaymentMethodBadge method={payment.method} />
                       <span>{formatDateTime(payment.createdAt)}</span>
                     </div>
                     {payment.observations && (

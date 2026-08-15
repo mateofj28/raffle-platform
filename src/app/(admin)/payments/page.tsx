@@ -6,6 +6,7 @@ import { CreditCard, Filter, X, ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
+import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -93,9 +94,9 @@ export default function PaymentsPage() {
           ) : (
               <>
                   {/* Summary */}
-                  <div className="flex flex-wrap gap-3 mb-4">
+                        <div className="flex flex-wrap items-center gap-3 mb-4">
                       <Chip size="sm" variant="soft">Total: {filtered.length} pagos</Chip>
-                      <Chip size="sm" variant="soft" color="success">Recaudado: {formatCurrency(totalCollected)}</Chip>
+                            <Chip size="lg" variant="soft" color="success" className="text-base font-bold px-4 py-2">Recaudado: {formatCurrency(totalCollected)}</Chip>
                   </div>
 
                   {/* Filters */}
@@ -192,7 +193,7 @@ export default function PaymentsPage() {
                                               {TYPE_LABELS[payment.type] || payment.type}
                                           </span>
                                       </td>
-                                      <td className="px-4 py-3 text-default-600">{METHOD_LABELS[payment.method] || payment.method}</td>
+                                      <td className="px-4 py-3 text-default-600"><PaymentMethodBadge method={payment.method} /></td>
                                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(payment.amount)}</td>
                                   </tr>
                               ))}

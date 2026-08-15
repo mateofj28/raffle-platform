@@ -6,6 +6,7 @@ import { CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
+import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
@@ -73,7 +74,7 @@ export default function VendorPaymentsPage() {
                                               {TYPE_LABELS[payment.type] || payment.type}
                                           </span>
                                       </td>
-                                      <td className="px-4 py-3 text-default-600">{METHOD_LABELS[payment.method] || payment.method}</td>
+                                      <td className="px-4 py-3"><PaymentMethodBadge method={payment.method} /></td>
                                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(payment.amount)}</td>
                                   </tr>
                               ))}

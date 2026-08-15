@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Card, CardContent, Input } from "@heroui/react";
 import { ArrowLeft, DollarSign } from "lucide-react";
@@ -8,11 +8,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency } from "@/utils/formatters";
 import { useRaffleStore } from "@/store/raffle.store";
+import { useAuthStore } from "@/store/auth.store";
 import { callFunction } from "@/services/firebase-callable";
+import { doc, getDoc } from "firebase/firestore";
+import { tenantCollection } from "@/lib/firebase/firestore";
 
 const METHODS = [
   { id: "cash", label: "Efectivo" },
-  { id: "transfer", label: "Transferencia" },
   { id: "nequi", label: "Nequi" },
   { id: "daviplata", label: "Daviplata" },
   { id: "card", label: "Tarjeta" },
@@ -24,6 +26,7 @@ export default function PayTicketPage() {
   const router = useRouter();
   const ticketNumber = parseInt(params.ticketNumber as string);
   const { activeRaffle } = useRaffleStore();
+  const tenantId = useAuthStore((s) => s.user?.tenantId);
 
   const [paymentType, setPaymentType] = useState<"full" | "partial">("partial");
   const [amount, setAmount] = useState("");
@@ -31,13 +34,26 @@ export default function PayTicketPage() {
   const [observations, setObservations] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingBalance, setPendingBalance] = useState<number | null>(null);
+
+  // Load ticket pending balance
+  useEffect(() => {
+    if (!tenantId || !activeRaffle) return;
+    const padded = String(ticketNumber).padStart(5, "0");
+    const ticketRef = doc(tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`), padded);
+    getDoc(ticketRef).then((snap) => {
+      if (snap.exists()) {
+        setPendingBalance(snap.data().pendingBalance ?? activeRaffle.ticketPrice);
+      }
+    });
+  }, [tenantId, activeRaffle, ticketNumber]);
 
   const handlePay = async () => {
     if (!activeRaffle) return;
     setProcessing(true);
     setError(null);
 
-    const payAmount = paymentType === "full" ? activeRaffle.ticketPrice : parseInt(amount || "0");
+    const payAmount = paymentType === "full" ? (pendingBalance ?? activeRaffle.ticketPrice) : parseInt(amount || "0");
 
     if (payAmount < 5000) {
       setError("El monto mínimo es $5.000");
@@ -61,8 +77,9 @@ export default function PayTicketPage() {
         setError("La boleta debe estar en estado 'Vendida' para poder registrar un pago. Primero vende la boleta a un cliente.");
       } else if (msg.includes("sold or installment")) {
         setError("La boleta debe estar en estado 'Vendida' o 'Abonada' para aceptar pagos.");
-      } else if (msg.includes("exceeds") || msg.includes("PAYMENT_EXCEEDS")) {
-        setError("El monto excede el saldo pendiente de la boleta.");
+      } else if (msg.includes("excede") || msg.includes("exceeds") || msg.includes("PAYMENT_EXCEEDS")) {
+        const max = pendingBalance ?? activeRaffle.ticketPrice;
+        setError(`El pago excede el saldo pendiente. Máximo: ${formatCurrency(max)}`);
       } else {
         setError(msg);
       }
@@ -72,6 +89,8 @@ export default function PayTicketPage() {
   };
 
   if (!activeRaffle) return null;
+
+  const displayBalance = pendingBalance ?? activeRaffle.ticketPrice;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -88,6 +107,16 @@ export default function PayTicketPage() {
       <div className="space-y-6">
         <FormErrorBanner message={error} />
 
+        {/* Pending balance info */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-default-500">Saldo pendiente</span>
+              <span className="text-lg font-bold text-warning">{formatCurrency(displayBalance)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Payment type */}
         <Card>
           <CardContent className="p-6">
@@ -102,7 +131,7 @@ export default function PayTicketPage() {
                 className={`text-left p-4 rounded-lg border text-sm transition-all ${paymentType === "full" ? "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500/30" : "border-default-200 hover:bg-default-50"}`}
               >
                 <span className="font-semibold">Pago completo</span>
-                <span className="text-xs text-default-500 block mt-1">{formatCurrency(activeRaffle.ticketPrice)}</span>
+                <span className="text-xs text-default-500 block mt-1">{formatCurrency(displayBalance)}</span>
               </button>
               <button
                 type="button"
@@ -119,13 +148,13 @@ export default function PayTicketPage() {
                 <label className="text-sm font-medium mb-2 block">Monto del abono</label>
                 <Input
                   type="text"
-                  placeholder="Ej: 30.000"
+                  placeholder="Ej: 30,000"
                   value={amount ? parseInt(amount).toLocaleString("es-CO") : ""}
                   onChange={(e) => {
                     const raw = e.target.value.replace(/\D/g, "");
                     const num = parseInt(raw || "0");
-                    if (num >= activeRaffle.ticketPrice) {
-                      setAmount(String(activeRaffle.ticketPrice));
+                    if (num >= displayBalance) {
+                      setAmount(String(displayBalance));
                       setPaymentType("full");
                     } else {
                       setAmount(raw);
@@ -138,7 +167,10 @@ export default function PayTicketPage() {
                   <p className="text-xs text-danger mt-1">Mínimo: $5.000</p>
                 )}
                 {amount && parseInt(amount) >= 5000 && (
-                  <p className="text-xs text-default-500 mt-1">Abono: {formatCurrency(parseInt(amount))}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-default-500">Abono: {formatCurrency(parseInt(amount))}</p>
+                    <p className="text-xs text-default-500">Quedaría: {formatCurrency(displayBalance - parseInt(amount))}</p>
+                  </div>
                 )}
               </div>
             )}
@@ -187,7 +219,7 @@ export default function PayTicketPage() {
             onPress={handlePay}
           >
             <DollarSign className="h-4 w-4" />
-            {processing ? "Registrando..." : paymentType === "full" ? `Pagar ${formatCurrency(activeRaffle.ticketPrice)}` : `Abonar ${amount ? formatCurrency(parseInt(amount)) : ""}`}
+            {processing ? "Registrando..." : paymentType === "full" ? `Pagar ${formatCurrency(displayBalance)}` : `Abonar ${amount ? formatCurrency(parseInt(amount)) : ""}`}
           </Button>
         </div>
       </div>
