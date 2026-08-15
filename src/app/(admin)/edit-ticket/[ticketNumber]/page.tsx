@@ -63,8 +63,7 @@ export default function EditTicketPage() {
     setProcessing(true);
     setError(null);
     try {
-      // Sell (re-assign client) — we update the ticket directly via a callable
-      await callFunction("sellTicket", {
+      await callFunction("updateTicketClient", {
         raffleId: activeRaffle.id,
         ticketNumber,
         customerId: selectedCustomerId,
@@ -72,13 +71,7 @@ export default function EditTicketPage() {
       setSuccess(`Cliente actualizado a: ${selectedCustomerName}`);
       setTimeout(() => router.back(), 1500);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.includes("no longer available") || msg.includes("CONFLICT")) {
-        // Ticket already sold — try direct Firestore update
-        setError("No se pudo cambiar el cliente. La boleta ya tiene un estado que no permite re-venta. Contacta soporte.");
-      } else {
-        setError(msg);
-      }
+      setError(e instanceof Error ? e.message : "Error al actualizar el cliente");
     } finally {
       setProcessing(false);
     }

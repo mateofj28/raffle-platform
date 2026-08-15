@@ -368,3 +368,54 @@ export const unassignTickets = onCall(
         }
     }
 );
+
+
+/**
+ * Updates the client on a ticket. Admin-only.
+ * Works on any ticket status (assigned, sold, installment, paid).
+ */
+export const updateTicketClient = onCall(
+    { region: "us-central1" },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const schema = z.object({
+                raffleId: z.string().min(1),
+                ticketNumber: z.number().int().min(1),
+                customerId: z.string().min(1),
+            });
+
+            const data = validateData(schema, request.data);
+            const { raffleId, ticketNumber, customerId } = data;
+
+            const db = getDb();
+            const docId = padTicketNumber(ticketNumber);
+            const ticketRef = db.doc(`tenants/${context.tenantId}/raffles/${raffleId}/tickets/${docId}`);
+
+            const ticketSnap = await ticketRef.get();
+            if (!ticketSnap.exists) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Ticket not found.");
+            }
+
+            // Update client — if ticket is "assigned", also move to "sold"
+            const ticket = ticketSnap.data()!;
+            const updates: Record<string, unknown> = {
+                customerId,
+                updatedAt: FieldValue.serverTimestamp(),
+            };
+
+            if (ticket.status === "assigned") {
+                updates.status = "sold";
+                updates.saleDate = FieldValue.serverTimestamp();
+            }
+
+            await ticketRef.update(updates);
+
+            return { success: true };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
