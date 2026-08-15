@@ -5,6 +5,7 @@ export interface Raffle {
     description: string;
     imageUrl: string;
     prize: string;
+    prizeValue: number;
     startDate: string;
     endDate: string;
     drawDate: string;
@@ -13,6 +14,8 @@ export interface Raffle {
     status: RaffleStatus;
     ticketPrice: number;
     totalTickets: number;
+    numbersPerTicket: number;
+    semester: 1 | 2;
     createdAt: string;
     updatedAt: string;
     createdBy: string;
@@ -20,6 +23,8 @@ export interface Raffle {
 export type TicketStatus = "available" | "assigned" | "sold" | "paid" | "installment" | "cancelled" | "winner";
 export interface Ticket {
     number: number;
+    numbers: number[];
+    numbersPerTicket: number;
     status: TicketStatus;
     customerId: string | null;
     vendorId: string | null;

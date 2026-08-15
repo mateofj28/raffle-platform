@@ -23,12 +23,14 @@ const createRaffleSchema = z.object({
     name: z.string().min(1).max(150),
     description: z.string().min(1).max(1000),
     prize: z.string().min(1).max(200),
+    prizeValue: z.number().int().nonnegative(),
     startDate: z.string().min(1),
     endDate: z.string().min(1),
     drawDate: z.string().min(1),
     lottery: z.string().min(1),
     ticketPrice: z.number().int().positive(),
     totalTickets: z.number().int().min(1).max(50000),
+    numbersPerTicket: z.number().int().min(1).max(2).default(1),
 });
 
 const updateRaffleSchema = z.object({
@@ -36,12 +38,14 @@ const updateRaffleSchema = z.object({
     name: z.string().min(1).max(150).optional(),
     description: z.string().min(1).max(1000).optional(),
     prize: z.string().min(1).max(200).optional(),
+    prizeValue: z.number().int().nonnegative().optional(),
     startDate: z.string().min(1).optional(),
     endDate: z.string().min(1).optional(),
     drawDate: z.string().min(1).optional(),
     lottery: z.string().min(1).optional(),
     ticketPrice: z.number().int().positive().optional(),
     totalTickets: z.number().int().min(1).max(50000).optional(),
+    numbersPerTicket: z.number().int().min(1).max(2).optional(),
 });
 
 const transitionRaffleStateSchema = z.object({
@@ -62,6 +66,17 @@ const VALID_TRANSITIONS: Record<RaffleStatus, RaffleStatus[]> = {
     finished: [],
     cancelled: [],
 };
+
+// --- Helper Functions ---
+
+/**
+ * Determines the semester (1 or 2) based on the start date.
+ * January-June = 1, July-December = 2
+ */
+function getSemester(dateString: string): 1 | 2 {
+    const month = new Date(dateString).getMonth() + 1; // 1-12
+    return month <= 6 ? 1 : 2;
+}
 
 // --- Callable Functions ---
 
@@ -87,12 +102,15 @@ export const createRaffle = onCall(
                 name: data.name,
                 description: data.description,
                 prize: data.prize,
+                prizeValue: data.prizeValue,
                 startDate: data.startDate,
                 endDate: data.endDate,
                 drawDate: data.drawDate,
                 lottery: data.lottery,
                 ticketPrice: data.ticketPrice,
                 totalTickets: data.totalTickets,
+                numbersPerTicket: data.numbersPerTicket,
+                semester: getSemester(data.startDate),
                 status: "draft" as RaffleStatus,
                 winningNumber: null,
                 imageUrl: "",
@@ -103,7 +121,7 @@ export const createRaffle = onCall(
 
             // Generate tickets for the raffle
             const { generateTickets } = await import("./ticket.service");
-            await generateTickets(context.tenantId, raffleId, data.totalTickets, data.ticketPrice);
+            await generateTickets(context.tenantId, raffleId, data.totalTickets, data.ticketPrice, data.numbersPerTicket);
 
             return { raffleId };
         } catch (error) {
@@ -251,14 +269,15 @@ export const setWinningNumber = onCall(
             });
 
             // Query for the ticket with the winning number
+            // Check both single-number tickets and multi-number tickets
             const ticketsRef = raffleRef.collection("tickets");
             const ticketQuery = await ticketsRef
-                .where("number", "==", data.winningNumber)
+                .where("numbers", "array-contains", data.winningNumber)
                 .limit(1)
                 .get();
 
             if (ticketQuery.empty) {
-                return { winner: null, message: "No ticket matches the winning number" };
+                return { winner: null, message: "Ninguna boleta coincide con el número ganador" };
             }
 
             // Mark the winning ticket

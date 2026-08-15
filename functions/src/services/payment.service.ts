@@ -65,7 +65,7 @@ export const registerPayment = onCall(
 
                 // Validate ticket exists
                 if (!ticketSnap.exists) {
-                    throw new AppError(AppErrorCode.NOT_FOUND, "Ticket not found.");
+                    throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
                 }
 
                 const ticket = ticketSnap.data()!;
@@ -75,7 +75,7 @@ export const registerPayment = onCall(
                 if (!acceptableStatuses.includes(ticket.status)) {
                     throw new AppError(
                         AppErrorCode.INVALID_TRANSITION,
-                        "Ticket must be assigned, sold, or in installment status to accept payments."
+                        "La boleta debe estar asignada, vendida o en abonos para aceptar pagos."
                     );
                 }
 
@@ -90,7 +90,7 @@ export const registerPayment = onCall(
                 if (pendingBalance <= 0) {
                     throw new AppError(
                         AppErrorCode.VALIDATION_ERROR,
-                        "Ticket is already fully paid"
+                        "La boleta ya está completamente pagada"
                     );
                 }
 
@@ -98,7 +98,7 @@ export const registerPayment = onCall(
                 if (amount > pendingBalance) {
                     throw new AppError(
                         AppErrorCode.PAYMENT_EXCEEDS_BALANCE,
-                        `Payment exceeds pending balance. Maximum: ${pendingBalance}`
+                        `El pago excede el saldo pendiente. Máximo: ${pendingBalance}`
                     );
                 }
 
@@ -173,7 +173,7 @@ export const reversePayment = onCall(
             const paymentSnap = await paymentRef.get();
 
             if (!paymentSnap.exists) {
-                throw new AppError(AppErrorCode.NOT_FOUND, "Payment not found.");
+                throw new AppError(AppErrorCode.NOT_FOUND, "Pago no encontrado.");
             }
 
             const payment = paymentSnap.data()!;
@@ -188,22 +188,8 @@ export const reversePayment = onCall(
                 existingReversals += doc.data().amount as number;
             }
 
-            // Validate not already fully reversed
-            if (existingReversals >= payment.amount) {
-                throw new AppError(
-                    AppErrorCode.ALREADY_REVERSED,
-                    "Transaction has already been fully reversed"
-                );
-            }
-
-            // Validate amount does not exceed remaining reversible amount
-            const remaining = payment.amount - existingReversals;
-            if (existingReversals + amount > payment.amount) {
-                throw new AppError(
-                    AppErrorCode.ALREADY_REVERSED,
-                    `Maximum reversible amount remaining: ${remaining}`
-                );
-            }
+            // Calculate the effective amount to reverse (what hasn't been reversed yet)
+            const effectiveAmount = Math.max(0, payment.amount - existingReversals);
 
             // Get ticket reference
             const ticketRef = db.doc(
@@ -217,41 +203,53 @@ export const reversePayment = onCall(
                 const ticketSnap = await transaction.get(ticketRef);
 
                 if (!ticketSnap.exists) {
-                    throw new AppError(AppErrorCode.NOT_FOUND, "Ticket not found.");
+                    throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
                 }
 
                 const ticket = ticketSnap.data()!;
-                const newPendingBalance = ticket.pendingBalance + amount;
 
-                // Determine new status
-                let ticketStatus = ticket.status;
-                if (newPendingBalance > 0 && ticket.status === "paid") {
-                    ticketStatus = "installment";
+                // Only adjust balance for the portion not yet reversed
+                if (effectiveAmount > 0) {
+                    const newPendingBalance = ticket.pendingBalance + effectiveAmount;
+
+                    // Determine new status
+                    let ticketStatus = ticket.status;
+                    if (newPendingBalance > 0 && ticket.status === "paid") {
+                        ticketStatus = "installment";
+                    }
+
+                    // Create adjustment document
+                    transaction.set(adjustmentRef, {
+                        paymentId,
+                        ticketId: payment.ticketId,
+                        raffleId: payment.raffleId,
+                        amount: effectiveAmount,
+                        reason,
+                        authorizedBy: context.uid,
+                        createdAt: FieldValue.serverTimestamp(),
+                    });
+
+                    // Update ticket
+                    transaction.update(ticketRef, {
+                        pendingBalance: newPendingBalance,
+                        status: ticketStatus,
+                        updatedAt: FieldValue.serverTimestamp(),
+                    });
                 }
 
-                // Create adjustment document
-                transaction.set(adjustmentRef, {
-                    paymentId,
-                    ticketId: payment.ticketId,
-                    raffleId: payment.raffleId,
-                    amount,
-                    reason,
-                    authorizedBy: context.uid,
-                    createdAt: FieldValue.serverTimestamp(),
-                });
+                // Always delete the payment document
+                transaction.delete(paymentRef);
 
-                // Update ticket
-                transaction.update(ticketRef, {
-                    pendingBalance: newPendingBalance,
-                    status: ticketStatus,
-                    updatedAt: FieldValue.serverTimestamp(),
-                });
+                const finalBalance = effectiveAmount > 0
+                    ? ticket.pendingBalance + effectiveAmount
+                    : ticket.pendingBalance;
+                const finalStatus = finalBalance > 0 ? "installment" : ticket.status;
 
-                return { newPendingBalance, ticketStatus };
+                return { newPendingBalance: finalBalance, ticketStatus: finalStatus };
             });
 
             return {
-                adjustmentId: adjustmentRef.id,
+                adjustmentId: effectiveAmount > 0 ? adjustmentRef.id : null,
                 newPendingBalance: result.newPendingBalance,
                 ticketStatus: result.ticketStatus,
             };
@@ -287,7 +285,7 @@ export const correctPayment = onCall(
             const paymentSnap = await paymentRef.get();
 
             if (!paymentSnap.exists) {
-                throw new AppError(AppErrorCode.NOT_FOUND, "Payment not found.");
+                throw new AppError(AppErrorCode.NOT_FOUND, "Pago no encontrado.");
             }
 
             const payment = paymentSnap.data()!;
@@ -300,7 +298,7 @@ export const correctPayment = onCall(
 
             await db.runTransaction(async (transaction) => {
                 const ticketSnap = await transaction.get(ticketRef);
-                if (!ticketSnap.exists) throw new AppError(AppErrorCode.NOT_FOUND, "Ticket not found.");
+                if (!ticketSnap.exists) throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
 
                 const ticket = ticketSnap.data()!;
                 const currentBalance = ticket.pendingBalance as number;
@@ -309,7 +307,7 @@ export const correctPayment = onCall(
                 const newBalance = currentBalance + oldAmount - newAmount;
 
                 if (newBalance < 0) {
-                    throw new AppError(AppErrorCode.PAYMENT_EXCEEDS_BALANCE, "New amount exceeds ticket value.");
+                    throw new AppError(AppErrorCode.PAYMENT_EXCEEDS_BALANCE, "El nuevo monto excede el valor de la boleta.");
                 }
 
                 // Update the payment document with new amount

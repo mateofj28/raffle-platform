@@ -54,12 +54,17 @@ function padTicketNumber(num: number): string {
 /**
  * Batch generates tickets for a raffle.
  * Called internally by raffle service during raffle creation.
+ * 
+ * When numbersPerTicket = 1: each ticket has a single number (1, 2, 3...).
+ * When numbersPerTicket = 2: each ticket has a pair of consecutive numbers (1-2, 3-4, 5-6...).
+ * The winner matches if any of their numbers is drawn.
  */
 export async function generateTickets(
     tenantId: string,
     raffleId: string,
     totalTickets: number,
-    ticketPrice: number
+    ticketPrice: number,
+    numbersPerTicket: number = 1
 ): Promise<void> {
     const db = getDb();
     const ticketsBasePath = `tenants/${tenantId}/raffles/${raffleId}/tickets`;
@@ -68,12 +73,25 @@ export async function generateTickets(
         const batch = db.batch();
         const end = Math.min(i + BATCH_SIZE, totalTickets);
 
-        for (let num = i + 1; num <= end; num++) {
-            const docId = padTicketNumber(num);
+        for (let ticketIndex = i; ticketIndex < end; ticketIndex++) {
+            const ticketNum = ticketIndex + 1; // 1-based ticket number
+            const docId = padTicketNumber(ticketNum);
             const ticketRef = db.collection(ticketsBasePath).doc(docId);
 
+            // Calculate the lottery numbers this ticket covers
+            let numbers: number[];
+            if (numbersPerTicket === 2) {
+                // Pairs: ticket 1 = [1,2], ticket 2 = [3,4], ticket 3 = [5,6]...
+                const firstNum = (ticketNum - 1) * 2 + 1;
+                numbers = [firstNum, firstNum + 1];
+            } else {
+                numbers = [ticketNum];
+            }
+
             batch.set(ticketRef, {
-                number: num,
+                number: ticketNum,
+                numbers, // array of lottery numbers this ticket plays with
+                numbersPerTicket,
                 status: "available",
                 customerId: null,
                 vendorId: null,

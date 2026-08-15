@@ -4,12 +4,13 @@ export interface CreateRaffleInput {
     name: string;
     description: string;
     prize: string;
+    prizeValue: number;
     startDate: string;
     endDate: string;
     drawDate: string;
     lottery: string;
     ticketPrice: number;
-    totalTickets: number;
+    numbersPerTicket: number;
 }
 
 export interface RaffleFilters {
