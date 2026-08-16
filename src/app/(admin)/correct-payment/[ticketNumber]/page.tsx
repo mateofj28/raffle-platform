@@ -133,15 +133,6 @@ export default function CorrectPaymentPage() {
       }, 250);
     }
   };
-          <p>Gracias por tu pago</p>
-          <p style="margin-top: 4px;">Documento generado el ${new Date().toLocaleString("es-CO")}</p>
-        </div >
-        <script>window.onload = function() { window.print(); }</script>
-      </body>
-      </html>
-    `);
-    receiptWindow.document.close();
-  };
 
   const handleCorrect = async (paymentId: string) => {
     const amount = parseInt(newAmount || "0");
