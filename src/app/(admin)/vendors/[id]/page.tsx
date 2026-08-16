@@ -101,7 +101,16 @@ export default function VendorDetailPage() {
           <PageHeader
               title={vendor.name}
               description={`Boletas en "${activeRaffle.name}"`}
-              actions={<Link href="/vendors"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button></Link>}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Link href={`/vendors/${vendorId}/edit`}>
+                            <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /> Editar</Button>
+                        </Link>
+                        <Link href="/vendors">
+                            <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button>
+                        </Link>
+                    </div>
+                }
           />
 
           {/* Vendor info */}

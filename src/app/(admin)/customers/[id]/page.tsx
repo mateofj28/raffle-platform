@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Separator, Chip } from "@heroui/react";
-import { ArrowLeft, User, Phone, MapPin, Hash, Ticket, CreditCard } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Hash, Ticket, CreditCard, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -90,9 +90,14 @@ export default function CustomerDetailPage() {
               title={customer.name}
               description="Historial del cliente"
               actions={
-                  <Link href="/customers">
-                      <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                      <Link href={`/customers/${customerId}/edit`}>
+                          <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /> Editar</Button>
+                      </Link>
+                      <Link href="/customers">
+                          <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button>
+                      </Link>
+                  </div>
               }
           />
 

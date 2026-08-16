@@ -10,7 +10,7 @@ import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
-import { getDocs, query, orderBy } from "firebase/firestore";
+import { getDocs, query, orderBy, where } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
 
@@ -35,13 +35,13 @@ export default function PaymentsPage() {
     const PAGE_SIZE = 20;
 
     useEffect(() => {
-        if (!tenantId) return;
+        if (!tenantId || !activeRaffle) return;
         const load = async () => {
             setLoading(true);
             try {
-                // Load payments
+                // Load payments filtered by active raffle
                 const col = tenantCollection(tenantId, "payments");
-                const q = query(col, orderBy("createdAt", "desc"));
+                const q = query(col, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc"));
                 const snap = await getDocs(q);
                 setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
 
@@ -60,7 +60,7 @@ export default function PaymentsPage() {
             finally { setLoading(false); }
         };
         load();
-    }, [tenantId]);
+    }, [tenantId, activeRaffle]);
 
     // Apply filters
     const filtered = payments.filter(p => {

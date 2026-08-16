@@ -34,6 +34,7 @@ export default function PayTicketPage() {
   const [observations, setObservations] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [pendingBalance, setPendingBalance] = useState<number | null>(null);
 
   // Load ticket pending balance
@@ -70,7 +71,8 @@ export default function PayTicketPage() {
         method,
         observations,
       });
-      router.back();
+      setSuccess("✅ Pago registrado exitosamente");
+      setTimeout(() => router.back(), 1500);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("internal") || msg.includes("INTERNAL")) {
@@ -106,6 +108,7 @@ export default function PayTicketPage() {
 
       <div className="space-y-6">
         <FormErrorBanner message={error} />
+        {success && <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">{success}</div>}
 
         {/* Pending balance info */}
         <Card>

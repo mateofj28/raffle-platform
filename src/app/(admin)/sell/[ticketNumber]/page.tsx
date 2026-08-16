@@ -31,6 +31,7 @@ export default function SellTicketPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [selling, setSelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeRaffle) router.push("/raffles");
@@ -96,7 +97,8 @@ export default function SellTicketPage() {
         }
       }
 
-      router.back();
+      setSuccess("✅ Boleta vendida exitosamente");
+      setTimeout(() => router.back(), 1500);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al procesar la venta");
     } finally {
@@ -120,6 +122,7 @@ export default function SellTicketPage() {
 
       <div className="space-y-6">
         <FormErrorBanner message={error} />
+        {success && <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">{success}</div>}
 
         {/* Step 1: Customer */}
         <Card>
