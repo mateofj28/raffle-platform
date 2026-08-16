@@ -22,7 +22,7 @@ export function useAuth() {
             setUser(authUser);
 
             // Redirect based on role
-            if (authUser.role === "admin") {
+            if (authUser.role === "admin" || authUser.role === "cashier") {
                 router.push(ROUTES.ADMIN_DASHBOARD);
             } else {
                 router.push(ROUTES.VENDOR_DASHBOARD);

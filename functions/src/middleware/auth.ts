@@ -4,7 +4,7 @@ import { AppError, AppErrorCode } from "../utils/errors";
 export interface AuthContext {
     uid: string;
     tenantId: string;
-    role: "admin" | "vendor";
+    role: "admin" | "cashier" | "vendor";
     vendorId?: string;
 }
 
@@ -31,7 +31,7 @@ export function validateAuth(request: CallableRequest): AuthContext {
         );
     }
 
-    if (role !== "admin" && role !== "vendor") {
+    if (role !== "admin" && role !== "cashier" && role !== "vendor") {
         throw new AppError(
             AppErrorCode.UNAUTHORIZED,
             "Invalid user role."
@@ -41,7 +41,7 @@ export function validateAuth(request: CallableRequest): AuthContext {
     return {
         uid: auth.uid,
         tenantId: tenantId as string,
-        role: role as "admin" | "vendor",
+        role: role as "admin" | "cashier" | "vendor",
         vendorId: typeof vendorId === "string" ? vendorId : undefined,
     };
 }
@@ -54,6 +54,18 @@ export function requireAdmin(context: AuthContext): void {
         throw new AppError(
             AppErrorCode.FORBIDDEN,
             "Insufficient permissions. Administrator role required."
+        );
+    }
+}
+
+/**
+ * Ensures the user is admin or cashier (can perform operational tasks).
+ */
+export function requireAdminOrCashier(context: AuthContext): void {
+    if (context.role !== "admin" && context.role !== "cashier") {
+        throw new AppError(
+            AppErrorCode.FORBIDDEN,
+            "Insufficient permissions. Admin or cashier role required."
         );
     }
 }

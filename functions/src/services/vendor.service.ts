@@ -10,7 +10,7 @@
 import { onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
-import { validateAuth, requireAdmin, requireVendorOwnership, type AuthContext } from "../middleware/auth";
+import { validateAuth, requireAdmin, requireAdminOrCashier, requireVendorOwnership, type AuthContext } from "../middleware/auth";
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb } from "../utils/firestore";
@@ -50,7 +50,7 @@ export const createVendor = onCall(
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
-            requireAdmin(context);
+            requireAdminOrCashier(context);
 
             const data = validateData(createVendorSchema, request.data);
 

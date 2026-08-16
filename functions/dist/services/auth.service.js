@@ -27,8 +27,8 @@ function validateEmail(email) {
     }
 }
 function validateRole(role) {
-    if (role !== "admin" && role !== "vendor") {
-        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Role must be 'admin' or 'vendor'.", { role: "Invalid role value" });
+    if (role !== "admin" && role !== "cashier" && role !== "vendor") {
+        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Role must be 'admin', 'cashier', or 'vendor'.", { role: "Invalid role value" });
     }
 }
 function getLoginAttemptsRef(tenantId, email) {

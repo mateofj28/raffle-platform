@@ -29,7 +29,7 @@ export async function getUserWithClaims(user: User): Promise<AuthUser> {
         email: user.email || "",
         displayName: user.displayName,
         tenantId: (claims.tenantId as string) || "",
-        role: (claims.role as "admin" | "vendor") || "vendor",
+        role: (claims.role as "admin" | "cashier" | "vendor") || "vendor",
         vendorId: claims.vendorId as string | undefined,
     };
 }

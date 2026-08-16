@@ -11,7 +11,7 @@
 import { onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
-import { validateAuth, requireAdmin, requireVendorOwnership, type AuthContext } from "../middleware/auth";
+import { validateAuth, requireAdmin, requireAdminOrCashier, requireVendorOwnership, type AuthContext } from "../middleware/auth";
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb, BATCH_SIZE } from "../utils/firestore";
@@ -119,7 +119,7 @@ export const assignTickets = onCall(
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
-            requireAdmin(context);
+            requireAdminOrCashier(context);
 
             const data = validateData(assignTicketsSchema, request.data);
             const { raffleId, vendorId, fromNumber, toNumber, ticketNumbers } = data;
@@ -356,7 +356,7 @@ export const unassignTickets = onCall(
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
-            requireAdmin(context);
+            requireAdminOrCashier(context);
 
             const data = validateData(unassignTicketsSchema, request.data);
             const { raffleId, ticketNumbers } = data;
@@ -408,7 +408,7 @@ export const updateTicketClient = onCall(
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
-            requireAdmin(context);
+            requireAdminOrCashier(context);
 
             const schema = z.object({
                 raffleId: z.string().min(1),

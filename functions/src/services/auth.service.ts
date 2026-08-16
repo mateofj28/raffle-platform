@@ -25,7 +25,7 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 interface SetCustomClaimsData {
     uid: string;
     tenantId: string;
-    role: "admin" | "vendor";
+    role: "admin" | "cashier" | "vendor";
     vendorId?: string;
 }
 
@@ -33,7 +33,7 @@ interface CreateUserData {
     email: string;
     password: string;
     displayName: string;
-    role: "admin" | "vendor";
+    role: "admin" | "cashier" | "vendor";
     vendorId?: string;
 }
 
@@ -56,11 +56,11 @@ function validateEmail(email: string): void {
     }
 }
 
-function validateRole(role: unknown): asserts role is "admin" | "vendor" {
-    if (role !== "admin" && role !== "vendor") {
+function validateRole(role: unknown): asserts role is "admin" | "cashier" | "vendor" {
+    if (role !== "admin" && role !== "cashier" && role !== "vendor") {
         throw new AppError(
             AppErrorCode.VALIDATION_ERROR,
-            "Role must be 'admin' or 'vendor'.",
+            "Role must be 'admin', 'cashier', or 'vendor'.",
             { role: "Invalid role value" }
         );
     }

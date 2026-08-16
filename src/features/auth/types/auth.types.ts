@@ -14,6 +14,6 @@ export interface AuthUser {
     email: string;
     displayName: string | null;
     tenantId: string;
-    role: "admin" | "vendor";
+    role: "admin" | "cashier" | "vendor";
     vendorId?: string;
 }

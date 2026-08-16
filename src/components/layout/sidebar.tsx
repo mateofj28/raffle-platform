@@ -11,10 +11,12 @@ import {
     BarChart3,
     Shield,
     Settings,
+    UserCog,
     X,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useRaffleStore } from "@/store/raffle.store";
+import { useAuthStore } from "@/store/auth.store";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -24,17 +26,20 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
     const { activeRaffle } = useRaffleStore();
+    const userRole = useAuthStore((s) => s.user?.role);
+    const isAdmin = userRole === "admin";
 
     const NAV_ITEMS = [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: activeRaffle ? `/raffles/${activeRaffle.id}` : "/raffles", label: "Boletas", icon: Ticket },
-        { href: "/vendors", label: "Vendedores", icon: Users },
-        { href: "/customers", label: "Clientes", icon: UserCircle },
-        { href: "/payments", label: "Pagos", icon: CreditCard },
-        { href: "/reports", label: "Reportes", icon: BarChart3 },
-        { href: "/audit", label: "Auditoría", icon: Shield },
-        { href: "/settings", label: "Configuración", icon: Settings },
-    ];
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "cashier"] },
+        { href: activeRaffle ? `/raffles/${activeRaffle.id}` : "/raffles", label: "Boletas", icon: Ticket, roles: ["admin", "cashier"] },
+        { href: "/vendors", label: "Vendedores", icon: Users, roles: ["admin", "cashier"] },
+        { href: "/customers", label: "Clientes", icon: UserCircle, roles: ["admin", "cashier"] },
+        { href: "/payments", label: "Pagos", icon: CreditCard, roles: ["admin", "cashier"] },
+        { href: "/cashiers", label: "Cajeros", icon: UserCog, roles: ["admin"] },
+        { href: "/reports", label: "Reportes", icon: BarChart3, roles: ["admin"] },
+        { href: "/audit", label: "Auditoría", icon: Shield, roles: ["admin"] },
+        { href: "/settings", label: "Configuración", icon: Settings, roles: ["admin"] },
+    ].filter(item => item.roles.includes(userRole || ""));
 
     return (
         <>

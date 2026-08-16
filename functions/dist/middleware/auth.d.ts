@@ -2,7 +2,7 @@ import { type CallableRequest } from "firebase-functions/v2/https";
 export interface AuthContext {
     uid: string;
     tenantId: string;
-    role: "admin" | "vendor";
+    role: "admin" | "cashier" | "vendor";
     vendorId?: string;
 }
 /**
@@ -14,6 +14,10 @@ export declare function validateAuth(request: CallableRequest): AuthContext;
  * Ensures the authenticated user has admin role.
  */
 export declare function requireAdmin(context: AuthContext): void;
+/**
+ * Ensures the user is admin or cashier (can perform operational tasks).
+ */
+export declare function requireAdminOrCashier(context: AuthContext): void;
 /**
  * Validates that a vendor is operating on their own data.
  */

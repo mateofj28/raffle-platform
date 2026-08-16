@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateAuth = validateAuth;
 exports.requireAdmin = requireAdmin;
+exports.requireAdminOrCashier = requireAdminOrCashier;
 exports.requireVendorOwnership = requireVendorOwnership;
 const errors_1 = require("../utils/errors");
 /**
@@ -17,7 +18,7 @@ function validateAuth(request) {
     if (!tenantId || typeof tenantId !== "string") {
         throw new errors_1.AppError(errors_1.AppErrorCode.UNAUTHORIZED, "Missing or malformed tenant identifier.");
     }
-    if (role !== "admin" && role !== "vendor") {
+    if (role !== "admin" && role !== "cashier" && role !== "vendor") {
         throw new errors_1.AppError(errors_1.AppErrorCode.UNAUTHORIZED, "Invalid user role.");
     }
     return {
@@ -33,6 +34,14 @@ function validateAuth(request) {
 function requireAdmin(context) {
     if (context.role !== "admin") {
         throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "Insufficient permissions. Administrator role required.");
+    }
+}
+/**
+ * Ensures the user is admin or cashier (can perform operational tasks).
+ */
+function requireAdminOrCashier(context) {
+    if (context.role !== "admin" && context.role !== "cashier") {
+        throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "Insufficient permissions. Admin or cashier role required.");
     }
 }
 /**
