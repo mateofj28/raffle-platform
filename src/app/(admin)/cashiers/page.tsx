@@ -34,6 +34,11 @@ export default function CashiersPage() {
     const [password, setPassword] = useState("");
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+
+    function capitalizeWords(text: string): string {
+        return text.replace(/\b\w/g, (char) => char.toUpperCase());
+    }
 
     const loadCashiers = async () => {
         if (!tenantId) return;
@@ -79,6 +84,7 @@ export default function CashiersPage() {
         } catch (e) {
             const msg = e instanceof Error ? e.message : "Error al crear el cajero";
             setError(msg);
+            toast.danger(msg);
         } finally {
             setCreating(false);
         }
@@ -112,7 +118,7 @@ export default function CashiersPage() {
                                 <Input
                                     placeholder="Ej: Alejandra Iglesias"
                                     value={name}
-                                    onChange={(e) => setName(e.target.value)}
+                                    onChange={(e) => setName(capitalizeWords(e.target.value))}
                                     className="w-full"
                                 />
                             </div>
@@ -128,13 +134,22 @@ export default function CashiersPage() {
                             </div>
                             <div>
                                 <label className="text-sm font-medium mb-1 block">Contraseña</label>
-                                <Input
-                                    type="password"
-                                    placeholder="Mínimo 6 caracteres"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Mínimo 6 caracteres"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-default-400 hover:text-foreground"
+                                    >
+                                        {showPassword ? "Ocultar" : "Ver"}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div className="flex gap-2 mt-4">
