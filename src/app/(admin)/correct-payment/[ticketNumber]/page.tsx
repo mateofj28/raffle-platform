@@ -77,12 +77,9 @@ export default function CorrectPaymentPage() {
   const pendiente = ticketPrice - totalAbonado;
 
   const printReceipt = (payment: Payment) => {
-    const receiptWindow = window.open("", "_blank", "width=400,height=600");
-    if (!receiptWindow) return;
-
     const methodLabels: Record<string, string> = { cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata", card: "Tarjeta", transfer: "Transferencia", other: "Otro" };
 
-    receiptWindow.document.write(`
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -98,7 +95,6 @@ export default function CorrectPaymentPage() {
           .field-value { font-size: 13px; font-weight: 600; text-align: right; }
           .amount { font-size: 24px; font-weight: 700; text-align: center; margin: 20px 0; padding: 16px; background: #f0fdf4; border-radius: 8px; color: #16a34a; }
           .footer { text-align: center; margin-top: 24px; padding-top: 16px; border-top: 2px dashed #ccc; font-size: 11px; color: #999; }
-          @media print { body { padding: 0; } }
         </style>
       </head>
       <body>
@@ -116,6 +112,30 @@ export default function CorrectPaymentPage() {
           <p>Gracias por tu pago</p>
           <p style="margin-top: 4px;">Documento generado el ${new Date().toLocaleString("es-CO")}</p>
         </div>
+      </body>
+      </html>
+    `;
+
+    // Use hidden iframe to print without popup blockers
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.top = "-10000px";
+    iframe.style.left = "-10000px";
+    document.body.appendChild(iframe);
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (iframeDoc) {
+      iframeDoc.open();
+      iframeDoc.write(html);
+      iframeDoc.close();
+      setTimeout(() => {
+        iframe.contentWindow?.print();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+      }, 250);
+    }
+  };
+          <p>Gracias por tu pago</p>
+          <p style="margin-top: 4px;">Documento generado el ${new Date().toLocaleString("es-CO")}</p>
+        </div >
         <script>window.onload = function() { window.print(); }</script>
       </body>
       </html>

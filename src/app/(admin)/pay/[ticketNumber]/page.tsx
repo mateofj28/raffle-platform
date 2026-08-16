@@ -10,6 +10,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
 import { callFunction } from "@/services/firebase-callable";
+import { toast } from "@heroui/react";
 import { doc, getDoc } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 
@@ -72,6 +73,7 @@ export default function PayTicketPage() {
         observations,
       });
       setSuccess("✅ Pago registrado exitosamente");
+      toast.success("Pago registrado exitosamente");
       setTimeout(() => router.back(), 1500);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);

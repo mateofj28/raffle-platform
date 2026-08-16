@@ -40,6 +40,7 @@ export default function RaffleDetailPage() {
     const [raffle, setRaffle] = useState<Raffle | null>(null);
     const [tickets, setTickets] = useState<TicketType[]>([]);
     const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [customersMap, setCustomersMap] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
     const [ticketsLoading, setTicketsLoading] = useState(true);
     const [visibleCount, setVisibleCount] = useState(RENDER_BATCH_SIZE);
@@ -100,7 +101,7 @@ export default function RaffleDetailPage() {
       load();
     }, [tenantId, raffleId]);
 
-    // Load vendors
+    // Load vendors and customers
     useEffect(() => {
         if (!tenantId) return;
         const load = async () => {
@@ -109,6 +110,11 @@ export default function RaffleDetailPage() {
                 const q = query(col, orderBy("name", "asc"));
                 const snap = await getDocs(q);
                 setVendors(snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Vendor[]);
+
+                const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
+                const cMap = new Map<string, string>();
+                customersSnap.docs.forEach(d => cMap.set(d.id, d.data().name));
+                setCustomersMap(cMap);
             } catch (e) { console.error(e); }
         };
         load();
@@ -377,6 +383,7 @@ export default function RaffleDetailPage() {
                                 isUnassignSelected={unassignSelected.includes(ticket.number)}
                                 onToggle={toggleTicket}
                                 vendors={vendors}
+                                customersMap={customersMap}
                             />
                         ))}
                     </div>
@@ -447,7 +454,7 @@ export default function RaffleDetailPage() {
 
 // --- Ticket Cell Component ---
 
-function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassignSelected, onToggle, vendors }: {
+function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassignSelected, onToggle, vendors, customersMap }: {
     ticket: TicketType;
     selectionMode: boolean;
     unassignMode: boolean;
@@ -455,6 +462,7 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
     isUnassignSelected: boolean;
     onToggle: (num: number, status: string) => void;
     vendors: Vendor[];
+    customersMap: Map<string, string>;
 }) {
     const [showDetail, setShowDetail] = useState(false);
     const [showHover, setShowHover] = useState(false);
@@ -529,7 +537,7 @@ function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassig
                       <div><span className="text-zinc-400">Vendedor:</span> <span className="font-medium text-amber-300">{vendorName}</span></div>
                   )}
                   {ticket.customerId && (
-                      <div><span className="text-zinc-400">Cliente:</span> <span className="font-medium text-blue-300">{ticket.customerId}</span></div>
+                        <div><span className="text-zinc-400">Cliente:</span> <span className="font-medium text-blue-300">{customersMap.get(ticket.customerId) || ticket.customerId}</span></div>
                   )}
                   {ticket.saleDate && (
                       <div><span className="text-zinc-400">Fecha venta:</span> <span className="text-white">{formatDate(ticket.saleDate)}</span></div>

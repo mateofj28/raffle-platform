@@ -13,6 +13,7 @@ import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
 import { getDocs } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
+import { toast } from "@heroui/react";
 import type { Customer } from "@/types/api.types";
 
 export default function SellTicketPage() {
@@ -98,6 +99,7 @@ export default function SellTicketPage() {
       }
 
       setSuccess("✅ Boleta vendida exitosamente");
+      toast.success("Boleta vendida exitosamente");
       setTimeout(() => router.back(), 1500);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al procesar la venta");
