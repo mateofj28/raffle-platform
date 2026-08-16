@@ -52,17 +52,16 @@ export default function CustomerDetailPage() {
         const load = async () => {
             setDataLoading(true);
             try {
-                // Tickets across raffles
-                const rafflesSnap = await getDocs(tenantCollection(tenantId, "raffles"));
+                // Tickets for the active raffle only
+                const { activeRaffle } = useRaffleStore.getState();
                 const allTickets: TicketWithRaffle[] = [];
 
-                for (const raffleDoc of rafflesSnap.docs) {
-                    const raffleName = raffleDoc.data().name;
-                    const ticketsCol = tenantCollection(tenantId, `raffles/${raffleDoc.id}/tickets`);
+                if (activeRaffle) {
+                    const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
                     const q = query(ticketsCol, where("customerId", "==", customerId));
                     const snap = await getDocs(q);
                     snap.docs.forEach(d => {
-                        allTickets.push({ ...d.data() as TicketType, raffleName });
+                        allTickets.push({ ...d.data() as TicketType, raffleName: activeRaffle.name });
                     });
                 }
                 setTickets(allTickets);

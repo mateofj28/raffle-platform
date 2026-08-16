@@ -17,6 +17,7 @@ export default function VendorTicketsPage() {
     const user = useAuthStore((s) => s.user);
     const [tickets, setTickets] = useState<TicketType[]>([]);
     const [loading, setLoading] = useState(true);
+    const [raffleName, setRaffleName] = useState("");
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 20;
 
@@ -25,18 +26,24 @@ export default function VendorTicketsPage() {
         const load = async () => {
             setLoading(true);
             try {
-                // Get all raffles to find vendor's tickets
-                const rafflesSnap = await getDocs(tenantCollection(user.tenantId, "raffles"));
-                const allTickets: TicketType[] = [];
+                // Find the active raffle (or the most recent one)
+                const rafflesCol = tenantCollection(user.tenantId, "raffles");
+                const rafflesQ = query(rafflesCol, where("status", "in", ["active", "draft"]), orderBy("createdAt", "desc"));
+                const rafflesSnap = await getDocs(rafflesQ);
 
-                for (const raffleDoc of rafflesSnap.docs) {
-                    const ticketsCol = tenantCollection(user.tenantId, `raffles/${raffleDoc.id}/tickets`);
-                    const q = query(ticketsCol, where("vendorId", "==", user.vendorId), orderBy("number", "asc"));
-                    const snap = await getDocs(q);
-                    snap.docs.forEach(d => allTickets.push(d.data() as TicketType));
+                if (rafflesSnap.empty) {
+                    setTickets([]);
+                    return;
                 }
 
-                setTickets(allTickets);
+                const activeRaffle = rafflesSnap.docs[0];
+                setRaffleName(activeRaffle.data().name);
+
+                // Single query: get vendor's tickets for the active raffle
+                const ticketsCol = tenantCollection(user.tenantId, `raffles/${activeRaffle.id}/tickets`);
+                const q = query(ticketsCol, where("vendorId", "==", user.vendorId), orderBy("number", "asc"));
+                const snap = await getDocs(q);
+                setTickets(snap.docs.map(d => d.data() as TicketType));
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
         };
@@ -55,7 +62,7 @@ export default function VendorTicketsPage() {
 
     return (
         <div>
-          <PageHeader title="Mis Boletas" description="Todas las boletas asignadas a ti" />
+            <PageHeader title="Mis Boletas" description={raffleName ? `Rifa: ${raffleName}` : "Boletas asignadas a ti"} />
 
           {tickets.length === 0 ? (
               <EmptyState title="Sin boletas" description="Aún no te han asignado boletas" icon={<Ticket className="h-12 w-12" />} />
