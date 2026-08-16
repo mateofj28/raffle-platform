@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button, Card, CardContent, Chip, Input, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
 import { CreditCard, Filter, X, ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -10,7 +10,7 @@ import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
-import { getDocs, query, orderBy, where } from "firebase/firestore";
+import { getDocs, query, orderBy, where, limit, startAfter, type QueryDocumentSnapshot } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
 
@@ -24,6 +24,9 @@ export default function PaymentsPage() {
     const [vendors, setVendors] = useState<Map<string, string>>(new Map());
     const [customers, setCustomers] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
+    const [hasMorePayments, setHasMorePayments] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const lastPaymentDocRef = useRef<QueryDocumentSnapshot | null>(null);
 
     // Filters
     const [filterType, setFilterType] = useState<string>("");
@@ -34,16 +37,20 @@ export default function PaymentsPage() {
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 20;
 
+    const INITIAL_LOAD = 200;
+
     useEffect(() => {
         if (!tenantId || !activeRaffle) return;
         const load = async () => {
             setLoading(true);
             try {
-                // Load payments filtered by active raffle
+                // Load payments filtered by active raffle with limit
                 const col = tenantCollection(tenantId, "payments");
-                const q = query(col, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc"));
+                const q = query(col, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc"), limit(INITIAL_LOAD));
                 const snap = await getDocs(q);
                 setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
+                lastPaymentDocRef.current = snap.docs[snap.docs.length - 1] || null;
+                setHasMorePayments(snap.docs.length === INITIAL_LOAD);
 
                 // Load vendors for name resolution
                 const vendorsSnap = await getDocs(tenantCollection(tenantId, "vendors"));
@@ -229,6 +236,28 @@ export default function PaymentsPage() {
                           </div>
                       </div>
                   )}
+
+                        {/* Load more from server */}
+                        {hasMorePayments && (
+                            <div className="mt-3 text-center">
+                                <Button variant="outline" size="sm" isDisabled={loadingMore} onPress={async () => {
+                                    if (!tenantId || !activeRaffle || !lastPaymentDocRef.current) return;
+                                    setLoadingMore(true);
+                                    try {
+                                        const col = tenantCollection(tenantId, "payments");
+                                        const q = query(col, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc"), startAfter(lastPaymentDocRef.current), limit(INITIAL_LOAD));
+                                        const snap = await getDocs(q);
+                                        const morePayments = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[];
+                                        setPayments(prev => [...prev, ...morePayments]);
+                                        lastPaymentDocRef.current = snap.docs[snap.docs.length - 1] || null;
+                                        setHasMorePayments(snap.docs.length === INITIAL_LOAD);
+                                    } catch (e) { console.error(e); }
+                                    finally { setLoadingMore(false); }
+                                }}>
+                                    {loadingMore ? "Cargando..." : "Cargar más pagos"}
+                                </Button>
+                            </div>
+                        )}
               </>
           )}
       </div>
