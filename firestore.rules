@@ -11,6 +11,10 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.role == 'admin';
     }
 
+    function isCashier() {
+      return isAuthenticated() && request.auth.token.role == 'cashier';
+    }
+
     function isVendor() {
       return isAuthenticated() && request.auth.token.role == 'vendor';
     }
@@ -32,7 +36,7 @@ service cloud.firestore {
         // Tickets (subcollection of raffles)
         match /tickets/{ticketNumber} {
           allow read: if belongsToTenant(tenantId)
-            && (isAdmin() || resource.data.vendorId == request.auth.uid);
+            && (isAdmin() || isCashier() || resource.data.vendorId == request.auth.uid);
           allow write: if false; // Only via Cloud Functions
         }
       }
@@ -46,14 +50,14 @@ service cloud.firestore {
       // Vendors
       match /vendors/{vendorId} {
         allow read: if belongsToTenant(tenantId)
-          && (isAdmin() || request.auth.uid == resource.data.userId);
+          && (isAdmin() || isCashier() || request.auth.uid == resource.data.userId);
         allow write: if false; // Only via Cloud Functions
       }
 
       // Payments
       match /payments/{paymentId} {
         allow read: if belongsToTenant(tenantId)
-          && (isAdmin() || resource.data.vendorId == request.auth.token.vendorId);
+          && (isAdmin() || isCashier() || resource.data.vendorId == request.auth.token.vendorId);
         allow write: if false; // Only via Cloud Functions
       }
 
