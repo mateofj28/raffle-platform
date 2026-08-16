@@ -85,7 +85,7 @@ export default function SellTicketPage() {
         });
       } else if (paymentOption === "partial" && paymentAmount) {
         const amount = parseInt(paymentAmount);
-        if (amount >= 1000) {
+        if (amount >= 5000) {
           await callFunction("registerPayment", {
             raffleId: activeRaffle.id,
             ticketNumber,
@@ -247,16 +247,16 @@ export default function SellTicketPage() {
                     className="w-full"
                     inputMode="numeric"
                   />
-                  {paymentAmount && parseInt(paymentAmount) < 1000 && (
-                    <p className="text-xs text-danger mt-1">Mínimo: $1.000</p>
+                  {paymentAmount && parseInt(paymentAmount) < 5000 && (
+                    <p className="text-xs text-danger mt-1">Mínimo: $5.000</p>
                   )}
-                  {paymentAmount && parseInt(paymentAmount) >= 1000 && (
+                  {paymentAmount && parseInt(paymentAmount) >= 5000 && (
                     <p className="text-xs text-default-500 mt-1">
                       Abono: {formatCurrency(parseInt(paymentAmount))} — Restante: {formatCurrency(activeRaffle.ticketPrice - parseInt(paymentAmount))}
                     </p>
                   )}
                   {!paymentAmount && (
-                    <p className="text-xs text-default-500 mt-1">Mínimo: $1.000 — Máximo: {formatCurrency(activeRaffle.ticketPrice)}</p>
+                    <p className="text-xs text-default-500 mt-1">Mínimo: $5.000 — Máximo: {formatCurrency(activeRaffle.ticketPrice)}</p>
                   )}
                 </div>
               )}
@@ -296,7 +296,7 @@ export default function SellTicketPage() {
           </Button>
           <Button
             variant="primary"
-            isDisabled={!selectedCustomerId || selling || (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < 1000))}
+            isDisabled={!selectedCustomerId || selling || (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < 5000))}
             onPress={handleSell}
           >
             <Ticket className="h-4 w-4" />

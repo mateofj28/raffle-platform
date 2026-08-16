@@ -13,12 +13,12 @@ import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
-import { getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
+import { getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import { callFunction } from "@/services/firebase-callable";
 import type { Raffle, Ticket as TicketType, Vendor } from "@/types/api.types";
 
-const TICKETS_PER_PAGE = 200;
+const RENDER_BATCH_SIZE = 500; // Render tickets in batches for smooth UI
 
 const TICKET_COLOR_MAP: Record<string, string> = {
     available: "bg-zinc-700 text-zinc-300",
@@ -42,9 +42,7 @@ export default function RaffleDetailPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
     const [ticketsLoading, setTicketsLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(false);
-    const [totalTickets, setTotalTickets] = useState(0);
+    const [visibleCount, setVisibleCount] = useState(RENDER_BATCH_SIZE);
 
     // Selection mode (assign)
     const [selectionMode, setSelectionMode] = useState(false);
@@ -70,7 +68,6 @@ export default function RaffleDetailPage() {
               if (raffleDoc.exists()) {
                   const data = raffleDoc.data();
                   setRaffle({ id: raffleDoc.id, ...data } as Raffle);
-                  setTotalTickets(data.totalTickets || 0);
                   setActiveRaffle({
                       id: raffleDoc.id,
                       name: data.name,
@@ -85,23 +82,23 @@ export default function RaffleDetailPage() {
       load();
     }, [tenantId, raffleId, setActiveRaffle]);
 
-    // Load tickets
+    // Load tickets - single fetch, all at once
     useEffect(() => {
         if (!tenantId || !raffleId) return;
       const load = async () => {
           setTicketsLoading(true);
           try {
               const col = tenantCollection(tenantId, `raffles/${raffleId}/tickets`);
-              const q = query(col, orderBy("number", "asc"), limit(TICKETS_PER_PAGE * page));
+              const q = query(col, orderBy("number", "asc"));
               const snap = await getDocs(q);
               const data = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[];
               setTickets(data);
-              setHasMore(data.length < totalTickets);
+              setVisibleCount(RENDER_BATCH_SIZE);
         } catch (e) { console.error(e); }
         finally { setTicketsLoading(false); }
     };
       load();
-  }, [tenantId, raffleId, page, totalTickets]);
+    }, [tenantId, raffleId]);
 
     // Load vendors
     useEffect(() => {
@@ -152,7 +149,7 @@ export default function RaffleDetailPage() {
             setPage(1);
             setTicketsLoading(true);
             const col = tenantCollection(tenantId!, `raffles/${raffleId}/tickets`);
-            const q = query(col, orderBy("number", "asc"), limit(TICKETS_PER_PAGE));
+            const q = query(col, orderBy("number", "asc"));
             const snap = await getDocs(q);
             setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
             setTicketsLoading(false);
@@ -186,7 +183,7 @@ export default function RaffleDetailPage() {
             setAssignSuccess(`✅ ${unassignSelected.length} boleta(s) liberada(s) correctamente.`);
             // Reload tickets
             const col = tenantCollection(tenantId!, `raffles/${raffleId}/tickets`);
-            const q = query(col, orderBy("number", "asc"), limit(TICKETS_PER_PAGE * page));
+            const q = query(col, orderBy("number", "asc"));
             const snap = await getDocs(q);
             setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
         } catch (e) { console.error(e); }
@@ -370,7 +367,7 @@ export default function RaffleDetailPage() {
           {ticketsLoading ? <LoadingSkeleton rows={5} /> : (
               <>
                   <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15 gap-1.5">
-                        {tickets.map((ticket) => (
+                        {tickets.slice(0, visibleCount).map((ticket) => (
                             <TicketCell
                                 key={ticket.number}
                                 ticket={ticket}
@@ -384,10 +381,10 @@ export default function RaffleDetailPage() {
                         ))}
                     </div>
 
-                    {hasMore && (
+                    {visibleCount < tickets.length && (
                         <div className="mt-4 text-center">
-                            <Button variant="outline" size="sm" onPress={() => setPage((p) => p + 1)}>
-                                Cargar más boletas
+                            <Button variant="outline" size="sm" onPress={() => setVisibleCount((v) => Math.min(v + RENDER_BATCH_SIZE, tickets.length))}>
+                                Mostrar más ({tickets.length - visibleCount} restantes)
                             </Button>
                         </div>
                     )}
