@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent, Input, AlertDialog } from "@heroui/react";
-import { UserCog, Plus, Trash2 } from "lucide-react";
+import { UserCog, Plus, Trash2, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -10,7 +10,7 @@ import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { useAuthStore } from "@/store/auth.store";
 import { callFunction } from "@/services/firebase-callable";
 import { getDocs, query, where } from "firebase/firestore";
-import { tenantCollection } from "@/lib/firebase/firestore";
+import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import { toast } from "@heroui/react";
 
 interface CashierUser {
@@ -35,6 +35,10 @@ export default function CashiersPage() {
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [editingCashier, setEditingCashier] = useState<CashierUser | null>(null);
+    const [deleteCashier, setDeleteCashier] = useState<CashierUser | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editingAction, setEditingAction] = useState(false);
 
     function capitalizeWords(text: string): string {
         return text.replace(/\b\w/g, (char) => char.toUpperCase());
@@ -191,15 +195,101 @@ export default function CashiersPage() {
                                             <p className="text-xs text-default-500">{cashier.email}</p>
                                         </div>
                                     </div>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${cashier.disabled ? "bg-danger/10 text-danger" : "bg-success/10 text-success"}`}>
-                                        {cashier.disabled ? "Inactivo" : "Activo"}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${cashier.disabled ? "bg-danger/10 text-danger" : "bg-success/10 text-success"}`}>
+                                            {cashier.disabled ? "Inactivo" : "Activo"}
+                                        </span>
+                                        <Button variant="ghost" size="sm" isIconOnly onPress={() => {
+                                            setEditingCashier(cashier);
+                                            setEditName(cashier.displayName);
+                                        }} aria-label="Editar">
+                                            <Pencil className="h-4 w-4 text-amber-400" />
+                                        </Button>
+                                        <Button variant="ghost" size="sm" isIconOnly onPress={() => setDeleteCashier(cashier)} aria-label="Eliminar">
+                                            <Trash2 className="h-4 w-4 text-danger" />
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             )}
+
+            {/* Edit dialog */}
+            <AlertDialog.Backdrop isOpen={editingCashier !== null} onOpenChange={(open) => { if (!open) setEditingCashier(null); }} isDismissable>
+                <AlertDialog.Container placement="center" size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.CloseTrigger />
+                        <AlertDialog.Header>
+                            <AlertDialog.Heading>Editar cajero</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <label className="text-sm font-medium mb-2 block">Nombre</label>
+                            <Input
+                                value={editName}
+                                onChange={(e) => setEditName(capitalizeWords(e.target.value))}
+                                className="w-full"
+                            />
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">Cancelar</Button>
+                            <Button variant="primary" isDisabled={!editName.trim() || editingAction} onPress={async () => {
+                                if (!editingCashier || !tenantId) return;
+                                setEditingAction(true);
+                                try {
+                                    // Update displayName in users collection
+                                    const { doc: firestoreDoc, updateDoc } = await import("firebase/firestore");
+                                    const userRef = firestoreDoc(getDb(), "tenants", tenantId, "users", editingCashier.id);
+                                    await updateDoc(userRef, { displayName: editName.trim() });
+                                    toast.success("Cajero actualizado");
+                                    setEditingCashier(null);
+                                    await loadCashiers();
+                                } catch (e) {
+                                    toast.danger("Error al actualizar");
+                                } finally { setEditingAction(false); }
+                            }}>
+                                {editingAction ? "Guardando..." : "Guardar"}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
+
+            {/* Delete confirmation */}
+            <AlertDialog.Backdrop isOpen={deleteCashier !== null} onOpenChange={(open) => { if (!open) setDeleteCashier(null); }} isDismissable>
+                <AlertDialog.Container placement="center" size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.CloseTrigger />
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger" />
+                            <AlertDialog.Heading>¿Eliminar cajero?</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <p>Se desactivará la cuenta de <strong>{deleteCashier?.displayName}</strong>. Ya no podrá iniciar sesión.</p>
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">Cancelar</Button>
+                            <Button variant="danger" isDisabled={editingAction} onPress={async () => {
+                                if (!deleteCashier || !tenantId) return;
+                                setEditingAction(true);
+                                try {
+                                    const { doc: firestoreDoc, updateDoc } = await import("firebase/firestore");
+                                    const userRef = firestoreDoc(getDb(), "tenants", tenantId, "users", deleteCashier.id);
+                                    await updateDoc(userRef, { disabled: true });
+                                    toast.success("Cajero desactivado");
+                                    setDeleteCashier(null);
+                                    await loadCashiers();
+                                } catch (e) {
+                                    toast.danger("Error al desactivar");
+                                } finally { setEditingAction(false); }
+                            }}>
+                                {editingAction ? "Eliminando..." : "Desactivar cajero"}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </div>
     );
 }
