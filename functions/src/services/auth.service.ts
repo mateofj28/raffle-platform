@@ -247,6 +247,56 @@ export const createUser = onCall(
 );
 
 /**
+ * Updates a user's profile (displayName, email, password).
+ * Admin-only.
+ */
+export const updateUser = onCall(
+    { region: "us-central1" },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const data = request.data as { uid: string; displayName?: string; email?: string; password?: string };
+
+            if (!data.uid) {
+                throw new AppError(AppErrorCode.VALIDATION_ERROR, "UID es requerido.");
+            }
+
+            const updates: Record<string, string> = {};
+            const authUpdates: Record<string, string> = {};
+
+            if (data.displayName) {
+                updates.displayName = data.displayName.trim();
+                authUpdates.displayName = data.displayName.trim();
+            }
+            if (data.email) {
+                updates.email = data.email.trim();
+                authUpdates.email = data.email.trim();
+            }
+            if (data.password && data.password.length >= 6) {
+                authUpdates.password = data.password;
+            }
+
+            // Update Firebase Auth
+            if (Object.keys(authUpdates).length > 0) {
+                await getAuth().updateUser(data.uid, authUpdates);
+            }
+
+            // Update Firestore user document
+            if (Object.keys(updates).length > 0) {
+                const db = getDb();
+                await db.doc(`tenants/${context.tenantId}/users/${data.uid}`).update(updates);
+            }
+
+            return { success: true };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
+
+/**
  * Records a failed login attempt and enforces account lockout.
  * Locks the account after MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_DURATION_MS.
  */

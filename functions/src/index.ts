@@ -10,7 +10,7 @@ import { initAdmin } from "./utils/firestore";
 initAdmin();
 
 // Auth service
-export { setCustomClaims, createUser, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
+export { setCustomClaims, createUser, updateUser, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
 
 // Raffle service
 export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber } from "./services/raffle.service";

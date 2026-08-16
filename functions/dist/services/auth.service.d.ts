@@ -25,6 +25,13 @@ export declare const createUser: import("firebase-functions/v2/https").CallableF
     message: string;
 }>, unknown>;
 /**
+ * Updates a user's profile (displayName, email, password).
+ * Admin-only.
+ */
+export declare const updateUser: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
+    success: boolean;
+}>, unknown>;
+/**
  * Records a failed login attempt and enforces account lockout.
  * Locks the account after MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_DURATION_MS.
  */

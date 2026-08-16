@@ -9,7 +9,7 @@
  * - checkAccountLock: Checks if an account is currently locked
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkAccountLock = exports.recordLoginAttempt = exports.createUser = exports.setCustomClaims = void 0;
+exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -146,6 +146,46 @@ exports.createUser = (0, https_1.onCall)({ region: "us-central1" }, async (reque
             uid: userRecord.uid,
             message: "User created successfully.",
         };
+    }
+    catch (error) {
+        (0, errors_1.handleError)(error);
+    }
+});
+/**
+ * Updates a user's profile (displayName, email, password).
+ * Admin-only.
+ */
+exports.updateUser = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
+    try {
+        const context = (0, auth_2.validateAuth)(request);
+        (0, auth_2.requireAdmin)(context);
+        const data = request.data;
+        if (!data.uid) {
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "UID es requerido.");
+        }
+        const updates = {};
+        const authUpdates = {};
+        if (data.displayName) {
+            updates.displayName = data.displayName.trim();
+            authUpdates.displayName = data.displayName.trim();
+        }
+        if (data.email) {
+            updates.email = data.email.trim();
+            authUpdates.email = data.email.trim();
+        }
+        if (data.password && data.password.length >= 6) {
+            authUpdates.password = data.password;
+        }
+        // Update Firebase Auth
+        if (Object.keys(authUpdates).length > 0) {
+            await (0, auth_1.getAuth)().updateUser(data.uid, authUpdates);
+        }
+        // Update Firestore user document
+        if (Object.keys(updates).length > 0) {
+            const db = (0, firestore_2.getDb)();
+            await db.doc(`tenants/${context.tenantId}/users/${data.uid}`).update(updates);
+        }
+        return { success: true };
     }
     catch (error) {
         (0, errors_1.handleError)(error);

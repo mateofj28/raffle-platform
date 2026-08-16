@@ -38,6 +38,9 @@ export default function CashiersPage() {
     const [editingCashier, setEditingCashier] = useState<CashierUser | null>(null);
     const [deleteCashier, setDeleteCashier] = useState<CashierUser | null>(null);
     const [editName, setEditName] = useState("");
+    const [editEmail, setEditEmail] = useState("");
+    const [editPassword, setEditPassword] = useState("");
+    const [showEditPassword, setShowEditPassword] = useState(false);
     const [editingAction, setEditingAction] = useState(false);
 
     function capitalizeWords(text: string): string {
@@ -202,6 +205,9 @@ export default function CashiersPage() {
                                         <Button variant="ghost" size="sm" isIconOnly onPress={() => {
                                             setEditingCashier(cashier);
                                             setEditName(cashier.displayName);
+                                            setEditEmail(cashier.email);
+                                            setEditPassword("");
+                                            setShowEditPassword(false);
                                         }} aria-label="Editar">
                                             <Pencil className="h-4 w-4 text-amber-400" />
                                         </Button>
@@ -218,38 +224,75 @@ export default function CashiersPage() {
 
             {/* Edit dialog */}
             <AlertDialog.Backdrop isOpen={editingCashier !== null} onOpenChange={(open) => { if (!open) setEditingCashier(null); }} isDismissable>
-                <AlertDialog.Container placement="center" size="sm">
+                <AlertDialog.Container placement="center" size="md">
                     <AlertDialog.Dialog>
                         <AlertDialog.CloseTrigger />
                         <AlertDialog.Header>
                             <AlertDialog.Heading>Editar cajero</AlertDialog.Heading>
                         </AlertDialog.Header>
                         <AlertDialog.Body>
-                            <label className="text-sm font-medium mb-2 block">Nombre</label>
-                            <Input
-                                value={editName}
-                                onChange={(e) => setEditName(capitalizeWords(e.target.value))}
-                                className="w-full"
-                            />
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">Nombre</label>
+                                    <Input
+                                        value={editName}
+                                        onChange={(e) => setEditName(capitalizeWords(e.target.value))}
+                                        className="w-full"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">Correo electrónico</label>
+                                    <Input
+                                        type="email"
+                                        value={editEmail}
+                                        onChange={(e) => setEditEmail(e.target.value)}
+                                        className="w-full"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">Nueva contraseña <span className="text-default-400 font-normal">(dejar vacío para no cambiar)</span></label>
+                                    <div className="relative">
+                                        <Input
+                                            type={showEditPassword ? "text" : "password"}
+                                            placeholder="Mínimo 6 caracteres"
+                                            value={editPassword}
+                                            onChange={(e) => setEditPassword(e.target.value)}
+                                            className="w-full"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEditPassword(!showEditPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-default-400 hover:text-foreground"
+                                        >
+                                            {showEditPassword ? "Ocultar" : "Ver"}
+                                        </button>
+                                    </div>
+                                    {editPassword && editPassword.length < 6 && (
+                                        <p className="text-xs text-danger mt-1">Mínimo 6 caracteres</p>
+                                    )}
+                                </div>
+                            </div>
                         </AlertDialog.Body>
                         <AlertDialog.Footer>
                             <Button slot="close" variant="tertiary">Cancelar</Button>
-                            <Button variant="primary" isDisabled={!editName.trim() || editingAction} onPress={async () => {
+                            <Button variant="primary" isDisabled={!editName.trim() || !editEmail.trim() || (editPassword.length > 0 && editPassword.length < 6) || editingAction} onPress={async () => {
                                 if (!editingCashier || !tenantId) return;
                                 setEditingAction(true);
                                 try {
-                                    // Update displayName in users collection
-                                    const { doc: firestoreDoc, updateDoc } = await import("firebase/firestore");
-                                    const userRef = firestoreDoc(getDb(), "tenants", tenantId, "users", editingCashier.id);
-                                    await updateDoc(userRef, { displayName: editName.trim() });
+                                    await callFunction("updateUser", {
+                                        uid: editingCashier.id,
+                                        displayName: editName.trim(),
+                                        email: editEmail.trim(),
+                                        ...(editPassword.length >= 6 ? { password: editPassword } : {}),
+                                    });
                                     toast.success("Cajero actualizado");
                                     setEditingCashier(null);
                                     await loadCashiers();
                                 } catch (e) {
-                                    toast.danger("Error al actualizar");
+                                    toast.danger(e instanceof Error ? e.message : "Error al actualizar");
                                 } finally { setEditingAction(false); }
                             }}>
-                                {editingAction ? "Guardando..." : "Guardar"}
+                                {editingAction ? "Guardando..." : "Guardar cambios"}
                             </Button>
                         </AlertDialog.Footer>
                     </AlertDialog.Dialog>

@@ -6,7 +6,7 @@
  * are exported from here.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.cancelTicket = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.createUser = exports.setCustomClaims = void 0;
+exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.cancelTicket = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
 // Initialize Firebase Admin
 const firestore_1 = require("./utils/firestore");
 (0, firestore_1.initAdmin)();
@@ -14,6 +14,7 @@ const firestore_1 = require("./utils/firestore");
 var auth_service_1 = require("./services/auth.service");
 Object.defineProperty(exports, "setCustomClaims", { enumerable: true, get: function () { return auth_service_1.setCustomClaims; } });
 Object.defineProperty(exports, "createUser", { enumerable: true, get: function () { return auth_service_1.createUser; } });
+Object.defineProperty(exports, "updateUser", { enumerable: true, get: function () { return auth_service_1.updateUser; } });
 Object.defineProperty(exports, "recordLoginAttempt", { enumerable: true, get: function () { return auth_service_1.recordLoginAttempt; } });
 Object.defineProperty(exports, "checkAccountLock", { enumerable: true, get: function () { return auth_service_1.checkAccountLock; } });
 // Raffle service

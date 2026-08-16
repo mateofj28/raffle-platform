@@ -4,7 +4,7 @@
  * All callable functions, triggers, and scheduled functions
  * are exported from here.
  */
-export { setCustomClaims, createUser, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
+export { setCustomClaims, createUser, updateUser, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
 export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber } from "./services/raffle.service";
 export { assignTickets, sellTicket, cancelTicket, unassignTickets, updateTicketClient } from "./services/ticket.service";
 export { generateTickets } from "./services/ticket.service";
