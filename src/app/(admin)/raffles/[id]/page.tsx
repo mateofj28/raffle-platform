@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog } from "@heroui/react";
+import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,7 +50,6 @@ export default function RaffleDetailPage() {
     const [selectedVendor, setSelectedVendor] = useState("");
     const [assigning, setAssigning] = useState(false);
     const [assignError, setAssignError] = useState<string | null>(null);
-    const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
 
     // Unassign mode
     const [unassignMode, setUnassignMode] = useState(false);
@@ -138,7 +137,6 @@ export default function RaffleDetailPage() {
         if (!selectedVendor || selectedTickets.length === 0) return;
         setAssigning(true);
         setAssignError(null);
-        setAssignSuccess(null);
 
         try {
             const result = await callFunction<{ assigned: number; skipped: number }>("assignTickets", {
@@ -146,18 +144,17 @@ export default function RaffleDetailPage() {
                 vendorId: selectedVendor,
                 ticketNumbers: selectedTickets,
             });
-            setAssignSuccess(`✅ ${result.assigned} boletas asignadas correctamente.`);
+            toast.success(`${result.assigned} boletas asignadas correctamente`);
+            // Optimistic update: update local ticket state immediately
+            setTickets(prev => prev.map(t =>
+                selectedTickets.includes(t.number) && t.status === "available"
+                    ? { ...t, status: "assigned" as const, vendorId: selectedVendor }
+                    : t
+            ));
             setSelectedTickets([]);
             setSelectionMode(false);
             setSelectedVendor("");
-            // Reload tickets
             setPage(1);
-            setTicketsLoading(true);
-            const col = tenantCollection(tenantId!, `raffles/${raffleId}/tickets`);
-            const q = query(col, orderBy("number", "asc"));
-            const snap = await getDocs(q);
-            setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
-            setTicketsLoading(false);
         } catch (err) {
             setAssignError(err instanceof Error ? err.message : "Error al asignar boletas");
         } finally {
@@ -182,15 +179,16 @@ export default function RaffleDetailPage() {
         setUnassigning(true);
         try {
             await callFunction("unassignTickets", { raffleId, ticketNumbers: unassignSelected });
+            toast.success(`${unassignSelected.length} boleta(s) liberada(s) correctamente`);
+            // Optimistic update: set unassigned tickets back to available
+            setTickets(prev => prev.map(t =>
+                unassignSelected.includes(t.number) && t.status === "assigned"
+                    ? { ...t, status: "available" as const, vendorId: null }
+                    : t
+            ));
             setUnassignSelected([]);
             setUnassignMode(false);
             setShowUnassignConfirm(false);
-            setAssignSuccess(`✅ ${unassignSelected.length} boleta(s) liberada(s) correctamente.`);
-            // Reload tickets
-            const col = tenantCollection(tenantId!, `raffles/${raffleId}/tickets`);
-            const q = query(col, orderBy("number", "asc"));
-            const snap = await getDocs(q);
-            setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
         } catch (e) { console.error(e); }
         finally { setUnassigning(false); }
     };
@@ -345,12 +343,6 @@ export default function RaffleDetailPage() {
                         </div>
                     </CardContent>
                 </Card>
-            )}
-
-          {assignSuccess && (
-              <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">
-                  {assignSuccess}
-              </div>
             )}
 
             {/* Status legend with counts */}
