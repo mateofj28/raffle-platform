@@ -26,7 +26,6 @@ const TICKET_COLOR_MAP: Record<string, string> = {
     sold: "bg-blue-800 text-blue-200",
     paid: "bg-emerald-800 text-emerald-200",
     installment: "bg-purple-800 text-purple-200",
-    cancelled: "bg-red-900 text-red-300",
     winner: "bg-emerald-700 text-emerald-100 ring-2 ring-emerald-400",
 };
 

@@ -36,7 +36,6 @@ export type TicketStatus =
     | "sold"
     | "paid"
     | "installment"
-    | "cancelled"
     | "winner";
 
 export interface Ticket {

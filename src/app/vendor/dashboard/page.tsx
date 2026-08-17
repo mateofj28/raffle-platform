@@ -15,7 +15,6 @@ interface VendorMetrics {
     soldCount: number;
     paidCount: number;
     installmentCount: number;
-    cancelledCount: number;
     pendingCount: number;
     moneyCollected: number;
     commissionGenerated: number;
@@ -39,7 +38,7 @@ export default function VendorDashboardPage() {
                 // Fallback zeros
                 setMetrics({
                     assignedCount: 0, soldCount: 0, paidCount: 0, installmentCount: 0,
-                    cancelledCount: 0, pendingCount: 0, moneyCollected: 0,
+                    pendingCount: 0, moneyCollected: 0,
                     commissionGenerated: 0, commissionPaid: 0, pendingBalanceToDeliver: 0,
                 });
             } finally {
@@ -75,8 +74,7 @@ export default function VendorDashboardPage() {
                       <MiniStat label="Asignadas" value={m.assignedCount} color="text-amber-400" />
                       <MiniStat label="Vendidas" value={m.soldCount} color="text-blue-400" />
                       <MiniStat label="Pagadas" value={m.paidCount} color="text-emerald-400" />
-                      <MiniStat label="Abonadas" value={m.installmentCount} color="text-purple-400" />
-                      <MiniStat label="Canceladas" value={m.cancelledCount} color="text-red-400" />
+                        <MiniStat label="Abonadas" value={m.installmentCount} color="text-purple-400" />
                   </div>
               </CardContent>
           </Card>

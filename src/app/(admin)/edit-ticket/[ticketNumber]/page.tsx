@@ -102,7 +102,7 @@ export default function EditTicketPage() {
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <span className="font-mono font-bold">#{ticketNumber}</span>
-              <span className="text-default-500">Estado: <span className="font-medium text-foreground">{{ available: "Disponible", assigned: "Asignada", sold: "Vendida", paid: "Pagada", installment: "Abonada", cancelled: "Cancelada", winner: "Ganadora" }[ticket.status] || ticket.status}</span></span>
+              <span className="text-default-500">Estado: <span className="font-medium text-foreground">{{ available: "Disponible", assigned: "Asignada", sold: "Vendida", paid: "Pagada", installment: "Abonada", winner: "Ganadora" }[ticket.status] || ticket.status}</span></span>
               <span className="text-default-500">Saldo: <span className="font-medium text-foreground">{formatCurrency(ticket.pendingBalance)}</span></span>
               {ticket.customerId && (
                 <span className="text-default-500">Cliente actual: <span className="font-medium text-foreground">{customers.find(c => c.id === ticket.customerId)?.name || "—"} ({customers.find(c => c.id === ticket.customerId)?.document || ticket.customerId})</span></span>

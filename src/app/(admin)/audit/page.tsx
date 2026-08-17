@@ -28,7 +28,6 @@ const OPERATION_LABELS: Record<string, { label: string; color: "success" | "warn
     payment_deleted: { label: "Pago eliminado", color: "danger" },
     payment_corrected: { label: "Pago corregido", color: "warning" },
     ticket_sold: { label: "Boleta vendida", color: "accent" },
-    ticket_cancelled: { label: "Boleta cancelada", color: "danger" },
     tickets_assigned: { label: "Boletas asignadas", color: "default" },
     tickets_unassigned: { label: "Boletas desasignadas", color: "warning" },
     raffle_created: { label: "Rifa creada", color: "success" },
@@ -62,8 +61,6 @@ function getOperationDescription(entry: AuditEntry, usersMap: Map<string, { name
             const customerName = usersMap.get(meta.customerId as string)?.name || "cliente";
             return `Vendió boleta #${meta.ticketNumber} a ${customerName}`;
         }
-        case "ticket_cancelled":
-            return `Canceló boleta #${meta.ticketNumber}`;
         case "tickets_assigned": {
             const vendorName = usersMap.get(meta.vendorId as string)?.name || "vendedor";
             return `Asignó ${meta.assigned} boletas a ${vendorName}`;

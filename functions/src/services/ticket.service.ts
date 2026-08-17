@@ -39,11 +39,6 @@ const sellTicketSchema = z.object({
     customerId: z.string().min(1),
 });
 
-const cancelTicketSchema = z.object({
-    raffleId: z.string().min(1),
-    ticketNumber: z.number().int().min(1),
-});
-
 // --- Helpers ---
 
 function padTicketNumber(num: number): string {
@@ -284,60 +279,6 @@ export const sellTicket = onCall(
             // Audit trail
             await createAuditEntry(context.tenantId, "ticket_sold", "ticket", ticketDocId, context.uid, null, {
                 raffleId, ticketNumber, customerId,
-            });
-
-            return { success: true };
-        } catch (error) {
-            handleError(error);
-        }
-    }
-);
-
-/**
- * Cancels a ticket.
- * Admin-only. Cannot cancel tickets in "paid" or "winner" state.
- */
-export const cancelTicket = onCall(
-    { region: "us-central1" },
-    async (request: CallableRequest) => {
-        try {
-            const context: AuthContext = validateAuth(request);
-            requireAdmin(context);
-
-            const data = validateData(cancelTicketSchema, request.data);
-            const { raffleId, ticketNumber } = data;
-
-            const db = getDb();
-            const ticketDocId = padTicketNumber(ticketNumber);
-            const ticketRef = db.doc(
-                `tenants/${context.tenantId}/raffles/${raffleId}/tickets/${ticketDocId}`
-            );
-
-            const ticketSnap = await ticketRef.get();
-
-            if (!ticketSnap.exists) {
-                throw new AppError(AppErrorCode.NOT_FOUND, "Ticket not found.");
-            }
-
-            const ticket = ticketSnap.data()!;
-
-            // Validate ticket can be cancelled
-            const cancellableStatuses = ["available", "assigned", "sold"];
-            if (!cancellableStatuses.includes(ticket.status)) {
-                throw new AppError(
-                    AppErrorCode.INVALID_TRANSITION,
-                    `Cannot cancel a ticket in ${ticket.status} state.`
-                );
-            }
-
-            await ticketRef.update({
-                status: "cancelled",
-                updatedAt: FieldValue.serverTimestamp(),
-            });
-
-            // Audit trail
-            await createAuditEntry(context.tenantId, "ticket_cancelled", "ticket", ticketDocId, context.uid, null, {
-                raffleId, ticketNumber,
             });
 
             return { success: true };

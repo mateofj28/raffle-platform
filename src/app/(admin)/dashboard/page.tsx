@@ -24,7 +24,6 @@ interface RaffleMetrics {
     sold: number;
     paid: number;
     installment: number;
-    cancelled: number;
     totalCollected: number;
     totalPending: number;
     totalPotential: number;
@@ -77,7 +76,7 @@ export default function AdminDashboardPage() {
                 const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
                 const ticketsSnap = await getDocs(query(ticketsCol, orderBy("number", "asc")));
 
-                let available = 0, assigned = 0, sold = 0, paid = 0, installment = 0, cancelled = 0;
+                let available = 0, assigned = 0, sold = 0, paid = 0, installment = 0;
                 let totalCollected = 0, totalPending = 0;
                 const vendorIds = new Set<string>();
                 const customerIds = new Set<string>();
@@ -90,7 +89,6 @@ export default function AdminDashboardPage() {
                         case "sold": sold++; break;
                         case "paid": paid++; break;
                         case "installment": installment++; break;
-                        case "cancelled": cancelled++; break;
                     }
                     if (t.vendorId) vendorIds.add(t.vendorId);
                     if (t.customerId) customerIds.add(t.customerId);
@@ -104,7 +102,7 @@ export default function AdminDashboardPage() {
 
                 setMetrics({
                     totalTickets: ticketsSnap.size,
-                    available, assigned, sold, paid, installment, cancelled,
+                    available, assigned, sold, paid, installment,
                     totalCollected, totalPending, totalPotential,
                     vendorsCount: vendorIds.size,
                     customersCount: customerIds.size,
@@ -277,7 +275,6 @@ export default function AdminDashboardPage() {
                                     <MiniStat label="Vendidas" value={metrics.sold} color="text-blue-400" />
                                     <MiniStat label="Pagadas" value={metrics.paid} color="text-emerald-400" />
                                     <MiniStat label="Abonadas" value={metrics.installment} color="text-purple-400" />
-                                    <MiniStat label="Canceladas" value={metrics.cancelled} color="text-red-400" />
                                 </div>
 
                                 {/* Progress bar */}

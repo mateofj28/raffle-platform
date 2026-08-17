@@ -20,7 +20,7 @@ export interface Raffle {
     updatedAt: string;
     createdBy: string;
 }
-export type TicketStatus = "available" | "assigned" | "sold" | "paid" | "installment" | "cancelled" | "winner";
+export type TicketStatus = "available" | "assigned" | "sold" | "paid" | "installment" | "winner";
 export interface Ticket {
     number: number;
     numbers: number[];

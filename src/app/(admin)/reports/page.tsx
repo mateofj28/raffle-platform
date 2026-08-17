@@ -22,7 +22,6 @@ type ReportType =
     | "commissions"
     | "morosos"
     | "raffle-status"
-    | "cancelled-tickets"
     | "vendor-liquidation";
 
 const REPORTS = [
@@ -33,7 +32,6 @@ const REPORTS = [
     { id: "commissions" as ReportType, label: "Comisiones por vendedor", icon: TrendingUp, description: "Comisión acumulada de cada vendedor" },
     { id: "morosos" as ReportType, label: "Clientes morosos", icon: AlertTriangle, description: "Clientes con abonos incompletos" },
     { id: "raffle-status" as ReportType, label: "Estado de la rifa", icon: BarChart3, description: "Resumen de boletas por estado" },
-    { id: "cancelled-tickets" as ReportType, label: "Boletas canceladas", icon: ShoppingCart, description: "Lista de boletas canceladas" },
     { id: "vendor-liquidation" as ReportType, label: "Liquidación por vendedor", icon: DollarSign, description: "Cuánto recaudó, comisión y cuánto debe entregar" },
 ];
 
@@ -146,7 +144,6 @@ function ReportContent({ type, tickets, payments, vendors, customers, ticketPric
         case "commissions": return <Commissions tickets={tickets} vendors={vendors} ticketPrice={ticketPrice} />;
         case "morosos": return <Morosos tickets={tickets} customers={customers} ticketPrice={ticketPrice} />;
         case "raffle-status": return <RaffleStatus tickets={tickets} ticketPrice={ticketPrice} />;
-        case "cancelled-tickets": return <CancelledTickets tickets={tickets} vendors={vendors} customers={customers} />;
         case "vendor-liquidation": return <VendorLiquidation tickets={tickets} vendors={vendors} ticketPrice={ticketPrice} />;
         default: return null;
     }
@@ -325,7 +322,6 @@ function RaffleStatus({ tickets, ticketPrice }: { tickets: Ticket[]; ticketPrice
         sold: tickets.filter(t => t.status === "sold").length,
         installment: tickets.filter(t => t.status === "installment").length,
         paid: tickets.filter(t => t.status === "paid").length,
-        cancelled: tickets.filter(t => t.status === "cancelled").length,
     };
     const totalCollected = tickets.reduce((s, t) => s + (t.value - t.pendingBalance), 0);
     const totalPotential = tickets.length * ticketPrice;
@@ -339,7 +335,6 @@ function RaffleStatus({ tickets, ticketPrice }: { tickets: Ticket[]; ticketPrice
                 <StatBox label="Vendidas" value={statuses.sold} color="text-blue-500" />
                 <StatBox label="En abonos" value={statuses.installment} color="text-purple-500" />
                 <StatBox label="Pagadas" value={statuses.paid} color="text-success" />
-                <StatBox label="Canceladas" value={statuses.cancelled} color="text-danger" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-4 rounded-lg border border-default-200">
@@ -355,29 +350,6 @@ function RaffleStatus({ tickets, ticketPrice }: { tickets: Ticket[]; ticketPrice
                     <p className="text-xl font-bold">{formatCurrency(totalPotential)}</p>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function CancelledTickets({ tickets, vendors, customers }: { tickets: Ticket[]; vendors: Map<string, Vendor>; customers: Map<string, Customer> }) {
-    const cancelled = tickets.filter(t => t.status === "cancelled");
-    return (
-        <div>
-            <h2 className="text-lg font-bold mb-2">Boletas canceladas</h2>
-            <Chip size="sm" variant="soft" color="danger" className="px-3 py-1 mb-4">{cancelled.length} boletas canceladas</Chip>
-            {cancelled.length === 0 ? (
-                <p className="text-default-500">No hay boletas canceladas</p>
-            ) : (
-                <Table headers={["#", "Vendedor", "Cliente"]}>
-                    {cancelled.map(t => (
-                        <tr key={t.number}>
-                            <td className="px-3 py-2 font-mono">{t.number}</td>
-                            <td className="px-3 py-2">{t.vendorId ? vendors.get(t.vendorId)?.name || "—" : "—"}</td>
-                            <td className="px-3 py-2">{t.customerId ? customers.get(t.customerId)?.name || "—" : "—"}</td>
-                        </tr>
-                    ))}
-                </Table>
-            )}
         </div>
     );
 }
