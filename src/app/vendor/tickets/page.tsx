@@ -70,11 +70,11 @@ export default function VendorTicketsPage() {
               <>
                   {/* Summary chips */}
                   <div className="flex gap-2 flex-wrap mb-4">
-                      <Chip size="sm" variant="soft">Total: {tickets.length}</Chip>
-                      <Chip size="sm" variant="soft" color="warning">Asignadas: {assigned}</Chip>
-                      <Chip size="sm" variant="soft" color="accent">Vendidas: {sold}</Chip>
-                      <Chip size="sm" variant="soft" color="success">Pagadas: {paid}</Chip>
-                      <Chip size="sm" variant="soft" color="danger">Abonadas: {installment}</Chip>
+                            <Chip size="sm" variant="soft" className="px-3 py-1">Total: {tickets.length}</Chip>
+                            <Chip size="sm" variant="soft" color="warning" className="px-3 py-1">Asignadas: {assigned}</Chip>
+                            <Chip size="sm" variant="soft" color="accent" className="px-3 py-1">Vendidas: {sold}</Chip>
+                            <Chip size="sm" variant="soft" color="success" className="px-3 py-1">Pagadas: {paid}</Chip>
+                            <Chip size="sm" variant="soft" color="danger" className="px-3 py-1">Abonadas: {installment}</Chip>
                   </div>
 
                   {/* Table */}

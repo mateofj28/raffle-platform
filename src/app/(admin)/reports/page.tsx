@@ -193,7 +193,7 @@ function UnsoldTickets({ tickets, vendors }: { tickets: Ticket[]; vendors: Map<s
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Boletas sin vender</h2>
-            <Chip size="sm" variant="soft" color="warning" className="mb-4">{unsold.length} boletas asignadas sin vender</Chip>
+            <Chip size="sm" variant="soft" color="warning" className="px-3 py-1 mb-4">{unsold.length} boletas asignadas sin vender</Chip>
             <Table headers={["#", "Vendedor"]}>
                 {unsold.map(t => (
                     <tr key={t.number}>
@@ -216,7 +216,7 @@ function RevenueByMethod({ payments }: { payments: Payment[] }) {
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Recaudo por método de pago</h2>
-            <Chip size="sm" variant="soft" color="success" className="mb-4">Total recaudado: {formatCurrency(total)}</Chip>
+            <Chip size="sm" variant="soft" color="success" className="px-3 py-1 mb-4">Total recaudado: {formatCurrency(total)}</Chip>
             <Table headers={["Método", "Cantidad pagos", "Monto total", "% del total"]}>
                 {Array.from(byMethod.entries()).sort((a, b) => b[1] - a[1]).map(([method, amount]) => (
                     <tr key={method}>
@@ -238,7 +238,7 @@ function PendingBalance({ tickets, customers, vendors, ticketPrice }: { tickets:
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Cartera pendiente</h2>
-            <Chip size="sm" variant="soft" color="danger" className="mb-4">Total pendiente: {formatCurrency(totalPending)} — {pending.length} boletas</Chip>
+            <Chip size="sm" variant="soft" color="danger" className="px-3 py-1 mb-4">Total pendiente: {formatCurrency(totalPending)} — {pending.length} boletas</Chip>
             <Table headers={["#", "Cliente", "Vendedor", "Abonado", "Pendiente"]}>
                 {pending.sort((a, b) => b.pendingBalance - a.pendingBalance).map(t => (
                     <tr key={t.number}>
@@ -298,7 +298,7 @@ function Morosos({ tickets, customers, ticketPrice }: { tickets: Ticket[]; custo
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Clientes con abonos pendientes</h2>
-            <Chip size="sm" variant="soft" color="danger" className="mb-4">{byCustomer.size} clientes con saldo pendiente</Chip>
+            <Chip size="sm" variant="soft" color="danger" className="px-3 py-1 mb-4">{byCustomer.size} clientes con saldo pendiente</Chip>
             <Table headers={["Cliente", "Teléfono", "Boletas", "Total pendiente"]}>
                 {Array.from(byCustomer.entries()).map(([customerId, data]) => {
                     const customer = customers.get(customerId);
@@ -364,7 +364,7 @@ function CancelledTickets({ tickets, vendors, customers }: { tickets: Ticket[]; 
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Boletas canceladas</h2>
-            <Chip size="sm" variant="soft" color="danger" className="mb-4">{cancelled.length} boletas canceladas</Chip>
+            <Chip size="sm" variant="soft" color="danger" className="px-3 py-1 mb-4">{cancelled.length} boletas canceladas</Chip>
             {cancelled.length === 0 ? (
                 <p className="text-default-500">No hay boletas canceladas</p>
             ) : (

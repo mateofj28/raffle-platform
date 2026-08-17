@@ -28,6 +28,7 @@ export default function VendorDetailPage() {
     const router = useRouter();
     const vendorId = params.id as string;
     const tenantId = useAuthStore((s) => s.user?.tenantId);
+    const userRole = useAuthStore((s) => s.user?.role);
     const { activeRaffle } = useRaffleStore();
 
     const [vendor, setVendor] = useState<Vendor | null>(null);
@@ -142,11 +143,11 @@ export default function VendorDetailPage() {
           {ticketsLoading ? <LoadingSkeleton rows={5} /> : (
               <>
                   <div className="flex gap-2 flex-wrap mb-4">
-                        <Chip size="sm" variant="soft" className="px-3">Total: {tickets.length}</Chip>
-                        <Chip size="sm" variant="soft" color="warning" className="px-3">Asignadas: {assigned}</Chip>
-                        <Chip size="sm" variant="soft" color="accent" className="px-3">Vendidas: {sold}</Chip>
-                        <Chip size="sm" variant="soft" color="success" className="px-3">Pagadas: {paid}</Chip>
-                        <Chip size="sm" variant="soft" color="danger" className="px-3">Abonadas: {installment}</Chip>
+                        <Chip size="sm" variant="soft" className="px-3 py-1">Total: {tickets.length}</Chip>
+                        <Chip size="sm" variant="soft" color="warning" className="px-3 py-1">Asignadas: {assigned}</Chip>
+                        <Chip size="sm" variant="soft" color="accent" className="px-3 py-1">Vendidas: {sold}</Chip>
+                        <Chip size="sm" variant="soft" color="success" className="px-3 py-1">Pagadas: {paid}</Chip>
+                        <Chip size="sm" variant="soft" color="danger" className="px-3 py-1">Abonadas: {installment}</Chip>
                     </div>
 
                     {/* Financial metrics */}
@@ -172,7 +173,7 @@ export default function VendorDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este vendedor no tiene boletas en esta rifa" icon={<Ticket className="h-12 w-12" />} />
                   ) : (
-                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} onCorrectPayment={(num) => router.push(`/correct-payment/${num}`)} />
+                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} onCorrectPayment={(num) => router.push(`/correct-payment/${num}`)} userRole={userRole} />
                   )}
               </>
           )}
@@ -183,7 +184,7 @@ export default function VendorDetailPage() {
 
 // --- Table with unassign (SRP) ---
 
-function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, onEditTicket, onCorrectPayment }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void; onCorrectPayment: (ticketNum: number) => void }) {
+function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, onEditTicket, onCorrectPayment, userRole }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void; onCorrectPayment: (ticketNum: number) => void; userRole?: string }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
     const [page, setPage] = useState(1);
@@ -288,7 +289,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                                     <Tooltip.Content>Editar cliente</Tooltip.Content>
                                                 </Tooltip>
                                             )}
-                                            {amountPaid > 0 && (
+                                            {amountPaid > 0 && userRole === "admin" && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
                                                         <Button variant="ghost" size="sm" onPress={() => onCorrectPayment(ticket.number)} aria-label="Corregir abono">

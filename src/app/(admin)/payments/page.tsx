@@ -102,8 +102,8 @@ export default function PaymentsPage() {
               <>
                   {/* Summary */}
                         <div className="flex flex-wrap items-center gap-3 mb-4">
-                      <Chip size="sm" variant="soft">Total: {filtered.length} pagos</Chip>
-                            <Chip size="lg" variant="soft" color="success" className="text-base font-bold px-4 py-2">Recaudado: {formatCurrency(totalCollected)}</Chip>
+                            <Chip size="sm" variant="soft" className="px-3 py-1">Total: {filtered.length} pagos</Chip>
+                            <Chip size="sm" variant="soft" color="success" className="px-3 py-1">Recaudado: {formatCurrency(totalCollected)}</Chip>
                   </div>
 
                   {/* Filters */}

@@ -357,7 +357,7 @@ export default function RaffleDetailPage() {
           {/* Status chips + Legend */}
           <div className="flex gap-2 flex-wrap mb-3">
               {Object.entries(statusCounts).map(([status, count]) => (
-            <Chip key={status} size="sm" variant="soft">{status}: {count}</Chip>
+                  <Chip key={status} size="sm" variant="soft" className="px-3 py-1">{status}: {count}</Chip>
         ))}
           </div>
           <div className="flex gap-3 flex-wrap mb-4 text-xs">

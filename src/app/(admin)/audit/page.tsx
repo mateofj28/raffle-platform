@@ -167,7 +167,7 @@ export default function AuditPage() {
                 />
             </div>
 
-            <Chip size="sm" variant="soft" className="mb-4">{filtered.length} registros</Chip>
+            <Chip size="sm" variant="soft" className="px-3 py-1 mb-4">{filtered.length} registros</Chip>
 
             {filtered.length === 0 ? (
                 <EmptyState
@@ -197,7 +197,7 @@ export default function AuditPage() {
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <Chip size="sm" variant="soft" color={config.color}>{config.label}</Chip>
+                                                <Chip size="sm" variant="soft" color={config.color} className="px-3 py-1">{config.label}</Chip>
                                                 <span className="text-xs font-medium text-default-600">{userDisplay}</span>
                                             </div>
                                             <p className="text-sm text-default-700">{getOperationDescription(entry, usersMap)}</p>

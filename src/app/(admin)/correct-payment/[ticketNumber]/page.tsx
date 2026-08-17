@@ -24,6 +24,7 @@ export default function CorrectPaymentPage() {
   const router = useRouter();
   const ticketNumber = parseInt(params.ticketNumber as string);
   const tenantId = useAuthStore((s) => s.user?.tenantId);
+  const userRole = useAuthStore((s) => s.user?.role);
   const { activeRaffle } = useRaffleStore();
 
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -42,6 +43,11 @@ export default function CorrectPaymentPage() {
   useEffect(() => {
     if (!activeRaffle) router.push("/raffles");
   }, [activeRaffle, router]);
+
+  // Only admins can access this page
+  useEffect(() => {
+    if (userRole && userRole !== "admin") router.push("/raffles");
+  }, [userRole, router]);
 
   // Load customer name from ticket
   useEffect(() => {
@@ -243,25 +249,23 @@ export default function CorrectPaymentPage() {
             <div className="space-y-3">
                 {payments.map((payment, index) => (
                   <Card key={payment.id} className={editingId === payment.id ? "border-2 border-primary" : ""}>
-                    <CardContent className="p-5">
+                    <CardContent className="p-4">
                       {/* Payment info row */}
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4 flex-1">
                           {/* Number badge */}
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-default-100 text-sm font-bold">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-default-100 text-xs font-bold">
                             {payments.length - index}
                           </div>
 
                           {/* Details */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-2xl font-bold">{formatCurrency(payment.amount)}</p>
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                            <p className="text-lg font-bold">{formatCurrency(payment.amount)}</p>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
                               <span className={`text-xs font-medium ${payment.type === "payment" ? "text-success" : "text-amber-400"}`}>
                                 {TYPE_LABELS[payment.type]}
                               </span>
-                              <span className="text-xs text-default-500 flex items-center gap-1">
-                                <PaymentMethodBadge method={payment.method} />
-                              </span>
+                              <PaymentMethodBadge method={payment.method} />
                               <span className="text-xs text-default-500 flex items-center gap-1">
                                 <Calendar className="h-3 w-3" /> {formatDateTime(payment.createdAt)}
                               </span>
@@ -274,7 +278,7 @@ export default function CorrectPaymentPage() {
 
                         {/* Action buttons */}
                         {editingId !== payment.id && (
-                          <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1">
                             <Button variant="ghost" size="sm" isIconOnly onPress={() => printReceipt(payment)} aria-label="Imprimir comprobante">
                               <Printer className="h-4 w-4 text-blue-400" />
                             </Button>

@@ -36,6 +36,7 @@ export function StatusBadge({
             size="sm"
             color={chipColor}
             variant="soft"
+            className="px-3 py-1"
         >
             {config.label}
         </Chip>

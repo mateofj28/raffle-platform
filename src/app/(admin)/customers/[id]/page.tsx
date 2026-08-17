@@ -128,10 +128,10 @@ export default function CustomerDetailPage() {
 
           {/* Financial summary */}
           <div className="flex flex-wrap gap-3 mb-6">
-              <Chip size="sm" variant="soft" color="success">Pagado: {formatCurrency(totalPaid)}</Chip>
-              <Chip size="sm" variant="soft" color="warning">Pendiente: {formatCurrency(totalPending)}</Chip>
-              <Chip size="sm" variant="soft">Boletas: {tickets.length}</Chip>
-              <Chip size="sm" variant="soft">Pagos: {payments.length}</Chip>
+                <Chip size="sm" variant="soft" color="success" className="px-3 py-1">Pagado: {formatCurrency(totalPaid)}</Chip>
+                <Chip size="sm" variant="soft" color="warning" className="px-3 py-1">Pendiente: {formatCurrency(totalPending)}</Chip>
+                <Chip size="sm" variant="soft" className="px-3 py-1">Boletas: {tickets.length}</Chip>
+                <Chip size="sm" variant="soft" className="px-3 py-1">Pagos: {payments.length}</Chip>
           </div>
 
           {dataLoading ? <LoadingSkeleton rows={5} /> : (
