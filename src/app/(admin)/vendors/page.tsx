@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button, Input } from "@heroui/react";
+import { Button } from "@heroui/react";
+import { Input } from "@/components/ui/input";
 import { Plus, Users, Search } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";

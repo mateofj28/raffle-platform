@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, CardContent, Input, AlertDialog } from "@heroui/react";
+import { Button, Card, CardContent, AlertDialog } from "@heroui/react";
+import { Input } from "@/components/ui/input";
 import { UserCog, Plus, Trash2, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";

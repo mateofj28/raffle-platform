@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button, Card, CardContent, Input } from "@heroui/react";
+import { Button, Card, CardContent } from "@heroui/react";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";

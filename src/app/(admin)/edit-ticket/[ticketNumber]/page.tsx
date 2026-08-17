@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Button, Card, CardContent, Input, Separator } from "@heroui/react";
+import { Button, Card, CardContent, Separator } from "@heroui/react";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, User, DollarSign, Search } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";

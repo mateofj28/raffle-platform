@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button, Card, CardContent, Input, AlertDialog, Separator } from "@heroui/react";
+import { Button, Card, CardContent, AlertDialog, Separator } from "@heroui/react";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, Pencil, Trash2, DollarSign, Calendar, CreditCard, Printer } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";

@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, CardContent, Input, Separator } from "@heroui/react";
+import { Button, Card, CardContent, Separator } from "@heroui/react";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, User, Ticket, DollarSign, Search } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";

@@ -106,3 +106,11 @@ body {
 .button {
     border-radius: 9px !important;
 }
+/* Input background - subtle gray to distinguish from white cards */
+:root {
+    --field-background: #E8EDF2;
+    --field-border: #C8D3DC;
+    --field-hover: #DDE4EB;
+    --field-focus: #FFFFFF;
+    --field-border-focus: #0058CD;
+}

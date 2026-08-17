@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, Chip, Input } from "@heroui/react";
+import { Card, CardContent, Chip } from "@heroui/react";
+import { Input } from "@/components/ui/input";
 import { Shield } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";

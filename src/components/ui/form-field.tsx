@@ -1,6 +1,6 @@
 "use client";
 
-import { Input } from "@heroui/react";
+import { Input } from "@/components/ui/input";
 import type { ComponentPropsWithRef } from "react";
 
 interface FormFieldProps extends ComponentPropsWithRef<typeof Input> {
