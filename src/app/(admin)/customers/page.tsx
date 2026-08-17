@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@heroui/react";
-import { Plus, UserCircle } from "lucide-react";
+import { Button, Input } from "@heroui/react";
+import { Plus, UserCircle, Search } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -11,6 +12,14 @@ import { useCustomers } from "@/features/customers/hooks/use-customers";
 
 export default function CustomersPage() {
     const { data: customers = [], isLoading } = useCustomers();
+    const [search, setSearch] = useState("");
+
+    const filtered = search.length >= 2
+        ? customers.filter(c =>
+            c.name.toLowerCase().includes(search.toLowerCase()) ||
+            c.document.includes(search)
+        )
+        : customers;
 
     return (
         <div>
@@ -40,7 +49,21 @@ export default function CustomersPage() {
                   }
               />
           ) : (
-              <CustomerTable customers={customers} />
+                        <>
+                            <div className="mb-4">
+                                <Input
+                                    placeholder="Buscar por nombre o documento..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="max-w-sm"
+                                />
+                            </div>
+                            {filtered.length === 0 ? (
+                                <p className="text-sm text-default-500 py-8 text-center">No se encontraron clientes con "{search}"</p>
+                            ) : (
+                                <CustomerTable customers={filtered} />
+                            )}
+                        </>
           )}
       </div>
   );

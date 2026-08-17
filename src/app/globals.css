@@ -55,3 +55,54 @@ textarea {
 .animate-shake {
     animation: shake 0.5s ease-in-out;
 }
+/* Card background */
+[data-slot="card"] {
+    background-color: #FFFFFF !important;
+}
+
+/* Page background */
+body {
+    background-color: #EFF6FC !important;
+}
+
+
+/* Primary button styling */
+.button.button--primary {
+    background-color: #0058CD !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    border-radius: 9px !important;
+    min-height: 38px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.button.button--primary:hover,
+.button.button--primary[data-hovered="true"] {
+    background-color: #004AAE !important;
+}
+
+/* Secondary/outline button styling */
+.button.button--outline {
+    background-color: #FFFFFF !important;
+    color: #0058CD !important;
+    font-weight: 600 !important;
+    border-radius: 9px !important;
+    min-height: 38px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    border: 1.5px solid #0058CD !important;
+    box-shadow: none !important;
+}
+
+.button.button--outline:hover,
+.button.button--outline[data-hovered="true"] {
+    background-color: #EFF6FC !important;
+}
+
+/* Override pill shape on all buttons */
+.button {
+    border-radius: 9px !important;
+}

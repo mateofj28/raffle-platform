@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@heroui/react";
-import { Plus, Users } from "lucide-react";
+import { Button, Input } from "@heroui/react";
+import { Plus, Users, Search } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -11,6 +12,14 @@ import { useVendors } from "@/features/vendors/hooks/use-vendors";
 
 export default function VendorsPage() {
     const { data: vendors = [], isLoading } = useVendors();
+    const [search, setSearch] = useState("");
+
+    const filtered = search.length >= 2
+        ? vendors.filter(v =>
+            v.name.toLowerCase().includes(search.toLowerCase()) ||
+            v.document.includes(search)
+        )
+        : vendors;
 
     return (
         <div>
@@ -40,7 +49,21 @@ export default function VendorsPage() {
                   }
               />
           ) : (
-              <VendorTable vendors={vendors} />
+                        <>
+                            <div className="mb-4">
+                                <Input
+                                    placeholder="Buscar por nombre o documento..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="max-w-sm"
+                                />
+                            </div>
+                            {filtered.length === 0 ? (
+                                <p className="text-sm text-default-500 py-8 text-center">No se encontraron vendedores con "{search}"</p>
+                            ) : (
+                                <VendorTable vendors={filtered} />
+                            )}
+                        </>
           )}
       </div>
   );

@@ -55,17 +55,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             {/* Sidebar */}
             <aside
                 className={cn(
-                    "fixed top-0 left-0 z-50 h-dvh w-64 bg-content1 border-r border-divider flex flex-col transition-transform duration-200",
+                    "fixed top-0 left-0 z-50 h-dvh w-64 flex flex-col transition-transform duration-200",
                     "md:translate-x-0 md:static md:z-auto",
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 )}
+                style={{ backgroundColor: "#001838" }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between h-16 px-4 border-b border-divider">
-                    <span className="text-lg font-semibold">Raffle Platform</span>
+                <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
+                    <span className="text-lg font-semibold" style={{ color: "#E0E0E0" }}>Raffle Platform</span>
                     <button
                         onClick={onClose}
-                        className="md:hidden p-1 rounded-md hover:bg-default-100"
+                        className="md:hidden p-1 rounded-md hover:bg-white/10"
+                        style={{ color: "#E0E0E0" }}
                         aria-label="Cerrar menú"
                     >
                         <X className="h-5 w-5" />
@@ -90,9 +92,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                                         className={cn(
                                             "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                                             isActive
-                                                ? "bg-primary/10 text-primary"
-                                                : "text-default-600 hover:bg-default-100 hover:text-foreground"
+                                                ? "text-white"
+                                                : "hover:bg-white/5"
                                         )}
+                                        style={{
+                                            color: isActive ? "#FFFFFF" : "#E0E0E0",
+                                            backgroundColor: isActive ? "#0058D0" : undefined,
+                                        }}
                                     >
                                         <Icon className="h-5 w-5 shrink-0" />
                                         <span>{item.label}</span>

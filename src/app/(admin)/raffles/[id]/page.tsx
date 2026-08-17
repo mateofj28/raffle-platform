@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog } from "@heroui/react";
+import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -353,19 +353,13 @@ export default function RaffleDetailPage() {
               </div>
             )}
 
-          {/* Status chips + Legend */}
-          <div className="flex gap-2 flex-wrap mb-3">
-              {Object.entries(statusCounts).map(([status, count]) => (
-                  <Chip key={status} size="sm" variant="soft" className="px-3 py-1">{status}: {count}</Chip>
-        ))}
-          </div>
+            {/* Status legend with counts */}
           <div className="flex gap-3 flex-wrap mb-4 text-xs">
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-zinc-700 border border-zinc-600" /> Disponible</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-900/60 border border-amber-700" /> Asignada</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-900/60 border border-blue-700" /> Vendida</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-900/60 border border-emerald-700" /> Pagada</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-900/60 border border-purple-700" /> Abonada</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-900/60 border border-red-700" /> Cancelada</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-zinc-700 border border-zinc-600" /> Disponible: {statusCounts["available"] || 0}</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-900/60 border border-amber-700" /> Asignada: {statusCounts["assigned"] || 0}</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-900/60 border border-blue-700" /> Vendida: {statusCounts["sold"] || 0}</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-900/60 border border-emerald-700" /> Pagada: {statusCounts["paid"] || 0}</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-purple-900/60 border border-purple-700" /> Abonada: {statusCounts["installment"] || 0}</span>
           </div>
 
           {/* Tickets Grid */}
