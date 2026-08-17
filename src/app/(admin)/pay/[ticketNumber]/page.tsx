@@ -35,7 +35,6 @@ export default function PayTicketPage() {
   const [observations, setObservations] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [pendingBalance, setPendingBalance] = useState<number | null>(null);
 
   // Load ticket pending balance
@@ -72,7 +71,6 @@ export default function PayTicketPage() {
         method,
         observations,
       });
-      setSuccess("✅ Pago registrado exitosamente");
       toast.success("Pago registrado exitosamente");
       setTimeout(() => router.back(), 1500);
     } catch (e: unknown) {
@@ -92,6 +90,19 @@ export default function PayTicketPage() {
     }
   };
 
+  // Global Enter key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      if (processing) return;
+      if (paymentType === "partial" && (!amount || parseInt(amount) < 5000)) return;
+      e.preventDefault();
+      handlePay();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [processing, paymentType, amount]);
+
   if (!activeRaffle) return null;
 
   const displayBalance = pendingBalance ?? activeRaffle.ticketPrice;
@@ -108,9 +119,8 @@ export default function PayTicketPage() {
         }
       />
 
-      <div className="space-y-6">
+      <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handlePay(); }}>
         <FormErrorBanner message={error} />
-        {success && <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">{success}</div>}
 
         {/* Pending balance info */}
         <Card>
@@ -217,17 +227,17 @@ export default function PayTicketPage() {
 
         {/* Confirm */}
         <div className="flex items-center justify-end gap-3 pb-6">
-          <Button variant="ghost" onPress={() => router.back()}>Cancelar</Button>
+          <Button variant="ghost" type="button" onPress={() => router.back()}>Cancelar</Button>
           <Button
+            type="submit"
             variant="primary"
             isDisabled={processing || (paymentType === "partial" && (!amount || parseInt(amount) < 5000))}
-            onPress={handlePay}
           >
             <DollarSign className="h-4 w-4" />
             {processing ? "Registrando..." : paymentType === "full" ? `Pagar ${formatCurrency(displayBalance)}` : `Abonar ${amount ? formatCurrency(parseInt(amount)) : ""}`}
           </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Input, Separator } from "@heroui/react";
@@ -32,7 +32,6 @@ export default function SellTicketPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [selling, setSelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeRaffle) router.push("/raffles");
@@ -98,7 +97,6 @@ export default function SellTicketPage() {
         }
       }
 
-      setSuccess("✅ Boleta vendida exitosamente");
       toast.success("Boleta vendida exitosamente");
       setTimeout(() => router.back(), 1500);
     } catch (e) {
@@ -107,6 +105,23 @@ export default function SellTicketPage() {
       setSelling(false);
     }
   };
+
+  // Global Enter key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      // Don't trigger if user is in the search input (selecting customers)
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" && !selectedCustomerId) return;
+      // Don't trigger if button is disabled
+      if (!selectedCustomerId || selling) return;
+      if (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < 5000)) return;
+      e.preventDefault();
+      handleSell();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedCustomerId, selling, paymentOption, paymentAmount]);
 
   if (!activeRaffle) return null;
 
@@ -122,9 +137,8 @@ export default function SellTicketPage() {
         }
       />
 
-      <div className="space-y-6">
+      <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSell(); }}>
         <FormErrorBanner message={error} />
-        {success && <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">{success}</div>}
 
         {/* Step 1: Customer */}
         <Card>
@@ -293,19 +307,19 @@ export default function SellTicketPage() {
 
         {/* Confirm */}
         <div className="flex items-center justify-end gap-3 pb-6">
-          <Button variant="ghost" onPress={() => router.back()}>
+          <Button variant="ghost" type="button" onPress={() => router.back()}>
             Cancelar
           </Button>
           <Button
+            type="submit"
             variant="primary"
             isDisabled={!selectedCustomerId || selling || (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < 5000))}
-            onPress={handleSell}
           >
             <Ticket className="h-4 w-4" />
             {selling ? "Procesando..." : "Confirmar venta"}
           </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

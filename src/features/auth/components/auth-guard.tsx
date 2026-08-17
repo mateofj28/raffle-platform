@@ -9,7 +9,8 @@ import { getAuth } from "firebase/auth";
 import { ROUTES } from "@/constants/routes";
 import type { Role } from "@/constants/roles";
 
-const TOKEN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes
+const MAX_REFRESH_FAILURES = 3; // Allow up to 3 consecutive failures before logout
 
 interface AuthGuardProps {
     children: React.ReactNode;
@@ -22,6 +23,7 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     const { user, isAuthenticated, setUser, reset } = useAuthStore();
     const [authChecked, setAuthChecked] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const failureCountRef = useRef(0);
 
     // Subscribe to Firebase Auth state
     useEffect(() => {
@@ -39,10 +41,10 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
             setAuthChecked(true);
         });
 
-        // Safety timeout — if auth doesn't resolve in 5s, stop waiting
+        // Safety timeout — if auth doesn't resolve in 10s, stop waiting
         const timeout = setTimeout(() => {
             setAuthChecked(true);
-        }, 5000);
+        }, 10000);
 
         return () => {
             unsubscribe();
@@ -59,15 +61,21 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
                 const auth = getAuth();
                 const currentUser = auth.currentUser;
                 if (!currentUser) {
-                    // User gone — force logout
-                    reset();
-                    router.push(ROUTES.LOGIN);
+                    // User gone — could be temporary, increment failure count
+                    failureCountRef.current++;
+                    if (failureCountRef.current >= MAX_REFRESH_FAILURES) {
+                        reset();
+                        router.push(ROUTES.LOGIN);
+                    }
                     return;
                 }
 
                 // Force refresh token — this will fail if account is disabled/deleted
                 const tokenResult = await currentUser.getIdTokenResult(true);
                 const claims = tokenResult.claims;
+
+                // Reset failure counter on success
+                failureCountRef.current = 0;
 
                 // Check if claims changed (role removed, tenant changed, etc.)
                 const newRole = (claims.role as string) || "";
@@ -91,17 +99,21 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
                     }
                 }
             } catch {
-                // Token refresh failed — account disabled or deleted
-                reset();
-                router.push(ROUTES.LOGIN);
+                // Token refresh failed — could be transient network error
+                failureCountRef.current++;
+                if (failureCountRef.current >= MAX_REFRESH_FAILURES) {
+                    reset();
+                    router.push(ROUTES.LOGIN);
+                }
             }
         };
 
-        // Run immediately once, then every 5 minutes
-        refreshToken();
+        // Run first refresh after a short delay to let emulator stabilize
+        const initialDelay = setTimeout(refreshToken, 3000);
         intervalRef.current = setInterval(refreshToken, TOKEN_REFRESH_INTERVAL);
 
         return () => {
+            clearTimeout(initialDelay);
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
     }, [isAuthenticated, user?.role, user?.tenantId]);

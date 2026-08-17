@@ -242,10 +242,9 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                         }
                                     </td>
                     <td className="px-4 py-3 text-right">
-                        {ticket.pendingBalance === 0
-                            ? <span className="text-success font-medium">$0</span>
-                            : <span className="text-warning font-medium">{formatCurrency(ticket.pendingBalance)}</span>
-                        }
+                                        {ticket.pendingBalance > 0 && (
+                                            <span className="text-red-400 font-medium">{formatCurrency(ticket.pendingBalance)}</span>
+                                        )}
                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex items-center justify-center gap-1">
