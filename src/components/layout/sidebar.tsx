@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -28,6 +29,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const { activeRaffle } = useRaffleStore();
     const userRole = useAuthStore((s) => s.user?.role);
     const isAdmin = userRole === "admin";
+    const [isDarkMode, setIsDarkMode] = useState(false);
+
+    useEffect(() => {
+        const check = () => setIsDarkMode(document.documentElement.classList.contains("dark"));
+        check();
+        const observer = new MutationObserver(check);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        return () => observer.disconnect();
+    }, []);
 
     const NAV_ITEMS = [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "cashier"] },
@@ -59,7 +69,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     "md:translate-x-0 md:static md:z-auto",
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 )}
-                style={{ backgroundColor: "#001838" }}
+                style={{ backgroundColor: isDarkMode ? "#0D1B35" : "#001838" }}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">

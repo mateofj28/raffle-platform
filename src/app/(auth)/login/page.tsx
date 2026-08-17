@@ -57,10 +57,10 @@ export default function LoginPage() {
           </div>
 
           {/* Right: Benefits panel (hidden on mobile) */}
-          <div className="hidden lg:flex lg:flex-1 flex-col justify-center bg-zinc-900/50 border-l border-divider/30 px-12 py-12">
+            <div className="hidden lg:flex lg:flex-1 flex-col justify-center border-l border-[#D1DCE8] px-12 py-12" style={{ backgroundColor: "#001838" }}>
               <div className="max-w-lg">
-                  <h2 className="text-2xl font-bold mb-2">Administra tus rifas como un profesional</h2>
-                  <p className="text-default-500 mb-10">
+                    <h2 className="text-2xl font-bold mb-2 text-white">Administra tus rifas como un profesional</h2>
+                    <p className="text-[#A0B4C8] mb-10">
                       Todo lo que necesitas para gestionar boletas, vendedores, pagos y comisiones en un solo lugar.
                   </p>
 
@@ -73,8 +73,8 @@ export default function LoginPage() {
                             <Icon className="h-5 w-5" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-sm">{benefit.title}</h3>
-                            <p className="text-xs text-default-500 mt-0.5">{benefit.description}</p>
+                                      <h3 className="font-semibold text-sm text-white">{benefit.title}</h3>
+                                      <p className="text-xs text-[#A0B4C8] mt-0.5">{benefit.description}</p>
                         </div>
                     </div>
                 );
@@ -82,11 +82,11 @@ export default function LoginPage() {
                   </div>
 
                   {/* Footer quote */}
-                  <div className="mt-12 p-4 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-                      <p className="text-sm text-default-400 italic">
+                    <div className="mt-12 p-4 rounded-lg border border-white/10 bg-white/5">
+                        <p className="text-sm text-[#A0B4C8] italic">
                           "Pasamos de una libreta a controlar todo digitalmente. Las comisiones se calculan solas y nunca perdemos una boleta."
                       </p>
-                      <p className="text-xs text-default-500 mt-2 font-medium">— Organizador de rifas</p>
+                        <p className="text-xs text-[#A0B4C8] mt-2 font-medium">— Organizador de rifas</p>
                   </div>
               </div>
           </div>

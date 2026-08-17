@@ -140,11 +140,42 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
         }
     }, [authChecked, isAuthenticated, user, requiredRole, router, pathname]);
 
-    // Show loading while checking auth (max 5 seconds)
+    // Show loading while checking auth (max 10 seconds)
     if (!authChecked) {
         return (
-            <div className="flex min-h-dvh items-center justify-center">
-                <div className="animate-pulse text-default-400">Cargando...</div>
+            <div className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-[#EFF6FC] dark:bg-[#0A1628]">
+                {/* Logo */}
+                <div className="flex flex-col items-center gap-3">
+                    <div className="flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg" style={{ backgroundColor: "#001838" }}>
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="10" width="28" height="12" rx="3" stroke="white" strokeWidth="2" fill="none" />
+                            <circle cx="2" cy="16" r="3" fill="#001838" stroke="white" strokeWidth="1.5" />
+                            <circle cx="30" cy="16" r="3" fill="#001838" stroke="white" strokeWidth="1.5" />
+                            <line x1="9" y1="16" x2="23" y2="16" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" />
+                        </svg>
+                    </div>
+                    <span className="text-xl font-bold tracking-tight text-[#001838] dark:text-white">Raffle Platform</span>
+                </div>
+
+                {/* Animated progress bar */}
+                <div className="w-48 h-1 rounded-full overflow-hidden bg-[#D1DCE8] dark:bg-[#1A2F50]">
+                    <div
+                        className="h-full rounded-full"
+                        style={{
+                            backgroundColor: "#0058CD",
+                            animation: "loading-bar 1.4s ease-in-out infinite",
+                            width: "40%",
+                        }}
+                    />
+                </div>
+
+                <style>{`
+                    @keyframes loading-bar {
+                        0% { transform: translateX(-100%) scaleX(1); }
+                        50% { transform: translateX(150%) scaleX(1.5); }
+                        100% { transform: translateX(350%) scaleX(1); }
+                    }
+                `}</style>
             </div>
         );
     }
