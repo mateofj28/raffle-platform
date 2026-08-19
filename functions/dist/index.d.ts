@@ -1,13 +1,11 @@
 /**
  * Raffle Platform - Cloud Functions Entry Point
  *
- * All callable functions, triggers, and scheduled functions
- * are exported from here.
+ * Uses lazy exports to avoid initialization timeout on Node 24.
  */
 export { setCustomClaims, createUser, updateUser, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
 export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber } from "./services/raffle.service";
-export { assignTickets, sellTicket, unassignTickets, updateTicketClient } from "./services/ticket.service";
-export { generateTickets } from "./services/ticket.service";
+export { assignTickets, sellTicket, unassignTickets, updateTicketClient, generateTickets } from "./services/ticket.service";
 export { registerPayment, reversePayment, correctPayment } from "./services/payment.service";
 export { createCustomer, updateCustomer } from "./services/customer.service";
 export { createVendor, updateVendor, getVendorMetrics } from "./services/vendor.service";

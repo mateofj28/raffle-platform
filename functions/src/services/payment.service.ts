@@ -45,7 +45,7 @@ function padTicketNumber(num: number): string {
  * Vendor or Admin can call.
  */
 export const registerPayment = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -162,7 +162,7 @@ export const registerPayment = onCall(
  * Admin-only.
  */
 export const reversePayment = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -276,7 +276,7 @@ export const reversePayment = onCall(
  * Reverses the original payment and creates a new one with the correct amount.
  */
 export const correctPayment = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

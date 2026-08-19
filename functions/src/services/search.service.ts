@@ -45,7 +45,7 @@ interface SearchResultItem {
  * Admin-only.
  */
 export const globalSearch = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

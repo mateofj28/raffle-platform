@@ -77,7 +77,7 @@ function getLoginAttemptsRef(tenantId: string, email: string) {
  * Only admins can set custom claims on other users.
  */
 export const setCustomClaims = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -146,7 +146,7 @@ export const setCustomClaims = onCall(
  * Admin-only function.
  */
 export const createUser = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -251,7 +251,7 @@ export const createUser = onCall(
  * Admin-only.
  */
 export const updateUser = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -301,7 +301,7 @@ export const updateUser = onCall(
  * Locks the account after MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_DURATION_MS.
  */
 export const recordLoginAttempt = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -383,7 +383,7 @@ export const recordLoginAttempt = onCall(
  * Checks if an account is currently locked due to too many failed login attempts.
  */
 export const checkAccountLock = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

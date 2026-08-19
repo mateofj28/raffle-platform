@@ -77,9 +77,9 @@ export default function PayTicketPage() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("internal") || msg.includes("INTERNAL")) {
-        setError("La boleta debe estar en estado 'Vendida' para poder registrar un pago. Primero vende la boleta a un cliente.");
+        setError("Ocurrió un error al registrar el pago. Intenta de nuevo.");
       } else if (msg.includes("sold or installment")) {
-        setError("La boleta debe estar en estado 'Vendida' o 'Abonada' para aceptar pagos.");
+        setError("La boleta no puede recibir pagos en su estado actual.");
       } else if (msg.includes("excede") || msg.includes("exceeds") || msg.includes("PAYMENT_EXCEEDS")) {
         const max = pendingBalance ?? activeRaffle.ticketPrice;
         setError(`El pago excede el saldo pendiente. Máximo: ${formatCurrency(max)}`);

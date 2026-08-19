@@ -8,6 +8,15 @@ import { Eye, EyeOff, LogIn } from "lucide-react";
 import { loginSchema, type LoginFormData } from "../schemas/login.schema";
 import { useAuth } from "../hooks/use-auth";
 
+/**
+ * Converts a username to email for Firebase Auth.
+ * If the input already contains @, use it as-is.
+ * Otherwise, append @rifas.app
+ */
+function toEmail(username: string): string {
+    return username.includes("@") ? username : `${username.toLowerCase().trim()}@rifas.app`;
+}
+
 export function LoginForm() {
     const { login } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
@@ -24,9 +33,10 @@ export function LoginForm() {
     const onSubmit = async (data: LoginFormData) => {
         setServerError(null);
         try {
-            await login(data.email, data.password);
+            const email = toEmail(data.username);
+            await login(email, data.password);
         } catch {
-            setServerError("El correo electrónico o la contraseña son incorrectos.");
+            setServerError("Usuario o contraseña incorrectos.");
         }
     };
 
@@ -36,15 +46,16 @@ export function LoginForm() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full max-w-sm">
             <div className="space-y-1.5">
                 <input
-                    {...register("email")}
-                    type="email"
-                    placeholder="correo@ejemplo.com"
-                    aria-label="Correo electrónico"
+                    {...register("username")}
+                    type="text"
+                    placeholder="Usuario"
+                    aria-label="Usuario"
+                    autoComplete="username"
                     disabled={isSubmitting}
                     className={inputClass}
                 />
-                {errors.email && (
-                    <p className="text-xs text-danger">{errors.email.message}</p>
+                {errors.username && (
+                    <p className="text-xs text-danger">{errors.username.message}</p>
                 )}
             </div>
 
@@ -55,6 +66,7 @@ export function LoginForm() {
                         type={showPassword ? "text" : "password"}
                         placeholder="Contraseña"
                         aria-label="Contraseña"
+                        autoComplete="current-password"
                         disabled={isSubmitting}
                         className={`${inputClass} pr-10`}
                     />

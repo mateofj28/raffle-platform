@@ -95,7 +95,7 @@ export default function VendorDetailPage() {
     const totalAbonado = tickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
     const recaudadoPagadas = paidTickets.reduce((sum, t) => sum + t.value, 0);
     const recaudadoAbonadas = installmentTickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
-    const commission = Math.floor(totalAbonado * 0.10);
+    const commission = Math.floor(totalAbonado * 0.30);
 
     return (
       <div>

@@ -40,7 +40,7 @@ const PDF_MAX_ROWS = 10_000;
  * Actual file generation will be implemented when exceljs/pdfkit deps are added.
  */
 export const exportData = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

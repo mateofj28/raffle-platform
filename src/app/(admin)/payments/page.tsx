@@ -191,7 +191,7 @@ export default function PaymentsPage() {
                           </thead>
                           <tbody className="divide-y divide-default-200">
                                     {paginated.map((payment) => {
-                                        const vendorCommission = Math.floor(payment.amount * 0.10);
+                                        const vendorCommission = Math.floor(payment.amount * 0.30);
                                         const companyProfit = payment.amount - vendorCommission;
                                         return (
                                   <tr key={payment.id} className="hover:bg-default-50">

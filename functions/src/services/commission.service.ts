@@ -26,7 +26,7 @@ const payCommissionSchema = z.object({
  * Admin-only. Only commissions with status "generated" can be paid.
  */
 export const payCommission = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

@@ -259,7 +259,7 @@ function Commissions({ tickets, vendors, ticketPrice }: { tickets: Ticket[]; ven
         if (collected <= 0) return;
         const current = byVendor.get(t.vendorId) || { collected: 0, commission: 0 };
         current.collected += collected;
-        current.commission += Math.floor(collected * 0.10);
+        current.commission += Math.floor(collected * 0.30);
         byVendor.set(t.vendorId, current);
     });
 
@@ -366,7 +366,7 @@ function VendorLiquidation({ tickets, vendors, ticketPrice }: { tickets: Ticket[
         if (t.status === "installment") current.installment++;
         const collected = t.value - t.pendingBalance;
         current.collected += collected;
-        current.commission += Math.floor(collected * 0.10);
+        current.commission += Math.floor(collected * 0.30);
         byVendor.set(t.vendorId, current);
     });
 

@@ -39,7 +39,7 @@ function getLoginAttemptsRef(tenantId, email) {
  * Sets custom claims (tenantId, role, vendorId) on a user's auth token.
  * Only admins can set custom claims on other users.
  */
-exports.setCustomClaims = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
+exports.setCustomClaims = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds: 120 }, async (request) => {
     try {
         const context = (0, auth_2.validateAuth)(request);
         (0, auth_2.requireAdmin)(context);
@@ -80,7 +80,7 @@ exports.setCustomClaims = (0, https_1.onCall)({ region: "us-central1" }, async (
  * Creates a new Firebase Auth user and assigns them to the caller's tenant.
  * Admin-only function.
  */
-exports.createUser = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
+exports.createUser = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds: 120 }, async (request) => {
     try {
         const context = (0, auth_2.validateAuth)(request);
         (0, auth_2.requireAdmin)(context);
@@ -155,7 +155,7 @@ exports.createUser = (0, https_1.onCall)({ region: "us-central1" }, async (reque
  * Updates a user's profile (displayName, email, password).
  * Admin-only.
  */
-exports.updateUser = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
+exports.updateUser = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds: 120 }, async (request) => {
     try {
         const context = (0, auth_2.validateAuth)(request);
         (0, auth_2.requireAdmin)(context);
@@ -195,7 +195,7 @@ exports.updateUser = (0, https_1.onCall)({ region: "us-central1" }, async (reque
  * Records a failed login attempt and enforces account lockout.
  * Locks the account after MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_DURATION_MS.
  */
-exports.recordLoginAttempt = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
+exports.recordLoginAttempt = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds: 120 }, async (request) => {
     try {
         const context = (0, auth_2.validateAuth)(request);
         const { email, success } = request.data;
@@ -260,7 +260,7 @@ exports.recordLoginAttempt = (0, https_1.onCall)({ region: "us-central1" }, asyn
 /**
  * Checks if an account is currently locked due to too many failed login attempts.
  */
-exports.checkAccountLock = (0, https_1.onCall)({ region: "us-central1" }, async (request) => {
+exports.checkAccountLock = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds: 120 }, async (request) => {
     try {
         const context = (0, auth_2.validateAuth)(request);
         const { email } = request.data;

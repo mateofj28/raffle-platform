@@ -2,14 +2,14 @@
 /**
  * Raffle Platform - Cloud Functions Entry Point
  *
- * All callable functions, triggers, and scheduled functions
- * are exported from here.
+ * Uses lazy exports to avoid initialization timeout on Node 24.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
-// Initialize Firebase Admin
+// Initialize Firebase Admin immediately (lightweight)
 const firestore_1 = require("./utils/firestore");
 (0, firestore_1.initAdmin)();
+// Re-export all functions using direct imports
 // Auth service
 var auth_service_1 = require("./services/auth.service");
 Object.defineProperty(exports, "setCustomClaims", { enumerable: true, get: function () { return auth_service_1.setCustomClaims; } });
@@ -29,25 +29,31 @@ Object.defineProperty(exports, "assignTickets", { enumerable: true, get: functio
 Object.defineProperty(exports, "sellTicket", { enumerable: true, get: function () { return ticket_service_1.sellTicket; } });
 Object.defineProperty(exports, "unassignTickets", { enumerable: true, get: function () { return ticket_service_1.unassignTickets; } });
 Object.defineProperty(exports, "updateTicketClient", { enumerable: true, get: function () { return ticket_service_1.updateTicketClient; } });
-var ticket_service_2 = require("./services/ticket.service");
-Object.defineProperty(exports, "generateTickets", { enumerable: true, get: function () { return ticket_service_2.generateTickets; } });
+Object.defineProperty(exports, "generateTickets", { enumerable: true, get: function () { return ticket_service_1.generateTickets; } });
+// Payment service
 var payment_service_1 = require("./services/payment.service");
 Object.defineProperty(exports, "registerPayment", { enumerable: true, get: function () { return payment_service_1.registerPayment; } });
 Object.defineProperty(exports, "reversePayment", { enumerable: true, get: function () { return payment_service_1.reversePayment; } });
 Object.defineProperty(exports, "correctPayment", { enumerable: true, get: function () { return payment_service_1.correctPayment; } });
+// Customer service
 var customer_service_1 = require("./services/customer.service");
 Object.defineProperty(exports, "createCustomer", { enumerable: true, get: function () { return customer_service_1.createCustomer; } });
 Object.defineProperty(exports, "updateCustomer", { enumerable: true, get: function () { return customer_service_1.updateCustomer; } });
+// Vendor service
 var vendor_service_1 = require("./services/vendor.service");
 Object.defineProperty(exports, "createVendor", { enumerable: true, get: function () { return vendor_service_1.createVendor; } });
 Object.defineProperty(exports, "updateVendor", { enumerable: true, get: function () { return vendor_service_1.updateVendor; } });
 Object.defineProperty(exports, "getVendorMetrics", { enumerable: true, get: function () { return vendor_service_1.getVendorMetrics; } });
+// Dashboard
 var dashboard_service_1 = require("./services/dashboard.service");
 Object.defineProperty(exports, "getDashboardMetrics", { enumerable: true, get: function () { return dashboard_service_1.getDashboardMetrics; } });
+// Search
 var search_service_1 = require("./services/search.service");
 Object.defineProperty(exports, "globalSearch", { enumerable: true, get: function () { return search_service_1.globalSearch; } });
+// Export
 var export_service_1 = require("./services/export.service");
 Object.defineProperty(exports, "exportData", { enumerable: true, get: function () { return export_service_1.exportData; } });
+// Commission
 var commission_service_1 = require("./services/commission.service");
 Object.defineProperty(exports, "payCommission", { enumerable: true, get: function () { return commission_service_1.payCommission; } });
 // Triggers

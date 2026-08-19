@@ -46,7 +46,7 @@ const getVendorMetricsSchema = z.object({
  * Admin-only.
  */
 export const createVendor = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -85,7 +85,7 @@ export const createVendor = onCall(
  * Admin-only. Validates vendor exists.
  */
 export const updateVendor = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -134,7 +134,7 @@ export const updateVendor = onCall(
  * Optionally scoped to a single raffle.
  */
 export const getVendorMetrics = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

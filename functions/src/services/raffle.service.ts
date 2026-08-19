@@ -86,7 +86,7 @@ function getSemester(dateString: string): 1 | 2 {
  * Admin-only.
  */
 export const createRaffle = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 300 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -141,7 +141,7 @@ export const createRaffle = onCall(
  * Admin-only. Blocked if raffle is in "finished" or "cancelled" state.
  */
 export const updateRaffle = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -195,7 +195,7 @@ export const updateRaffle = onCall(
  * Valid transitions: draft→active, draft→cancelled, active→finished, active→cancelled
  */
 export const transitionRaffleState = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -246,7 +246,7 @@ export const transitionRaffleState = onCall(
  * If a ticket matches the winning number, marks it as "winner".
  */
 export const setWinningNumber = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

@@ -7,7 +7,7 @@ const METHOD_CONFIG: Record<string, { label: string; color: "default" | "success
     nequi: { label: "Nequi", color: "accent" },
     daviplata: { label: "Daviplata", color: "warning" },
     card: { label: "Tarjeta", color: "accent" },
-    transfer: { label: "Transferencia", color: "accent" },
+    transfer: { label: "Bancolombia Ahorros", color: "accent" },
     other: { label: "Otro", color: "default" },
 };
 

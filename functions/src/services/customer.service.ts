@@ -43,7 +43,7 @@ const updateCustomerSchema = z.object({
  * Validates document uniqueness within the tenant.
  */
 export const createCustomer = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -95,7 +95,7 @@ export const createCustomer = onCall(
  * Admin-only. Validates customer exists and document uniqueness if changed.
  */
 export const updateCustomer = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

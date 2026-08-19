@@ -48,6 +48,7 @@ export default function AdminDashboardPage() {
     const tenantId = useAuthStore((s) => s.user?.tenantId);
     const [metrics, setMetrics] = useState<RaffleMetrics | null>(null);
     const [todayMetrics, setTodayMetrics] = useState<TodayMetrics | null>(null);
+    const [methodTotals, setMethodTotals] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [vendorsMap, setVendorsMap] = useState<Map<string, string>>(new Map());
     const [customersMap, setCustomersMap] = useState<Map<string, string>>(new Map());
@@ -97,7 +98,7 @@ export default function AdminDashboardPage() {
                 });
 
                 const totalPotential = activeRaffle.totalTickets * activeRaffle.ticketPrice;
-                const commissionGenerated = Math.floor(totalCollected * 0.10);
+                const commissionGenerated = Math.floor(totalCollected * 0.30);
                 const companyProfit = totalCollected - commissionGenerated;
 
                 setMetrics({
@@ -115,6 +116,13 @@ export default function AdminDashboardPage() {
                 const paymentsCol = tenantCollection(tenantId, "payments");
                 const paymentsSnap = await getDocs(query(paymentsCol, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc")));
                 const allPayments = paymentsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[];
+
+                // Calculate totals by payment method
+                const byMethod: Record<string, number> = {};
+                allPayments.forEach(p => {
+                    byMethod[p.method] = (byMethod[p.method] || 0) + p.amount;
+                });
+                setMethodTotals(byMethod);
 
                 // Filter today's payments
                 const todayPayments = allPayments.filter(p => {
@@ -259,6 +267,15 @@ export default function AdminDashboardPage() {
                                 <StatCard title="Ganancia empresa" value={formatCurrency(metrics.companyProfit)} icon={<TrendingUp className="h-5 w-5" />} />
                                 <StatCard title="Comisión vendedores" value={formatCurrency(metrics.commissionGenerated)} icon={<Percent className="h-5 w-5" />} />
                             </div>
+
+                                {/* Revenue by payment method */}
+                                <h3 className="text-sm font-semibold mb-3 mt-6">Recaudado por medio de pago</h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                                    <StatCard title="Efectivo" value={formatCurrency(methodTotals["cash"] || 0)} icon={<DollarSign className="h-5 w-5" />} />
+                                    <StatCard title="Nequi" value={formatCurrency(methodTotals["nequi"] || 0)} icon={<CreditCard className="h-5 w-5" />} />
+                                    <StatCard title="Daviplata" value={formatCurrency(methodTotals["daviplata"] || 0)} icon={<CreditCard className="h-5 w-5" />} />
+                                    <StatCard title="Bancolombia Ahorros" value={formatCurrency(methodTotals["transfer"] || 0)} icon={<CreditCard className="h-5 w-5" />} />
+                                </div>
 
                                 {/* People */}
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">

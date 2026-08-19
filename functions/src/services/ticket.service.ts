@@ -110,7 +110,7 @@ export async function generateTickets(
  * Admin-only. Updates available tickets to "assigned" status with the given vendorId.
  */
 export const assignTickets = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -212,7 +212,7 @@ export const assignTickets = onCall(
  * Vendor or Admin can call.
  */
 export const sellTicket = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -293,7 +293,7 @@ export const sellTicket = onCall(
  * Admin-only. Only tickets in "assigned" state can be unassigned.
  */
 export const unassignTickets = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -345,7 +345,7 @@ export const unassignTickets = onCall(
  * Works on any ticket status (assigned, sold, installment, paid).
  */
 export const updateTicketClient = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

@@ -31,11 +31,11 @@ export default function CashiersPage() {
     // Create form
     const [showForm, setShowForm] = useState(false);
     const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [document, setDocument] = useState("");
+    const [phone, setPhone] = useState("");
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [showPassword, setShowPassword] = useState(false);
+    const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string } | null>(null);
     const [editingCashier, setEditingCashier] = useState<CashierUser | null>(null);
     const [deleteCashier, setDeleteCashier] = useState<CashierUser | null>(null);
     const [editName, setEditName] = useState("");
@@ -46,6 +46,21 @@ export default function CashiersPage() {
 
     function capitalizeWords(text: string): string {
         return text.replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    /**
+     * Generates a username from the full name.
+     * "Juan Pérez" → "jperez"
+     * "María Alejandra Torres" → "mtorres"
+     */
+    function generateUsername(fullName: string): string {
+        const clean = fullName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        const parts = clean.split(/\s+/).filter(Boolean);
+        if (parts.length === 0) return "";
+        if (parts.length === 1) return parts[0];
+        const firstInitial = parts[0][0];
+        const lastName = parts[parts.length - 1];
+        return `${firstInitial}${lastName}`;
     }
 
     const loadCashiers = async () => {
@@ -64,30 +79,36 @@ export default function CashiersPage() {
     }, [tenantId]);
 
     const handleCreate = async () => {
-        if (!name.trim() || !email.trim() || !password.trim()) {
+        if (!name.trim() || !document.trim() || !phone.trim()) {
             setError("Todos los campos son obligatorios");
             return;
         }
-        if (password.length < 6) {
-            setError("La contraseña debe tener al menos 6 caracteres");
+        if (document.trim().length < 6) {
+            setError("La cédula debe tener al menos 6 dígitos");
             return;
         }
 
         setCreating(true);
         setError(null);
+        setCreatedCredentials(null);
+
+        const username = generateUsername(name.trim());
+        const email = `${username}@rifas.app`;
+        const password = document.trim();
 
         try {
             await callFunction("createUser", {
-                email: email.trim(),
+                email,
                 password,
                 displayName: name.trim(),
                 role: "cashier",
             });
             toast.success(`Cajero "${name}" creado exitosamente`);
+            setCreatedCredentials({ username, password });
             setShowForm(false);
             setName("");
-            setEmail("");
-            setPassword("");
+            setDocument("");
+            setPhone("");
             await loadCashiers();
         } catch (e) {
             const msg = e instanceof Error ? e.message : "Error al crear el cajero";
@@ -131,35 +152,33 @@ export default function CashiersPage() {
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-1 block">Correo electrónico</label>
+                                <label className="text-sm font-medium mb-1 block">Cédula</label>
                                 <Input
-                                    type="email"
-                                    placeholder="cajero@rifas.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    type="text"
+                                    placeholder="Ej: 1004445566"
+                                    value={document}
+                                    onChange={(e) => setDocument(e.target.value.replace(/\D/g, ""))}
+                                    inputMode="numeric"
                                     className="w-full"
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-1 block">Contraseña</label>
-                                <div className="relative">
-                                    <Input
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Mínimo 6 caracteres"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-default-400 hover:text-foreground"
-                                    >
-                                        {showPassword ? "Ocultar" : "Ver"}
-                                    </button>
-                                </div>
+                                <label className="text-sm font-medium mb-1 block">Teléfono</label>
+                                <Input
+                                    type="text"
+                                    placeholder="Ej: 3001234567"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                                    inputMode="numeric"
+                                    className="w-full"
+                                />
                             </div>
                         </div>
+                        {name.trim() && (
+                            <p className="text-xs text-default-500 mt-2">
+                                Usuario generado: <span className="font-mono font-semibold">{generateUsername(name.trim())}</span> — Contraseña: la cédula
+                            </p>
+                        )}
                         <div className="flex gap-2 mt-4">
                             <Button variant="primary" isDisabled={creating} onPress={handleCreate}>
                                 {creating ? "Creando..." : "Crear cajero"}
@@ -168,6 +187,28 @@ export default function CashiersPage() {
                                 Cancelar
                             </Button>
                         </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Credentials display after creation */}
+            {createdCredentials && (
+                <Card className="mb-6 border-2 border-success/30">
+                    <CardContent className="p-4">
+                        <p className="text-sm font-semibold text-success mb-2">✅ Cajero creado — Comparte estas credenciales:</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-xs text-default-500">Usuario</p>
+                                <p className="font-mono font-bold text-lg">{createdCredentials.username}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-default-500">Contraseña</p>
+                                <p className="font-mono font-bold text-lg">{createdCredentials.password}</p>
+                            </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="mt-3" onPress={() => setCreatedCredentials(null)}>
+                            Cerrar
+                        </Button>
                     </CardContent>
                 </Card>
             )}

@@ -61,7 +61,7 @@ const DEFAULT_FINANCIAL_METRICS: FinancialMetrics = {
  * Admin-only. No input required.
  */
 export const getDashboardMetrics = onCall(
-    { region: "us-central1" },
+    { region: "us-central1", timeoutSeconds: 120 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);

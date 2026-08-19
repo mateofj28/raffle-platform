@@ -10,16 +10,16 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
     -moz-appearance: textfield;
 }
-/* Ticket/Boleta shape - semicircle cutouts on left and right */
+/* Ticket/Boleta shape */
 .ticket-shape {
-position: relative;
+    position: relative;
     border-radius: 10px;
     -webkit-mask:
         radial-gradient(circle 6px at left, transparent 97%, #000) left / 51% 100% no-repeat,
         radial-gradient(circle 6px at right, transparent 97%, #000) right / 51% 100% no-repeat;
 }
 
-/* Force Poppins as the global font */
+/* Force Poppins globally */
 body,
 button,
 input,
@@ -28,44 +28,40 @@ textarea {
     font-family: var(--font-poppins), "Poppins", ui-sans-serif, system-ui, sans-serif !important;
 }
 
-/* Shake animation for error banners */
+/* Shake animation */
 @keyframes shake {
-
     0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    10%,
-    30%,
-    50%,
-    70%,
-    90% {
-        transform: translateX(-4px);
-    }
-
-    20%,
-    40%,
-    60%,
-    80% {
-        transform: translateX(4px);
-    }
+        100% {
+            transform: translateX(0);
+        }
+    
+        10%,
+        30%,
+        50%,
+        70%,
+        90% {
+            transform: translateX(-4px);
+        }
+    
+        20%,
+        40%,
+        60%,
+        80% {
+            transform: translateX(4px);
+        }
 }
 
 .animate-shake {
     animation: shake 0.5s ease-in-out;
 }
+
 /* =============================================
-   LIGHT MODE ONLY overrides
+   LIGHT MODE
    ============================================= */
 :root:not(.dark) {
-    /* Page background */
     --background: #EFF6FC;
-    /* Card background */
     --card: #FFFFFF;
-    
-        /* Input field colors */
-        --field-background: #E8EDF2;
+    --field-background: #E8EDF2;
         --field-border: #C8D3DC;
         --field-hover: #DDE4EB;
         --field-focus: #FFFFFF;
@@ -79,27 +75,31 @@ textarea {
     :root:not(.dark) [data-slot="card"] {
         background-color: #FFFFFF !important;
     }
-        :root:not(.dark) .button.button--outline {
-            background-color: #FFFFFF !important;
-            color: #0058CD !important;
-            border: 1.5px solid #0058CD !important;
-        }
-    
-        :root:not(.dark) .button.button--outline:hover,
-        :root:not(.dark) .button.button--outline[data-hovered="true"] {
+
+:root:not(.dark) .button.button--outline {
+    background-color: #FFFFFF !important;
+    color: #0058CD !important;
+    border: 1.5px solid #0058CD !important;
+    font-weight: 600 !important;
+        border-radius: 9px !important;
+        min-height: 38px !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+        box-shadow: none !important;
+}
+
+:root:not(.dark) .button.button--outline:hover,
+:root:not(.dark) .button.button--outline[data-hovered="true"] {
     background-color: #EFF6FC !important;
 }
 
 /* =============================================
-   ALL MODES - button shape & primary color
-   ============================================= */
-
-/* Override pill shape on all buttons */
+   ALL MODES - buttons
+   =============================================*/
 .button {
     border-radius: 9px !important;
 }
 
-/* Primary button */
 .button.button--primary {
     background-color: #0058CD !important;
     color: #FFFFFF !important;
@@ -117,33 +117,17 @@ textarea {
     background-color: #004AAE !important;
 }
 
-/* Secondary/outline button - dark mode */
-.dark .button.button--outline {
-    background-color: transparent !important;
-    color: #60A5FA !important;
-    border: 1.5px solid #60A5FA !important;
-}
-
-.dark .button.button--outline:hover,
-.dark .button.button--outline[data-hovered="true"] {
-    background-color: rgba(96, 165, 250, 0.1) !important;
-}
-
 /* =============================================
-   DARK MODE overrides
+   DARK MODE
    ============================================= */
 .dark {
-    /* Page background - deep navy */
     --background: #0A1628;
-    /* Card - mid navy */
     --content1: #0F2040;
-    /* Input fields */
     --field-background: #1A2F50;
     --field-border: #2A4570;
     --field-hover: #1F3860;
     --field-focus: #1A2F50;
     --field-border-focus: #3B82F6;
-    /* Default surfaces */
     --default: #1A2F50;
     --default-hover: #1F3860;
 }
@@ -155,8 +139,25 @@ textarea {
 .dark [data-slot="card"] {
     background-color: #0F2040 !important;
 }
-/* Header dark */
+
 .dark header {
     background-color: #0D1B35 !important;
     border-color: #1E3A5F !important;
+}
+
+.dark .button.button--outline {
+    background-color: transparent !important;
+    color: #60A5FA !important;
+    border: 1.5px solid #60A5FA !important;
+    font-weight: 600 !important;
+    border-radius: 9px !important;
+    min-height: 38px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    box-shadow: none !important;
+}
+
+.dark .button.button--outline:hover,
+.dark .button.button--outline[data-hovered="true"] {
+    background-color: rgba(96, 165, 250, 0.1) !important;
 }
