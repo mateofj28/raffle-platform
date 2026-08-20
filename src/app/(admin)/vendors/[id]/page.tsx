@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip } from "@heroui/react";
-import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil } from "lucide-react";
+import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
+import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil, ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
@@ -188,10 +189,24 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
     const [page, setPage] = useState(1);
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
     const PAGE_SIZE = 20;
 
-    const totalPages = Math.ceil(tickets.length / PAGE_SIZE);
-    const paginatedTickets = tickets.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    // Filter tickets
+    const filtered = tickets.filter(t => {
+        if (statusFilter && t.status !== statusFilter) return false;
+        if (search) {
+            const term = search.toLowerCase();
+            const matchesNumber = String(t.number).includes(term);
+            const matchesName = t.customerName?.toLowerCase().includes(term);
+            if (!matchesNumber && !matchesName) return false;
+        }
+        return true;
+    });
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const paginatedTickets = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const handleUnassign = async () => {
         if (confirmTicket === null) return;
@@ -206,6 +221,53 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
 
     return (
       <>
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+                <Input
+                    placeholder="Buscar por # boleta o nombre de cliente..."
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                    className="w-full sm:w-96"
+                />
+                <Select
+                    aria-label="Filtrar por estado"
+                    selectedKey={statusFilter || null}
+                    onSelectionChange={(key) => { setStatusFilter(key ? String(key) : ""); setPage(1); }}
+                    placeholder="Todos los estados"
+                    className="w-52"
+                >
+                    <SelectTrigger>
+                        <SelectValue />
+                        <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
+                    </SelectTrigger>
+                    <SelectPopover>
+                        <ListBox>
+                            <ListBoxItem id="" textValue="Todos los estados">Todos los estados</ListBoxItem>
+                            <ListBoxItem id="assigned" textValue="Asignada">Asignada</ListBoxItem>
+                            <ListBoxItem id="sold" textValue="Vendida">Vendida</ListBoxItem>
+                            <ListBoxItem id="paid" textValue="Pagada">Pagada</ListBoxItem>
+                            <ListBoxItem id="installment" textValue="Abonada">Abonada</ListBoxItem>
+                        </ListBox>
+                    </SelectPopover>
+                </Select>
+                {(search || statusFilter) && (
+                    <Button variant="ghost" size="sm" onPress={() => { setSearch(""); setStatusFilter(""); setPage(1); }}>
+                        ✕ Limpiar
+                    </Button>
+                )}
+                <span className="text-xs text-default-500 ml-auto">{filtered.length} boletas</span>
+            </div>
+
+            {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-12 h-12 rounded-full bg-default-100 flex items-center justify-center mb-3">
+                        <Ticket className="h-6 w-6 text-default-400" />
+                    </div>
+                    <p className="text-sm font-medium text-default-600 mb-1">Sin resultados</p>
+                    <p className="text-xs text-default-400">No hay boletas que coincidan con los filtros aplicados</p>
+                </div>
+            ) : (
+                <>
           <div className="overflow-x-auto rounded-lg border border-default-200">
               <table className="w-full text-sm">
                   <thead className="bg-default-100">
@@ -312,7 +374,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
             {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 px-1">
                     <p className="text-xs text-default-500">
-                        Mostrando {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, tickets.length)} de {tickets.length}
+                                    Mostrando {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
                     </p>
                     <div className="flex items-center gap-1">
                         <Button variant="ghost" size="sm" isDisabled={page === 1} onPress={() => setPage(p => p - 1)}>
@@ -324,6 +386,8 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                         </Button>
                     </div>
                 </div>
+            )}
+                </>
             )}
 
           {/* Confirmation dialog */}

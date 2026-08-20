@@ -6,6 +6,7 @@ import { BarChart3, Download, Printer, Users, DollarSign, ShoppingCart, FileText
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -152,6 +153,8 @@ function ReportContent({ type, tickets, payments, vendors, customers, ticketPric
 // --- Individual Reports ---
 
 function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; vendors: Map<string, Vendor>; customers: Map<string, Customer> }) {
+    const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+
     const soldTickets = tickets.filter(t => ["sold", "paid", "installment"].includes(t.status));
     const byVendor = new Map<string, Ticket[]>();
     soldTickets.forEach(t => {
@@ -161,26 +164,68 @@ function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; ven
         byVendor.set(t.vendorId, arr);
     });
 
+    const STATUS_LABELS: Record<string, string> = {
+        sold: "Vendida",
+        paid: "Pagada",
+        installment: "Abonada",
+        assigned: "Asignada",
+        available: "Disponible",
+    };
+
+    const vendorList = Array.from(byVendor.entries()).map(([id, tks]) => ({
+        id,
+        name: vendors.get(id)?.name || id,
+        count: tks.length,
+    }));
+
+    const selectedTickets = selectedVendorId ? (byVendor.get(selectedVendorId) || []) : [];
+    const selectedVendorName = selectedVendorId ? (vendors.get(selectedVendorId)?.name || selectedVendorId) : "";
+
     return (
         <div>
             <h2 className="text-lg font-bold mb-4">Ventas por vendedor</h2>
-            {Array.from(byVendor.entries()).map(([vendorId, vTickets]) => (
-                <div key={vendorId} className="mb-6">
-                    <h3 className="font-semibold mb-2">{vendors.get(vendorId)?.name || vendorId} — {vTickets.length} boletas vendidas</h3>
+
+            {!selectedVendorId ? (
+                <>
+                    <p className="text-sm text-default-500 mb-4">Selecciona un vendedor para ver sus ventas:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {vendorList.map(v => (
+                            <button
+                                key={v.id}
+                                onClick={() => setSelectedVendorId(v.id)}
+                                className="text-left p-4 rounded-xl border border-default-200 hover:border-primary hover:bg-primary/5 transition-all"
+                            >
+                                <p className="font-semibold text-sm">{v.name}</p>
+                                <p className="text-xs text-default-500 mt-1">{v.count} boletas vendidas</p>
+                            </button>
+                        ))}
+                    </div>
+                    {vendorList.length === 0 && <p className="text-default-500">No hay ventas registradas</p>}
+                </>
+            ) : (
+                <>
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 className="font-semibold">{selectedVendorName}</h3>
+                            <p className="text-xs text-default-500">{selectedTickets.length} boletas vendidas</p>
+                        </div>
+                        <button onClick={() => setSelectedVendorId("")} className="text-sm text-primary hover:underline print:hidden">
+                            ← Volver a vendedores
+                        </button>
+                    </div>
                     <Table headers={["#", "Cliente", "Estado", "Abonado", "Saldo"]}>
-                        {vTickets.map(t => (
+                            {selectedTickets.map(t => (
                             <tr key={t.number}>
                                 <td className="px-3 py-2 font-mono">{t.number}</td>
                                 <td className="px-3 py-2">{t.customerId ? customers.get(t.customerId)?.name || "—" : "—"}</td>
-                                <td className="px-3 py-2">{t.status}</td>
-                                <td className="px-3 py-2 text-right">{formatCurrency(t.value - t.pendingBalance)}</td>
-                                <td className="px-3 py-2 text-right">{formatCurrency(t.pendingBalance)}</td>
+                                    <td className="px-3 py-2"><StatusBadge status={t.status} /></td>
+                                    <td className="px-3 py-2 text-right text-success font-medium">{formatCurrency(t.value - t.pendingBalance)}</td>
+                                    <td className={`px-3 py-2 text-right font-medium ${t.pendingBalance > 0 ? "text-red-400" : ""}`}>{formatCurrency(t.pendingBalance)}</td>
                             </tr>
                         ))}
                     </Table>
-                </div>
-            ))}
-            {byVendor.size === 0 && <p className="text-default-500">No hay ventas registradas</p>}
+                </>
+            )}
         </div>
     );
 }

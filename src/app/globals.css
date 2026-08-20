@@ -161,3 +161,84 @@ textarea {
 .dark .button.button--outline[data-hovered="true"] {
     background-color: rgba(96, 165, 250, 0.1) !important;
 }
+/* =============================================
+   PRINT STYLES
+   ============================================= */
+@media print {
+
+    /* Hide navigation, sidebar, header, buttons */
+    aside,
+    header,
+    nav,
+    .print\:hidden,
+    [class*="print:hidden"] {
+        display: none !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Reset background and body */
+    body {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    [data-slot="card"] {
+        background-color: #FFFFFF !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    /* Break the flex layout that creates sidebar + content */
+    .flex.h-dvh,
+    .flex.h-dvh.overflow-hidden {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Main content: no padding, full width */
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+    }
+
+    /* Tables print fully */
+    table {
+        width: 100% !important;
+        page-break-inside: auto;
+    }
+
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    /* Remove fixed/sticky positioning */
+    .fixed,
+    .sticky {
+        position: static !important;
+        height: 0 !important;
+    }
+
+    /* Remove overflow clips */
+    .overflow-hidden,
+    .overflow-y-auto {
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    /* No min-height */
+    .min-h-dvh {
+        min-height: 0 !important;
+    }
+
+    /* Remove h-dvh */
+    .h-dvh {
+        height: auto !important;
+    }
+}
