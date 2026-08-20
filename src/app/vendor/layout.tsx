@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { AuthGuard } from "@/features/auth/components/auth-guard";
 import { ROLES } from "@/constants/roles";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { LayoutDashboard, Ticket, CreditCard, LogOut } from "lucide-react";
+import { LayoutDashboard, Ticket, CreditCard, LogOut, UserPlus } from "lucide-react";
 import { Button } from "@heroui/react";
 import { cn } from "@/utils/cn";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -14,6 +14,7 @@ const VENDOR_NAV = [
     { href: "/vendor/dashboard", label: "Mi Panel", icon: LayoutDashboard },
     { href: "/vendor/tickets", label: "Mis Boletas", icon: Ticket },
     { href: "/vendor/payments", label: "Pagos", icon: CreditCard },
+    { href: "/vendor/customers/new", label: "Crear Cliente", icon: UserPlus },
 ];
 
 export default function VendorLayout({ children }: { children: React.ReactNode }) {
