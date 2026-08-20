@@ -158,7 +158,6 @@ export default function PaymentsPage() {
                                                 <ListBoxItem id="transfer" textValue="Transferencia">Transferencia</ListBoxItem>
                                                 <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
                                                 <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
-                                                <ListBoxItem id="card" textValue="Tarjeta">Tarjeta</ListBoxItem>
                                                 <ListBoxItem id="other" textValue="Otro">Otro</ListBoxItem>
                                             </ListBox>
                                         </SelectPopover>

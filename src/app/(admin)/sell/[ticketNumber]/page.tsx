@@ -287,7 +287,7 @@ export default function SellTicketPage() {
                       { id: "cash", label: "Efectivo" },
                       { id: "nequi", label: "Nequi" },
                       { id: "daviplata", label: "Daviplata" },
-                      { id: "card", label: "Tarjeta" },
+                      { id: "transfer", label: "Bancolombia" },
                       { id: "other", label: "Otro" },
                     ].map(m => (
                       <button

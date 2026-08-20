@@ -82,8 +82,6 @@ export default function ReportsPage() {
         loadAll();
     }, [selectedReport, tenantId, activeRaffle]);
 
-    const handlePrint = () => window.print();
-
     if (!activeRaffle) return (
         <div>
             <PageHeader title="Reportes" description="Selecciona una rifa activa primero" />
@@ -107,8 +105,10 @@ export default function ReportsPage() {
             ) : (
                 <div>
                     <div className="flex items-center justify-between mb-4 print:hidden">
-                        <Button variant="ghost" size="sm" onPress={() => setSelectedReport(null)}>← Volver a reportes</Button>
-                        <Button variant="outline" size="sm" onPress={handlePrint}><Printer className="h-4 w-4" /> Imprimir</Button>
+                            <Button variant="ghost" size="sm" onPress={() => setSelectedReport(null)}>← Volver a reportes</Button>
+                            {selectedReport !== "sales-by-vendor" && selectedReport !== "pending-balance" && selectedReport !== "morosos" && (
+                                <Button variant="outline" size="sm" onPress={() => window.print()}><Printer className="h-4 w-4" /> Imprimir</Button>
+                            )}
                     </div>
 
                     {loading ? <LoadingSkeleton rows={8} /> : (
@@ -209,10 +209,13 @@ function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; ven
                             <h3 className="font-semibold">{selectedVendorName}</h3>
                             <p className="text-xs text-default-500">{selectedTickets.length} boletas vendidas</p>
                         </div>
-                        <button onClick={() => setSelectedVendorId("")} className="text-sm text-primary hover:underline print:hidden">
-                            ← Volver a vendedores
-                        </button>
-                    </div>
+                            <div className="flex items-center gap-3 print:hidden">
+                                <Button variant="outline" size="sm" onPress={() => window.print()}><Printer className="h-4 w-4" /> Imprimir</Button>
+                                <button onClick={() => setSelectedVendorId("")} className="text-sm text-primary hover:underline">
+                                    ← Volver a vendedores
+                                </button>
+                            </div>
+                        </div>
                     <Table headers={["#", "Cliente", "Estado", "Abonado", "Saldo"]}>
                             {selectedTickets.map(t => (
                             <tr key={t.number}>
@@ -258,13 +261,16 @@ function RevenueByMethod({ payments }: { payments: Payment[] }) {
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Recaudo por método de pago</h2>
-            <Chip size="sm" variant="soft" color="success" className="px-3 py-1 mb-4">Total recaudado: {formatCurrency(total)}</Chip>
+            <div className="mb-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-success/10 border border-success/20">
+                <span className="text-base font-medium text-default-600">Total recaudado:</span>
+                <span className="text-xl font-bold text-emerald-500">{formatCurrency(total)}</span>
+            </div>
             <Table headers={["Método", "Cantidad pagos", "Monto total", "% del total"]}>
                 {Array.from(byMethod.entries()).sort((a, b) => b[1] - a[1]).map(([method, amount]) => (
                     <tr key={method}>
                         <td className="px-3 py-2"><PaymentMethodBadge method={method} /></td>
                         <td className="px-3 py-2 text-center">{payments.filter(p => p.method === method).length}</td>
-                        <td className="px-3 py-2 text-right font-semibold">{formatCurrency(amount)}</td>
+                        <td className="px-3 py-2 text-right font-semibold text-emerald-500">{formatCurrency(amount)}</td>
                         <td className="px-3 py-2 text-right">{total > 0 ? Math.round((amount / total) * 100) : 0}%</td>
                     </tr>
                 ))}
@@ -274,24 +280,84 @@ function RevenueByMethod({ payments }: { payments: Payment[] }) {
 }
 
 function PendingBalance({ tickets, customers, vendors, ticketPrice }: { tickets: Ticket[]; customers: Map<string, Customer>; vendors: Map<string, Vendor>; ticketPrice: number }) {
+    const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+
     const pending = tickets.filter(t => t.pendingBalance > 0 && ["sold", "installment"].includes(t.status));
+
+    // Group by vendor
+    const byVendor = new Map<string, { tickets: Ticket[]; totalPending: number }>();
+    pending.forEach(t => {
+        const vid = t.vendorId || "__none__";
+        const current = byVendor.get(vid) || { tickets: [], totalPending: 0 };
+        current.tickets.push(t);
+        current.totalPending += t.pendingBalance;
+        byVendor.set(vid, current);
+    });
+
+    const vendorList = Array.from(byVendor.entries()).map(([id, data]) => ({
+        id,
+        name: id === "__none__" ? "Sin vendedor" : (vendors.get(id)?.name || id),
+        count: data.tickets.length,
+        totalPending: data.totalPending,
+    }));
+
+    const selectedData = selectedVendorId ? byVendor.get(selectedVendorId) : null;
+    const selectedName = selectedVendorId === "__none__" ? "Sin vendedor" : (vendors.get(selectedVendorId)?.name || selectedVendorId);
+
     const totalPending = pending.reduce((s, t) => s + t.pendingBalance, 0);
 
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Cartera pendiente</h2>
-            <Chip size="sm" variant="soft" color="danger" className="px-3 py-1 mb-4">Total pendiente: {formatCurrency(totalPending)} — {pending.length} boletas</Chip>
-            <Table headers={["#", "Cliente", "Vendedor", "Abonado", "Pendiente"]}>
-                {pending.sort((a, b) => b.pendingBalance - a.pendingBalance).map(t => (
-                    <tr key={t.number}>
-                        <td className="px-3 py-2 font-mono">{t.number}</td>
-                        <td className="px-3 py-2">{t.customerId ? customers.get(t.customerId)?.name || "—" : "—"}</td>
-                        <td className="px-3 py-2">{t.vendorId ? vendors.get(t.vendorId)?.name || "—" : "—"}</td>
-                        <td className="px-3 py-2 text-right text-success">{formatCurrency(t.value - t.pendingBalance)}</td>
-                        <td className="px-3 py-2 text-right text-danger font-semibold">{formatCurrency(t.pendingBalance)}</td>
-                    </tr>
-                ))}
-            </Table>
+            <div className="mb-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-danger/10 border border-danger/20">
+                <span className="text-base font-medium text-default-600">Total pendiente:</span>
+                <span className="text-xl font-bold text-red-400">{formatCurrency(totalPending)}</span>
+                <span className="text-sm text-default-500">— {pending.length} boletas</span>
+            </div>
+
+            {!selectedVendorId ? (
+                <>
+                    <p className="text-sm text-default-500 mb-4">Selecciona un vendedor para ver su cartera:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {vendorList.map(v => (
+                            <button
+                                key={v.id}
+                                onClick={() => setSelectedVendorId(v.id)}
+                                className="text-left p-4 rounded-xl border border-default-200 hover:border-danger hover:bg-danger/5 transition-all"
+                            >
+                                <p className="font-semibold text-sm">{v.name}</p>
+                                <p className="text-xs text-default-500 mt-1">{v.count} boletas — Pendiente: <span className="text-red-400 font-semibold">{formatCurrency(v.totalPending)}</span></p>
+                            </button>
+                        ))}
+                    </div>
+                    {vendorList.length === 0 && <p className="text-default-500">No hay cartera pendiente</p>}
+                </>
+            ) : (
+                <>
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 className="font-semibold">{selectedName}</h3>
+                            <p className="text-xs text-default-500">{selectedData?.tickets.length} boletas con saldo pendiente</p>
+                        </div>
+                        <div className="flex items-center gap-3 print:hidden">
+                            <Button variant="outline" size="sm" onPress={() => window.print()}><Printer className="h-4 w-4" /> Imprimir</Button>
+                            <button onClick={() => setSelectedVendorId("")} className="text-sm text-primary hover:underline">
+                                ← Volver a vendedores
+                            </button>
+                        </div>
+                    </div>
+                    <Table headers={["#", "Cliente", "Abonado", "Pendiente"]}>
+                        {(selectedData?.tickets || []).sort((a, b) => b.pendingBalance - a.pendingBalance).map(t => (
+                            <tr key={t.number}>
+                                <td className="px-3 py-2 font-mono">{t.number}</td>
+                                <td className="px-3 py-2">{t.customerId ? customers.get(t.customerId)?.name || "—" : "—"}</td>
+                                <td className="px-3 py-2 text-right text-emerald-500 font-medium">{formatCurrency(t.value - t.pendingBalance)}</td>
+                                <td className="px-3 py-2 text-right text-red-400 font-semibold">{formatCurrency(t.pendingBalance)}</td>
+                            </tr>
+                        ))}
+                        </Table>
+                </>
+            )}
         </div>
     );
 }
@@ -326,36 +392,83 @@ function Commissions({ tickets, vendors, ticketPrice }: { tickets: Ticket[]; ven
 }
 
 function Morosos({ tickets, customers, ticketPrice }: { tickets: Ticket[]; customers: Map<string, Customer>; ticketPrice: number }) {
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+
     // Tickets with partial payment (installment) that still owe
     const morosos = tickets.filter(t => t.status === "installment" && t.pendingBalance > 0 && t.customerId);
-    const byCustomer = new Map<string, { name: string; tickets: Ticket[] }>();
+    const byCustomer = new Map<string, { name: string; phone: string; tickets: Ticket[]; totalPending: number }>();
     morosos.forEach(t => {
         const customer = customers.get(t.customerId!);
         const name = customer?.name || "Desconocido";
-        const current = byCustomer.get(t.customerId!) || { name, tickets: [] };
+        const phone = customer?.phone || "—";
+        const current = byCustomer.get(t.customerId!) || { name, phone, tickets: [], totalPending: 0 };
         current.tickets.push(t);
+        current.totalPending += t.pendingBalance;
         byCustomer.set(t.customerId!, current);
     });
 
+    const customerList = Array.from(byCustomer.entries()).map(([id, data]) => ({
+        id,
+        ...data,
+    })).sort((a, b) => b.totalPending - a.totalPending);
+
+    const selectedData = selectedCustomerId ? byCustomer.get(selectedCustomerId) : null;
+
     return (
         <div>
-            <h2 className="text-lg font-bold mb-2">Clientes con abonos pendientes</h2>
-            <Chip size="sm" variant="soft" color="danger" className="px-3 py-1 mb-4">{byCustomer.size} clientes con saldo pendiente</Chip>
-            <Table headers={["Cliente", "Teléfono", "Boletas", "Total pendiente"]}>
-                {Array.from(byCustomer.entries()).map(([customerId, data]) => {
-                    const customer = customers.get(customerId);
-                    const totalPending = data.tickets.reduce((s, t) => s + t.pendingBalance, 0);
-                    return (
-                        <tr key={customerId}>
-                            <td className="px-3 py-2 font-medium">{data.name}</td>
-                            <td className="px-3 py-2">{customer?.phone || "—"}</td>
-                            <td className="px-3 py-2 text-center">{data.tickets.map(t => `#${t.number}`).join(", ")}</td>
-                            <td className="px-3 py-2 text-right text-danger font-semibold">{formatCurrency(totalPending)}</td>
-                        </tr>
-                    );
-                })}
-            </Table>
-            {byCustomer.size === 0 && <p className="text-default-500 mt-4">No hay clientes con saldo pendiente</p>}
+            <h2 className="text-lg font-bold mb-4">Clientes con abonos pendientes</h2>
+
+            {!selectedCustomerId ? (
+                <>
+                    <p className="text-sm text-default-500 mb-4">{customerList.length} clientes con saldo pendiente</p>
+                    {customerList.length === 0 ? (
+                        <p className="text-default-500">No hay clientes con saldo pendiente</p>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {customerList.map(c => (
+                                <button
+                                    key={c.id}
+                                    onClick={() => setSelectedCustomerId(c.id)}
+                                    className="text-left p-4 rounded-xl border border-default-200 hover:border-danger hover:bg-danger/5 transition-all"
+                                >
+                                    <p className="font-semibold text-sm">{c.name}</p>
+                                    <p className="text-xs text-default-500 mt-1">{c.tickets.length} boleta{c.tickets.length > 1 ? "s" : ""} en mora</p>
+                                    <p className="text-sm font-bold text-red-400 mt-2">{formatCurrency(c.totalPending)}</p>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </>
+            ) : (
+                <>
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 className="font-semibold">{selectedData?.name}</h3>
+                            <p className="text-xs text-default-500">{selectedData?.phone}</p>
+                        </div>
+                        <div className="flex items-center gap-3 print:hidden">
+                            <Button variant="outline" size="sm" onPress={() => window.print()}><Printer className="h-4 w-4" /> Imprimir</Button>
+                            <button onClick={() => setSelectedCustomerId("")} className="text-sm text-primary hover:underline">
+                                ← Volver a clientes
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mb-4 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-danger/10 border border-danger/20">
+                        <span className="text-base font-medium text-default-600">Deuda total:</span>
+                        <span className="text-xl font-bold text-red-400">{formatCurrency(selectedData?.totalPending || 0)}</span>
+                    </div>
+
+                    <Table headers={["#", "Pendiente"]}>
+                        {(selectedData?.tickets || []).sort((a, b) => b.pendingBalance - a.pendingBalance).map(t => (
+                            <tr key={t.number}>
+                                <td className="px-3 py-2 font-mono font-bold">#{t.number}</td>
+                                <td className="px-3 py-2 text-right text-red-400 font-semibold">{formatCurrency(t.pendingBalance)}</td>
+                            </tr>
+                        ))}
+                        </Table>
+                </>
+            )}
         </div>
     );
 }
