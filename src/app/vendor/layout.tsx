@@ -24,8 +24,8 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     return (
         <AuthGuard requiredRole={ROLES.VENDOR}>
             <div className="min-h-dvh flex flex-col">
-                <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-divider bg-content1 px-4">
-                    <span className="font-semibold">Raffle Platform</span>
+                <header className="sticky top-0 z-30 flex h-14 items-center gap-4 px-4" style={{ backgroundColor: "#001838" }}>
+                    <span className="font-semibold text-white">Raffle Platform</span>
                     <nav className="flex-1 flex items-center gap-1 ml-6">
                         {VENDOR_NAV.map((item) => {
                             const Icon = item.icon;
@@ -36,8 +36,9 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                                     href={item.href}
                                     className={cn(
                                         "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                                        isActive ? "bg-primary/10 text-primary" : "text-default-600 hover:bg-default-100"
+                                        isActive ? "text-white" : "text-[#A0B4C8] hover:bg-white/10 hover:text-white"
                                     )}
+                                    style={isActive ? { backgroundColor: "#0058D0" } : undefined}
                                 >
                                     <Icon className="h-4 w-4" />
                                     <span className="hidden sm:inline">{item.label}</span>
@@ -46,9 +47,9 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                         })}
                     </nav>
                     <ThemeToggle />
-                    <span className="text-sm text-default-500 hidden md:inline">{user?.displayName || user?.email}</span>
+                    <span className="text-sm text-[#A0B4C8] hidden md:inline">{user?.displayName || user?.email}</span>
                     <Button variant="ghost" size="sm" isIconOnly onPress={() => logout()} aria-label="Cerrar sesión">
-                        <LogOut className="h-4 w-4" />
+                        <LogOut className="h-4 w-4 text-[#A0B4C8]" />
                     </Button>
                 </header>
                 <main className="flex-1 p-4 md:p-6">{children}</main>

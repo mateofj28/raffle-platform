@@ -36,7 +36,7 @@ service cloud.firestore {
         // Tickets (subcollection of raffles)
         match /tickets/{ticketNumber} {
           allow read: if belongsToTenant(tenantId)
-            && (isAdmin() || isCashier() || resource.data.vendorId == request.auth.uid);
+            && (isAdmin() || isCashier() || isVendor());
           allow write: if false; // Only via Cloud Functions
         }
       }
@@ -50,14 +50,14 @@ service cloud.firestore {
       // Vendors
       match /vendors/{vendorId} {
         allow read: if belongsToTenant(tenantId)
-          && (isAdmin() || isCashier() || request.auth.uid == resource.data.userId);
+          && (isAdmin() || isCashier() || isVendor());
         allow write: if false; // Only via Cloud Functions
       }
 
       // Payments
       match /payments/{paymentId} {
         allow read: if belongsToTenant(tenantId)
-          && (isAdmin() || isCashier() || resource.data.vendorId == request.auth.token.vendorId);
+          && (isAdmin() || isCashier() || isVendor());
         allow write: if false; // Only via Cloud Functions
       }
 
