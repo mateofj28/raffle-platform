@@ -1,6 +1,5 @@
 @import "@heroui/styles";
 
-/* Remove number input spinners globally */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -10,7 +9,7 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
     -moz-appearance: textfield;
 }
-/* Ticket/Boleta shape */
+
 .ticket-shape {
     position: relative;
     border-radius: 10px;
@@ -19,7 +18,6 @@ input[type="number"] {
         radial-gradient(circle 6px at right, transparent 97%, #000) right / 51% 100% no-repeat;
 }
 
-/* Force Poppins globally */
 body,
 button,
 input,
@@ -28,7 +26,6 @@ textarea {
     font-family: var(--font-poppins), "Poppins", ui-sans-serif, system-ui, sans-serif !important;
 }
 
-/* Shake animation */
 @keyframes shake {
     0%,
         100% {
@@ -49,39 +46,50 @@ textarea {
         80% {
             transform: translateX(4px);
         }
-}
-
+    }
 .animate-shake {
     animation: shake 0.5s ease-in-out;
 }
 
-/* =============================================
-   LIGHT MODE
-   ============================================= */
+/* ===== LIGHT MODE ===== */
 :root:not(.dark) {
-    --background: #EFF6FC;
-    --card: #FFFFFF;
-    --field-background: #E8EDF2;
-        --field-border: #C8D3DC;
-        --field-hover: #DDE4EB;
+    --background: #FFFFFF;
+        --card: #F5F5F5;
+        --field-background: #FFFFFF;
+        --field-border: #E0E0E0;
+        --field-hover: #F5F5F5;
         --field-focus: #FFFFFF;
-        --field-border-focus: #0058CD;
+    --field-border-focus: #4A8C82;
     }
     
     :root:not(.dark) body {
-        background-color: #EFF6FC !important;
+    background-color: #FFFFFF !important;
+        color: #1F2937 !important;
     }
     
     :root:not(.dark) [data-slot="card"] {
-        background-color: #FFFFFF !important;
+    background-color: #F5F5F5 !important;
+        border-radius: 10px !important;
+        border: 1px solid #E8E8E8 !important;
+        box-shadow: none !important;
+    }
+    
+    :root:not(.dark) .button.button--primary {
+        background-color: #6BA8A0 !important;
+        color: #1a1a1a !important;
+    }
+    
+    :root:not(.dark) .button.button--primary:hover,
+    :root:not(.dark) .button.button--primary[data-hovered="true"] {
+        background-color: #5A9690 !important;
     }
 
 :root:not(.dark) .button.button--outline {
     background-color: #FFFFFF !important;
-    color: #0058CD !important;
-    border: 1.5px solid #0058CD !important;
+    color: #4A8C82 !important;
+        border: 1.5px solid #D4E8E4 !important;
     font-weight: 600 !important;
-        border-radius: 9px !important;
+    border-radius: 10px !important;
         min-height: 38px !important;
         padding-left: 16px !important;
         padding-right: 16px !important;
@@ -90,21 +98,20 @@ textarea {
 
 :root:not(.dark) .button.button--outline:hover,
 :root:not(.dark) .button.button--outline[data-hovered="true"] {
-    background-color: #EFF6FC !important;
+    background-color: #F0FAF8 !important;
+        border-color: #6BA8A0 !important;
 }
 
-/* =============================================
-   ALL MODES - buttons
-   =============================================*/
+/* ===== ALL MODES — buttons ===== */
 .button {
-    border-radius: 9px !important;
+    border-radius: 10px !important;
 }
 
 .button.button--primary {
-    background-color: #0058CD !important;
-    color: #FFFFFF !important;
+    background-color: #6BA8A0 !important;
+        color: #1a1a1a !important;
     font-weight: 600 !important;
-    border-radius: 9px !important;
+    border-radius: 10px !important;
     min-height: 38px !important;
     padding-left: 16px !important;
     padding-right: 16px !important;
@@ -114,12 +121,10 @@ textarea {
 
 .button.button--primary:hover,
 .button.button--primary[data-hovered="true"] {
-    background-color: #004AAE !important;
+    background-color: #5A9690 !important;
 }
 
-/* =============================================
-   DARK MODE
-   ============================================= */
+/* ===== DARK MODE ===== */
 .dark {
     --background: #0A1628;
     --content1: #0F2040;
@@ -127,7 +132,7 @@ textarea {
     --field-border: #2A4570;
     --field-hover: #1F3860;
     --field-focus: #1A2F50;
-    --field-border-focus: #3B82F6;
+    --field-border-focus: #4A8C82;
     --default: #1A2F50;
     --default-hover: #1F3860;
 }
@@ -138,6 +143,7 @@ textarea {
 
 .dark [data-slot="card"] {
     background-color: #0F2040 !important;
+    border-radius: 10px !important;
 }
 
 .dark header {
@@ -145,12 +151,21 @@ textarea {
     border-color: #1E3A5F !important;
 }
 
+.dark .button.button--primary {
+    background-color: #4A8C82 !important;
+    color: #FFFFFF !important;
+}
+
+.dark .button.button--primary:hover,
+.dark .button.button--primary[data-hovered="true"] {
+    background-color: #3D7A72 !important;
+}
 .dark .button.button--outline {
     background-color: transparent !important;
-    color: #60A5FA !important;
-    border: 1.5px solid #60A5FA !important;
+    color: #7DCFC5 !important;
+        border: 1.5px solid #4A8C82 !important;
     font-weight: 600 !important;
-    border-radius: 9px !important;
+    border-radius: 10px !important;
     min-height: 38px !important;
     padding-left: 16px !important;
     padding-right: 16px !important;
@@ -159,14 +174,12 @@ textarea {
 
 .dark .button.button--outline:hover,
 .dark .button.button--outline[data-hovered="true"] {
-    background-color: rgba(96, 165, 250, 0.1) !important;
-}
-/* =============================================
-   PRINT STYLES
-   ============================================= */
+    background-color: rgba(74, 140, 130, 0.1) !important;
+    }
+
+/* ===== PRINT ===== */
 @media print {
 
-    /* Hide navigation, sidebar, header, buttons */
     aside,
     header,
     nav,
@@ -177,68 +190,59 @@ textarea {
         margin: 0 !important;
         padding: 0 !important;
     }
-
-    /* Reset background and body */
-    body {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    [data-slot="card"] {
-        background-color: #FFFFFF !important;
-        box-shadow: none !important;
-        border: none !important;
-    }
-
-    /* Break the flex layout that creates sidebar + content */
-    .flex.h-dvh,
-    .flex.h-dvh.overflow-hidden {
-        display: block !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
-
-    /* Main content: no padding, full width */
-    main {
-        padding: 0 !important;
-        margin: 0 !important;
-        overflow: visible !important;
-    }
-
-    /* Tables print fully */
-    table {
-        width: 100% !important;
-        page-break-inside: auto;
-    }
-
-    tr {
-        page-break-inside: avoid;
-        page-break-after: auto;
-    }
-
-    /* Remove fixed/sticky positioning */
-    .fixed,
-    .sticky {
-        position: static !important;
-        height: 0 !important;
-    }
-
-    /* Remove overflow clips */
-    .overflow-hidden,
-    .overflow-y-auto {
-        overflow: visible !important;
-        height: auto !important;
-    }
-
-    /* No min-height */
-    .min-h-dvh {
-        min-height: 0 !important;
-    }
-
-    /* Remove h-dvh */
-    .h-dvh {
-        height: auto !important;
-    }
-}
+        body {
+            background-color: #FFF !important;
+            color: #000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+    
+        [data-slot="card"] {
+            background-color: #FFF !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+    
+        .flex.h-dvh,
+        .flex.h-dvh.overflow-hidden {
+            display: block !important;
+            height: auto !important;
+            overflow: visible !important;
+        }
+    
+        main {
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+        }
+    
+        table {
+            width: 100% !important;
+            page-break-inside: auto;
+        }
+    
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+    
+        .fixed,
+        .sticky {
+            position: static !important;
+            height: 0 !important;
+        }
+    
+        .overflow-hidden,
+        .overflow-y-auto {
+            overflow: visible !important;
+            height: auto !important;
+        }
+    
+        .min-h-dvh {
+            min-height: 0 !important;
+        }
+    
+        .h-dvh {
+            height: auto !important;
+        }
+        }

@@ -22,6 +22,7 @@ export default function SellTicketPage() {
   const router = useRouter();
   const ticketNumber = parseInt(params.ticketNumber as string);
   const tenantId = useAuthStore((s) => s.user?.tenantId);
+  const userRole = useAuthStore((s) => s.user?.role);
   const { activeRaffle, setActiveRaffle } = useRaffleStore();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -196,7 +197,7 @@ export default function SellTicketPage() {
               {customerSearch.length >= 2 && filteredCustomers.length === 0 && !selectedCustomerId && (
                 <div className="text-center py-4 rounded-lg border border-dashed border-default-300">
                   <p className="text-sm text-default-500 mb-2">No se encontró ningún cliente</p>
-                  <Link href="/customers/new">
+                  <Link href={userRole === "vendor" ? "/vendor/customers/new" : "/customers/new"}>
                     <Button variant="outline" size="sm">Crear cliente nuevo</Button>
                   </Link>
                 </div>

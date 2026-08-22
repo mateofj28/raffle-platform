@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Button, Card, CardContent, Separator } from "@heroui/react";
+import { Button, Card, CardContent, Separator, toast } from "@heroui/react";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, User, DollarSign, Search } from "lucide-react";
 import Link from "next/link";
@@ -32,7 +32,6 @@ export default function EditTicketPage() {
   const [selectedCustomerName, setSelectedCustomerName] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeRaffle) router.push("/raffles");
@@ -69,7 +68,7 @@ export default function EditTicketPage() {
         ticketNumber,
         customerId: selectedCustomerId,
       });
-      setSuccess(`Cliente actualizado a: ${selectedCustomerName}`);
+      toast.success(`Cliente actualizado a: ${selectedCustomerName}`);
       setTimeout(() => router.back(), 1500);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error al actualizar el cliente");
@@ -77,6 +76,20 @@ export default function EditTicketPage() {
       setProcessing(false);
     }
   };
+
+  // Global Enter key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      if (!selectedCustomerId || processing) return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" && !selectedCustomerId) return;
+      e.preventDefault();
+      handleChangeClient();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedCustomerId, processing]);
 
   if (!activeRaffle) return null;
 
@@ -93,9 +106,6 @@ export default function EditTicketPage() {
       />
 
       <FormErrorBanner message={error} />
-      {success && (
-        <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">{success}</div>
-      )}
 
       {/* Ticket info */}
       {ticket && (

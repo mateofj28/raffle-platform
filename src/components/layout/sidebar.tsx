@@ -69,15 +69,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     "md:translate-x-0 md:static md:z-auto",
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 )}
-                style={{ backgroundColor: isDarkMode ? "#0D1B35" : "#001838" }}
+                style={{ backgroundColor: isDarkMode ? "#0D1B35" : "#FFFFFF" }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
-                    <span className="text-lg font-semibold" style={{ color: "#E0E0E0" }}>Raffle Platform</span>
+                <div className={`flex items-center justify-between h-16 px-4 border-b ${isDarkMode ? "border-white/10" : "border-[#E5E7EB]"}`}>
+                    <span className={`text-lg font-semibold ${isDarkMode ? "text-[#E0E0E0]" : "text-[#111827]"}`}>Raffle Platform</span>
                     <button
                         onClick={onClose}
-                        className="md:hidden p-1 rounded-md hover:bg-white/10"
-                        style={{ color: "#E0E0E0" }}
+                        className={`md:hidden p-1 rounded-md ${isDarkMode ? "hover:bg-white/10 text-[#E0E0E0]" : "hover:bg-[#F3F4F6] text-[#6B7280]"}`}
                         aria-label="Cerrar menú"
                     >
                         <X className="h-5 w-5" />
@@ -102,12 +101,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                                         className={cn(
                                             "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                                             isActive
-                                                ? "text-white"
-                                                : "hover:bg-white/5"
+                                                ? ""
+                                                : (isDarkMode ? "hover:bg-white/5" : "hover:bg-[#F3F4F6]")
                                         )}
                                         style={{
-                                            color: isActive ? "#FFFFFF" : "#E0E0E0",
-                                            backgroundColor: isActive ? "#0058D0" : undefined,
+                                            color: isActive
+                                                ? (isDarkMode ? "#FFFFFF" : "#2D6A5F")
+                                                : (isDarkMode ? "#E0E0E0" : "#9CA3AF"),
+                                            backgroundColor: isActive
+                                                ? (isDarkMode ? "#4A8C82" : "#D4E8E4")
+                                                : undefined,
                                         }}
                                     >
                                         <Icon className="h-5 w-5 shrink-0" />

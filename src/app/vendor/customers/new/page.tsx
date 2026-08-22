@@ -88,7 +88,7 @@ export default function VendorCreateCustomerPage() {
             <div className="flex flex-col md:flex-row gap-8 items-start">
                 {/* Left panel */}
                 <div className="md:w-56 shrink-0 flex flex-col items-center md:items-start md:sticky md:top-24">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: "#0058CD" }}>
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "#4A8C82" }}>
                         <UserPlus className="h-7 w-7 text-white" />
                     </div>
                     <h1 className="text-2xl font-bold text-center md:text-left">Nuevo cliente</h1>

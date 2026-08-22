@@ -113,15 +113,15 @@ export default function VendorTicketsPage() {
                                 <p className="text-xs text-default-500 mb-1">Total recaudado</p>
                                 <p className="text-lg font-bold">{formatCurrency(totalCollected)}</p>
                             </div>
-                            <div className="p-4 rounded-lg border border-success/20 bg-success/5">
+                            <div className="p-4 rounded-lg border border-default-200">
                                 <p className="text-xs text-default-500 mb-1">Recaudado (pagadas)</p>
                                 <p className="text-lg font-bold text-emerald-500">{formatCurrency(recaudadoPagadas)}</p>
                             </div>
-                            <div className="p-4 rounded-lg border border-blue-500/20 bg-blue-500/5">
+                            <div className="p-4 rounded-lg border border-default-200">
                                 <p className="text-xs text-default-500 mb-1">Recaudado (abonadas)</p>
-                                <p className="text-lg font-bold text-blue-500">{formatCurrency(recaudadoAbonadas)}</p>
+                                <p className="text-lg font-bold text-emerald-500">{formatCurrency(recaudadoAbonadas)}</p>
                             </div>
-                            <div className="p-4 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                            <div className="p-4 rounded-lg border border-default-200">
                                 <p className="text-xs text-default-500 mb-1">Mi comisión (30%)</p>
                                 <p className="text-lg font-bold text-amber-500">{formatCurrency(commission)}</p>
                             </div>
@@ -202,7 +202,7 @@ export default function VendorTicketsPage() {
                                                         <td className="px-4 py-3 text-right">
                                                             {ticket.pendingBalance > 0
                                                                 ? <span className="text-red-400 font-medium">{formatCurrency(ticket.pendingBalance)}</span>
-                                                                : <span className="text-emerald-500 font-medium">$0</span>
+                                                                : <span className="text-white font-medium">$0</span>
                                                             }
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
@@ -210,7 +210,7 @@ export default function VendorTicketsPage() {
                                                                 {ticket.status === "assigned" && (
                                                                     <Tooltip>
                                                                         <Tooltip.Trigger>
-                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/sell/${ticket.number}`)} aria-label="Vender">
+                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/vendor/sell/${ticket.number}`)} aria-label="Vender">
                                                                                 <ShoppingCart className="h-4 w-4 text-blue-400" />
                                                                             </Button>
                                                                         </Tooltip.Trigger>
@@ -220,7 +220,7 @@ export default function VendorTicketsPage() {
                                                                 {(ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment") && ticket.pendingBalance > 0 && (
                                                                     <Tooltip>
                                                                         <Tooltip.Trigger>
-                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/pay/${ticket.number}`)} aria-label="Abonar">
+                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/vendor/pay/${ticket.number}`)} aria-label="Abonar">
                                                                                 <DollarSign className="h-4 w-4 text-emerald-400" />
                                                                             </Button>
                                                                         </Tooltip.Trigger>
@@ -230,7 +230,7 @@ export default function VendorTicketsPage() {
                                                                 {(ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
                                                                     <Tooltip>
                                                                         <Tooltip.Trigger>
-                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/edit-ticket/${ticket.number}?action=client`)} aria-label="Cambiar cliente">
+                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/vendor/edit-ticket/${ticket.number}?action=client`)} aria-label="Cambiar cliente">
                                                                                 <Pencil className="h-4 w-4 text-amber-400" />
                                                                             </Button>
                                                                         </Tooltip.Trigger>

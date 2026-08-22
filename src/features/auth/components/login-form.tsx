@@ -40,7 +40,7 @@ export function LoginForm() {
         }
     };
 
-    const inputClass = "w-full rounded-xl px-4 py-3 text-sm border border-[#CBD5E1] bg-[#E2E8F0] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#0058CD] focus:bg-white transition-colors dark:bg-[#1A2F50] dark:border-[#2A4570] dark:text-[#E2E8F0] dark:placeholder:text-[#6B8AAF] dark:focus:border-[#3B82F6]";
+    const inputClass = "w-full rounded-xl px-4 py-3 text-sm border border-[#E0E0E0] bg-white text-[#1F2937] placeholder:text-gray-400 outline-none focus:border-[#4A8C82] transition-colors dark:bg-[#1A2F50] dark:border-[#2A4570] dark:text-[#E2E8F0] dark:placeholder:text-[#6B8AAF] dark:focus:border-[#4A8C82]";
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full max-w-sm">

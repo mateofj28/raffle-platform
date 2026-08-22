@@ -57,10 +57,10 @@ export default function LoginPage() {
           </div>
 
           {/* Right: Benefits panel (hidden on mobile) */}
-            <div className="hidden lg:flex lg:flex-1 flex-col justify-center border-l border-[#D1DCE8] px-12 py-12" style={{ backgroundColor: "#001838" }}>
+        <div className="hidden lg:flex lg:flex-1 flex-col justify-center border-l border-[#D4E8E4] px-12 py-12" style={{ backgroundColor: "#2D6A5F" }}>
               <div className="max-w-lg">
                     <h2 className="text-2xl font-bold mb-2 text-white">Administra tus rifas como un profesional</h2>
-                    <p className="text-[#A0B4C8] mb-10">
+            <p className="text-white/70 mb-10">
                       Todo lo que necesitas para gestionar boletas, vendedores, pagos y comisiones en un solo lugar.
                   </p>
 
@@ -74,7 +74,7 @@ export default function LoginPage() {
                         </div>
                         <div>
                                       <h3 className="font-semibold text-sm text-white">{benefit.title}</h3>
-                                      <p className="text-xs text-[#A0B4C8] mt-0.5">{benefit.description}</p>
+                                <p className="text-xs text-white/60 mt-0.5">{benefit.description}</p>
                         </div>
                     </div>
                 );
@@ -82,11 +82,11 @@ export default function LoginPage() {
                   </div>
 
                   {/* Footer quote */}
-                    <div className="mt-12 p-4 rounded-lg border border-white/10 bg-white/5">
-                        <p className="text-sm text-[#A0B4C8] italic">
+            <div className="mt-12 p-4 rounded-lg border border-white/15 bg-white/5">
+              <p className="text-sm text-white/70 italic">
                           "Pasamos de una libreta a controlar todo digitalmente. Las comisiones se calculan solas y nunca perdemos una boleta."
                       </p>
-                        <p className="text-xs text-[#A0B4C8] mt-2 font-medium">— Organizador de rifas</p>
+              <p className="text-xs text-white/60 mt-2 font-medium">— Organizador de rifas</p>
                   </div>
               </div>
           </div>

@@ -16,7 +16,7 @@ export function Input({ style, ...props }: ComponentPropsWithRef<typeof HeroInpu
 
     const inputStyle: React.CSSProperties = isDark
         ? { backgroundColor: "#1A2F50", borderColor: "#2A4570", color: "#E2E8F0" }
-        : { backgroundColor: "#E2E8F0", borderColor: "#CBD5E1" };
+        : { backgroundColor: "#FFFFFF", borderColor: "#E0E0E0", color: "#1F2937" };
 
     return (
         <HeroInput

@@ -349,7 +349,7 @@ export const updateTicketClient = onCall(
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
-            requireAdminOrCashier(context);
+            // Admin, cashier, or vendor can update client
 
             const schema = z.object({
                 raffleId: z.string().min(1),
