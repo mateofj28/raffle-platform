@@ -12,7 +12,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
-import { getDocs } from "firebase/firestore";
+import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import { toast } from "@heroui/react";
 import type { Customer } from "@/types/api.types";
@@ -22,7 +22,7 @@ export default function SellTicketPage() {
   const router = useRouter();
   const ticketNumber = parseInt(params.ticketNumber as string);
   const tenantId = useAuthStore((s) => s.user?.tenantId);
-  const { activeRaffle } = useRaffleStore();
+  const { activeRaffle, setActiveRaffle } = useRaffleStore();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -34,9 +34,22 @@ export default function SellTicketPage() {
   const [selling, setSelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Auto-detect active raffle if not set (for vendors)
   useEffect(() => {
-    if (!activeRaffle) router.push("/raffles");
-  }, [activeRaffle, router]);
+    if (activeRaffle || !tenantId) return;
+    const detect = async () => {
+      const rafflesCol = tenantCollection(tenantId, "raffles");
+      const q = query(rafflesCol, where("status", "in", ["active", "draft"]), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const r = snap.docs[0];
+        setActiveRaffle({ id: r.id, name: r.data().name, status: r.data().status, ticketPrice: r.data().ticketPrice, totalTickets: r.data().totalTickets });
+      } else {
+        router.push("/vendor/dashboard");
+      }
+    };
+    detect();
+  }, [activeRaffle, tenantId, setActiveRaffle, router]);
 
   // Load customers
   useEffect(() => {

@@ -12,7 +12,7 @@ import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
 import { callFunction } from "@/services/firebase-callable";
 import { toast } from "@heroui/react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 
 const METHODS = [
@@ -27,7 +27,7 @@ export default function PayTicketPage() {
   const params = useParams();
   const router = useRouter();
   const ticketNumber = parseInt(params.ticketNumber as string);
-  const { activeRaffle } = useRaffleStore();
+  const { activeRaffle, setActiveRaffle } = useRaffleStore();
   const tenantId = useAuthStore((s) => s.user?.tenantId);
 
   const [paymentType, setPaymentType] = useState<"full" | "partial">("partial");
@@ -37,6 +37,21 @@ export default function PayTicketPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingBalance, setPendingBalance] = useState<number | null>(null);
+
+  // Auto-detect active raffle if not set (for vendors)
+  useEffect(() => {
+    if (activeRaffle || !tenantId) return;
+    const detect = async () => {
+      const rafflesCol = tenantCollection(tenantId, "raffles");
+      const q = query(rafflesCol, where("status", "in", ["active", "draft"]), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const r = snap.docs[0];
+        setActiveRaffle({ id: r.id, name: r.data().name, status: r.data().status, ticketPrice: r.data().ticketPrice, totalTickets: r.data().totalTickets });
+      }
+    };
+    detect();
+  }, [activeRaffle, tenantId, setActiveRaffle]);
 
   // Load ticket pending balance
   useEffect(() => {

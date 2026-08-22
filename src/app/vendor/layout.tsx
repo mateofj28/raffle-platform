@@ -24,9 +24,9 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     return (
         <AuthGuard requiredRole={ROLES.VENDOR}>
             <div className="min-h-dvh flex flex-col">
-                <header className="sticky top-0 z-30 flex h-14 items-center gap-4 px-4" style={{ backgroundColor: "#001838" }}>
+                <header className="sticky top-0 z-30 flex h-14 items-center px-4" style={{ backgroundColor: "#001838" }}>
                     <span className="font-semibold text-white">Raffle Platform</span>
-                    <nav className="flex-1 flex items-center gap-1 ml-6">
+                    <nav className="flex-1 flex items-center justify-center gap-1">
                         {VENDOR_NAV.map((item) => {
                             const Icon = item.icon;
                             const isActive = pathname === item.href;
