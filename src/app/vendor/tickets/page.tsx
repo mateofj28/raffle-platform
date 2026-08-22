@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, CardContent, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
-import { Ticket, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button, Card, CardContent, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, Tooltip } from "@heroui/react";
+import { Ticket, ChevronDown, ShoppingCart, DollarSign, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -16,6 +17,7 @@ import type { Ticket as TicketType, Customer } from "@/types/api.types";
 
 export default function VendorTicketsPage() {
     const user = useAuthStore((s) => s.user);
+    const router = useRouter();
     const [tickets, setTickets] = useState<TicketType[]>([]);
     const [customers, setCustomers] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -179,6 +181,7 @@ export default function VendorTicketsPage() {
                                                 <th className="px-4 py-3 text-left font-medium">Cliente</th>
                                                 <th className="px-4 py-3 text-right font-medium">Abonado</th>
                                                 <th className="px-4 py-3 text-right font-medium">Saldo</th>
+                                                <th className="px-4 py-3 text-center font-medium">Acción</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-default-200">
@@ -201,6 +204,40 @@ export default function VendorTicketsPage() {
                                                                 ? <span className="text-red-400 font-medium">{formatCurrency(ticket.pendingBalance)}</span>
                                                                 : <span className="text-emerald-500 font-medium">$0</span>
                                                             }
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                {ticket.status === "assigned" && (
+                                                                    <Tooltip>
+                                                                        <Tooltip.Trigger>
+                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/sell/${ticket.number}`)} aria-label="Vender">
+                                                                                <ShoppingCart className="h-4 w-4 text-blue-400" />
+                                                                            </Button>
+                                                                        </Tooltip.Trigger>
+                                                                        <Tooltip.Content>Vender</Tooltip.Content>
+                                                                    </Tooltip>
+                                                                )}
+                                                                {(ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment") && ticket.pendingBalance > 0 && (
+                                                                    <Tooltip>
+                                                                        <Tooltip.Trigger>
+                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/pay/${ticket.number}`)} aria-label="Abonar">
+                                                                                <DollarSign className="h-4 w-4 text-emerald-400" />
+                                                                            </Button>
+                                                                        </Tooltip.Trigger>
+                                                                        <Tooltip.Content>Abonar</Tooltip.Content>
+                                                                    </Tooltip>
+                                                                )}
+                                                                {(ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
+                                                                    <Tooltip>
+                                                                        <Tooltip.Trigger>
+                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/edit-ticket/${ticket.number}?action=client`)} aria-label="Cambiar cliente">
+                                                                                <Pencil className="h-4 w-4 text-amber-400" />
+                                                                            </Button>
+                                                                        </Tooltip.Trigger>
+                                                                        <Tooltip.Content>Cambiar cliente</Tooltip.Content>
+                                                                    </Tooltip>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );

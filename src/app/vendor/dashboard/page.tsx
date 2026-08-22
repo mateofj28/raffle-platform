@@ -114,7 +114,7 @@ export default function VendorDashboardPage() {
     if (loading) return <div><PageHeader title="Mi Panel" /><LoadingSkeleton rows={8} /></div>;
 
     return (
-        <div>
+        <div className="max-w-4xl mx-auto">
             <PageHeader title="Mi Panel" description="Resumen de tu actividad" />
 
             <div className="space-y-8">
@@ -148,10 +148,9 @@ export default function VendorDashboardPage() {
                     </div>
 
                     {/* Financial */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <StatCard title="Total recaudado" value={formatCurrency(metrics.totalCollected)} icon={<DollarSign className="h-5 w-5" />} />
                         <StatCard title="Mi comisión (30%)" value={formatCurrency(metrics.commission)} icon={<TrendingUp className="h-5 w-5" />} />
-                        <StatCard title="Debo entregar" value={formatCurrency(metrics.toDeliver)} icon={<Wallet className="h-5 w-5" />} />
                     </div>
                 </section>
             </div>

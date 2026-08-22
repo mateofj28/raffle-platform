@@ -48,9 +48,14 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                     </nav>
                     <ThemeToggle />
                     <span className="text-sm text-[#A0B4C8] hidden md:inline">{user?.displayName || user?.email}</span>
-                    <Button variant="ghost" size="sm" isIconOnly onPress={() => logout()} aria-label="Cerrar sesión">
+                    <button
+                        type="button"
+                        onClick={() => logout()}
+                        aria-label="Cerrar sesión"
+                        className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                    >
                         <LogOut className="h-4 w-4 text-[#A0B4C8]" />
-                    </Button>
+                    </button>
                 </header>
                 <main className="flex-1 p-4 md:p-6">{children}</main>
             </div>

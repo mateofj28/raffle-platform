@@ -23,6 +23,7 @@ const createCustomerSchema = z.object({
     whatsapp: z.string().max(15).optional().default(""),
     address: z.string().max(200).optional().default(""),
     city: z.string().max(50).optional().default(""),
+    department: z.string().max(50).optional().default(""),
 });
 
 const updateCustomerSchema = z.object({

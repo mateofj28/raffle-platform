@@ -128,8 +128,8 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
         }
 
         if (requiredRole && user?.role !== requiredRole) {
-            // Cashiers can access admin pages (they share the panel)
-            if (requiredRole === "admin" && user?.role === "cashier") {
+            // Cashiers and vendors can access admin pages
+            if (requiredRole === "admin" && (user?.role === "cashier" || user?.role === "vendor")) {
                 return; // Allow access
             }
             if (user?.role === "admin" || user?.role === "cashier") {
@@ -185,8 +185,8 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     }
 
     if (requiredRole && user?.role !== requiredRole) {
-        // Cashiers can access admin pages
-        if (!(requiredRole === "admin" && user?.role === "cashier")) {
+        // Cashiers and vendors can access admin pages
+        if (!(requiredRole === "admin" && (user?.role === "cashier" || user?.role === "vendor"))) {
             return null;
         }
     }

@@ -1,7 +1,6 @@
 "use client";
 
 import { Sun, Moon } from "lucide-react";
-import { Button } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
@@ -9,7 +8,7 @@ export function ThemeToggle() {
 
     useEffect(() => {
       setIsDark(document.documentElement.classList.contains("dark"));
-  }, []);
+    }, []);
 
     const toggle = () => {
         const html = document.documentElement;
@@ -21,18 +20,17 @@ export function ThemeToggle() {
             html.classList.add("dark");
             setIsDark(true);
             localStorage.setItem("theme", "dark");
-    }
-  };
+      }
+    };
 
     return (
-        <Button
-            variant="ghost"
-            size="sm"
-            isIconOnly
-          onPress={toggle}
-          aria-label="Cambiar tema"
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label="Cambiar tema"
+        className="p-2 rounded-lg hover:bg-white/10 transition-colors"
       >
-          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </Button>
-  );
+        {isDark ? <Sun className="h-5 w-5 text-[#A0B4C8]" /> : <Moon className="h-5 w-5 text-[#A0B4C8]" />}
+      </button>
+    );
 }
