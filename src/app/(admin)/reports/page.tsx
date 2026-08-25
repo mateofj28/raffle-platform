@@ -26,14 +26,14 @@ type ReportType =
     | "vendor-liquidation";
 
 const REPORTS = [
-    { id: "sales-by-vendor" as ReportType, label: "Ventas por vendedor", icon: Users, description: "Boletas vendidas por cada vendedor" },
-    { id: "unsold-tickets" as ReportType, label: "Boletas sin vender", icon: AlertTriangle, description: "Boletas asignadas pero no vendidas" },
-    { id: "revenue-by-method" as ReportType, label: "Recaudo por método", icon: DollarSign, description: "Dinero recaudado por método de pago" },
-    { id: "pending-balance" as ReportType, label: "Cartera pendiente", icon: FileText, description: "Clientes con saldo pendiente" },
-    { id: "commissions" as ReportType, label: "Comisiones por vendedor", icon: TrendingUp, description: "Comisión acumulada de cada vendedor" },
-    { id: "morosos" as ReportType, label: "Clientes morosos", icon: AlertTriangle, description: "Clientes con abonos incompletos" },
-    { id: "raffle-status" as ReportType, label: "Estado de la rifa", icon: BarChart3, description: "Resumen de boletas por estado" },
-    { id: "vendor-liquidation" as ReportType, label: "Liquidación por vendedor", icon: DollarSign, description: "Cuánto recaudó, comisión y cuánto debe entregar" },
+    { id: "sales-by-vendor" as ReportType, label: "Ventas por vendedor", icon: Users, description: "Boletas vendidas por cada vendedor", iconBg: "bg-teal-100", iconColor: "text-teal-600" },
+    { id: "unsold-tickets" as ReportType, label: "Boletas sin vender", icon: AlertTriangle, description: "Boletas asignadas pero no vendidas", iconBg: "bg-amber-100", iconColor: "text-amber-600" },
+    { id: "revenue-by-method" as ReportType, label: "Recaudo por método", icon: DollarSign, description: "Dinero recaudado por método de pago", iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
+    { id: "pending-balance" as ReportType, label: "Cartera pendiente", icon: FileText, description: "Clientes con saldo pendiente", iconBg: "bg-rose-100", iconColor: "text-rose-600" },
+    { id: "commissions" as ReportType, label: "Comisiones por vendedor", icon: TrendingUp, description: "Comisión acumulada de cada vendedor", iconBg: "bg-purple-100", iconColor: "text-purple-600" },
+    { id: "morosos" as ReportType, label: "Clientes morosos", icon: AlertTriangle, description: "Clientes con abonos incompletos", iconBg: "bg-red-100", iconColor: "text-red-600" },
+    { id: "raffle-status" as ReportType, label: "Estado de la rifa", icon: BarChart3, description: "Resumen de boletas por estado", iconBg: "bg-blue-100", iconColor: "text-blue-600" },
+    { id: "vendor-liquidation" as ReportType, label: "Liquidación por vendedor", icon: DollarSign, description: "Cuánto recaudó, comisión y cuánto debe entregar", iconBg: "bg-indigo-100", iconColor: "text-indigo-600" },
 ];
 
 export default function ReportsPage() {
@@ -95,10 +95,12 @@ export default function ReportsPage() {
             {!selectedReport ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {REPORTS.map(r => (
-                        <button key={r.id} onClick={() => setSelectedReport(r.id)} className="text-left p-5 rounded-xl border border-default-200 hover:border-primary hover:bg-primary/5 transition-all">
-                            <r.icon className="h-6 w-6 text-primary mb-3" />
-                            <p className="font-semibold text-sm">{r.label}</p>
-                            <p className="text-xs text-default-500 mt-1">{r.description}</p>
+                        <button key={r.id} onClick={() => setSelectedReport(r.id)} className="text-left p-5 rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] hover:border-[#4A8C82] hover:bg-[#F0FAF8] transition-all">
+                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${r.iconBg} ${r.iconColor} mb-3`}>
+                                <r.icon className="h-5 w-5" />
+                            </div>
+                            <p className="font-semibold text-sm text-[#1F2937]">{r.label}</p>
+                            <p className="text-xs text-[#9CA3AF] mt-1">{r.description}</p>
                         </button>
                     ))}
                 </div>

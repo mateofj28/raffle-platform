@@ -207,34 +207,14 @@ export default function VendorTicketsPage() {
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
                                                             <div className="flex items-center justify-center gap-1">
-                                                                {ticket.status === "assigned" && (
+                                                                {(ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
                                                                     <Tooltip>
                                                                         <Tooltip.Trigger>
-                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/vendor/sell/${ticket.number}`)} aria-label="Vender">
-                                                                                <ShoppingCart className="h-4 w-4 text-blue-400" />
-                                                                            </Button>
-                                                                        </Tooltip.Trigger>
-                                                                        <Tooltip.Content>Vender</Tooltip.Content>
-                                                                    </Tooltip>
-                                                                )}
-                                                                {(ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment") && ticket.pendingBalance > 0 && (
-                                                                    <Tooltip>
-                                                                        <Tooltip.Trigger>
-                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/vendor/pay/${ticket.number}`)} aria-label="Abonar">
-                                                                                <DollarSign className="h-4 w-4 text-emerald-400" />
-                                                                            </Button>
-                                                                        </Tooltip.Trigger>
-                                                                        <Tooltip.Content>Abonar</Tooltip.Content>
-                                                                    </Tooltip>
-                                                                )}
-                                                                {(ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
-                                                                    <Tooltip>
-                                                                        <Tooltip.Trigger>
-                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/vendor/edit-ticket/${ticket.number}?action=client`)} aria-label="Cambiar cliente">
+                                                                            <Button variant="ghost" size="sm" isIconOnly onPress={() => router.push(`/vendor/edit-ticket/${ticket.number}?action=client`)} aria-label="Asignar/Cambiar cliente">
                                                                                 <Pencil className="h-4 w-4 text-amber-400" />
                                                                             </Button>
                                                                         </Tooltip.Trigger>
-                                                                        <Tooltip.Content>Cambiar cliente</Tooltip.Content>
+                                                                        <Tooltip.Content>{ticket.status === "assigned" ? "Asignar cliente" : "Cambiar cliente"}</Tooltip.Content>
                                                                     </Tooltip>
                                                                 )}
                                                             </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast } from "@heroui/react";
-import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, Check, ChevronDown } from "lucide-react";
+import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -18,17 +19,6 @@ import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import { callFunction } from "@/services/firebase-callable";
 import type { Raffle, Ticket as TicketType, Vendor } from "@/types/api.types";
 
-const RENDER_BATCH_SIZE = 500; // Render tickets in batches for smooth UI
-
-const TICKET_COLOR_MAP: Record<string, string> = {
-    available: "bg-zinc-700 text-zinc-300",
-    assigned: "bg-amber-800 text-amber-200",
-    sold: "bg-blue-800 text-blue-200",
-    paid: "bg-emerald-800 text-emerald-200",
-    installment: "bg-purple-800 text-purple-200",
-    winner: "bg-emerald-700 text-emerald-100 ring-2 ring-emerald-400",
-};
-
 export default function RaffleDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -39,165 +29,121 @@ export default function RaffleDetailPage() {
     const [raffle, setRaffle] = useState<Raffle | null>(null);
     const [tickets, setTickets] = useState<TicketType[]>([]);
     const [vendors, setVendors] = useState<Vendor[]>([]);
-    const [customersMap, setCustomersMap] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
     const [ticketsLoading, setTicketsLoading] = useState(true);
-    const [visibleCount, setVisibleCount] = useState(RENDER_BATCH_SIZE);
 
-    // Selection mode (assign)
-    const [selectionMode, setSelectionMode] = useState(false);
-    const [selectedTickets, setSelectedTickets] = useState<number[]>([]);
+    // Assignment mode
+    const [assignMode, setAssignMode] = useState<"assign" | "unassign" | null>(null);
     const [selectedVendor, setSelectedVendor] = useState("");
-    const [assigning, setAssigning] = useState(false);
+    const [ticketInput, setTicketInput] = useState("");
+    const [assignList, setAssignList] = useState<number[]>([]);
     const [assignError, setAssignError] = useState<string | null>(null);
-
-    // Unassign mode
-    const [unassignMode, setUnassignMode] = useState(false);
-    const [unassignSelected, setUnassignSelected] = useState<number[]>([]);
-    const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
-    const [unassigning, setUnassigning] = useState(false);
+    const [assigning, setAssigning] = useState(false);
     const [showNoVendorsModal, setShowNoVendorsModal] = useState(false);
 
     // Load raffle
     useEffect(() => {
         if (!tenantId || !raffleId) return;
-      const load = async () => {
-          try {
-              const raffleDoc = await getDoc(doc(getDb(), "tenants", tenantId, "raffles", raffleId));
-              if (raffleDoc.exists()) {
-                  const data = raffleDoc.data();
-                  setRaffle({ id: raffleDoc.id, ...data } as Raffle);
-                  setActiveRaffle({
-                      id: raffleDoc.id,
-                      name: data.name,
-                      status: data.status,
-                      ticketPrice: data.ticketPrice,
-                      totalTickets: data.totalTickets,
-                  });
-              }
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
-    };
-      load();
+        const load = async () => {
+            try {
+                const raffleDoc = await getDoc(doc(getDb(), "tenants", tenantId, "raffles", raffleId));
+                if (raffleDoc.exists()) {
+                    const data = raffleDoc.data();
+                    setRaffle({ id: raffleDoc.id, ...data } as Raffle);
+                    setActiveRaffle({ id: raffleDoc.id, name: data.name, status: data.status, ticketPrice: data.ticketPrice, totalTickets: data.totalTickets });
+                }
+            } catch (e) { console.error(e); }
+            finally { setLoading(false); }
+        };
+        load();
     }, [tenantId, raffleId, setActiveRaffle]);
 
-    // Load tickets - single fetch, all at once
+    // Load tickets
     useEffect(() => {
         if (!tenantId || !raffleId) return;
-      const load = async () => {
-          setTicketsLoading(true);
-          try {
-              const col = tenantCollection(tenantId, `raffles/${raffleId}/tickets`);
-              const q = query(col, orderBy("number", "asc"));
-              const snap = await getDocs(q);
-              const data = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[];
-              setTickets(data);
-              setVisibleCount(RENDER_BATCH_SIZE);
-        } catch (e) { console.error(e); }
-        finally { setTicketsLoading(false); }
-    };
-      load();
+        const load = async () => {
+            setTicketsLoading(true);
+            try {
+                const col = tenantCollection(tenantId, `raffles/${raffleId}/tickets`);
+                const q = query(col, orderBy("number", "asc"));
+                const snap = await getDocs(q);
+                setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
+            } catch (e) { console.error(e); }
+            finally { setTicketsLoading(false); }
+        };
+        load();
     }, [tenantId, raffleId]);
 
-    // Load vendors and customers
+    // Load vendors
     useEffect(() => {
         if (!tenantId) return;
         const load = async () => {
-            try {
-                const col = tenantCollection(tenantId, "vendors");
-                const q = query(col, orderBy("name", "asc"));
-                const snap = await getDocs(q);
-                setVendors(snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Vendor[]);
-
-                const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
-                const cMap = new Map<string, string>();
-                customersSnap.docs.forEach(d => cMap.set(d.id, d.data().name));
-                setCustomersMap(cMap);
-            } catch (e) { console.error(e); }
+            const col = tenantCollection(tenantId, "vendors");
+            const q = query(col, orderBy("name", "asc"));
+            const snap = await getDocs(q);
+            setVendors(snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Vendor[]);
         };
         load();
     }, [tenantId]);
 
-    // Toggle ticket selection (assign mode)
-    const toggleTicket = (num: number, status: string) => {
-        if (selectionMode && status === "available") {
-            setSelectedTickets((prev) =>
-                prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num]
-            );
+    // Add ticket to list
+    const handleAddTicket = () => {
+        const num = parseInt(ticketInput);
+        if (!num || num < 1) { setAssignError("Ingresa un número válido"); return; }
+        if (assignList.includes(num)) { setAssignError(`Boleta #${num} ya está en la lista`); return; }
+
+        const ticket = tickets.find(t => t.number === num);
+        if (!ticket) { setAssignError(`Boleta #${num} no existe`); return; }
+
+        if (assignMode === "assign") {
+            if (ticket.status !== "available") {
+                const vendorName = ticket.vendorId ? vendors.find(v => v.id === ticket.vendorId)?.name || "otro vendedor" : "";
+                setAssignError(`Boleta #${num} no está disponible${vendorName ? ` — asignada a ${vendorName}` : ""}`);
+                return;
+            }
+        } else {
+            if (ticket.status !== "assigned") {
+                setAssignError(`Boleta #${num} no está asignada (estado: ${ticket.status})`);
+                return;
+            }
         }
-        if (unassignMode && status === "assigned") {
-            setUnassignSelected((prev) =>
-                prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num]
-            );
-        }
+
+        setAssignList(prev => [...prev, num]);
+        setTicketInput("");
+        setAssignError(null);
     };
 
-    // Assign selected tickets
-    const handleAssign = async () => {
-        if (!selectedVendor || selectedTickets.length === 0) return;
+    const handleRemoveFromList = (num: number) => setAssignList(prev => prev.filter(n => n !== num));
+
+    // Confirm
+    const handleConfirmAssign = async () => {
+        if (assignList.length === 0) return;
         setAssigning(true);
         setAssignError(null);
-
         try {
-            const result = await callFunction<{ assigned: number; skipped: number }>("assignTickets", {
-                raffleId,
-                vendorId: selectedVendor,
-                ticketNumbers: selectedTickets,
-            });
-            toast.success(`${result.assigned} boletas asignadas correctamente`);
-            // Optimistic update: update local ticket state immediately
-            setTickets(prev => prev.map(t =>
-                selectedTickets.includes(t.number) && t.status === "available"
-                    ? { ...t, status: "assigned" as const, vendorId: selectedVendor }
-                    : t
-            ));
-            setSelectedTickets([]);
-            setSelectionMode(false);
+            if (assignMode === "assign") {
+                const result = await callFunction<{ assigned: number; skipped: number }>("assignTickets", { raffleId, vendorId: selectedVendor, ticketNumbers: assignList });
+                toast.success(`${result.assigned} boletas asignadas`);
+                setTickets(prev => prev.map(t => assignList.includes(t.number) && t.status === "available" ? { ...t, status: "assigned" as const, vendorId: selectedVendor } : t));
+            } else {
+                await callFunction("unassignTickets", { raffleId, ticketNumbers: assignList });
+                toast.success(`${assignList.length} boleta(s) liberada(s)`);
+                setTickets(prev => prev.map(t => assignList.includes(t.number) && t.status === "assigned" ? { ...t, status: "available" as const, vendorId: null } : t));
+            }
+            setAssignList([]);
+            setAssignMode(null);
             setSelectedVendor("");
-            setPage(1);
         } catch (err) {
-            setAssignError(err instanceof Error ? err.message : "Error al asignar boletas");
-        } finally {
-            setAssigning(false);
-    }
+            setAssignError(err instanceof Error ? err.message : "Error al procesar");
+        } finally { setAssigning(false); }
     };
 
-    const cancelSelection = () => {
-        setSelectionMode(false);
-        setSelectedTickets([]);
-        setSelectedVendor("");
-        setAssignError(null);
-    };
-
-    const cancelUnassign = () => {
-        setUnassignMode(false);
-        setUnassignSelected([]);
-    };
-
-    const handleUnassign = async () => {
-        if (unassignSelected.length === 0) return;
-        setUnassigning(true);
-        try {
-            await callFunction("unassignTickets", { raffleId, ticketNumbers: unassignSelected });
-            toast.success(`${unassignSelected.length} boleta(s) liberada(s) correctamente`);
-            // Optimistic update: set unassigned tickets back to available
-            setTickets(prev => prev.map(t =>
-                unassignSelected.includes(t.number) && t.status === "assigned"
-                    ? { ...t, status: "available" as const, vendorId: null }
-                    : t
-            ));
-            setUnassignSelected([]);
-            setUnassignMode(false);
-            setShowUnassignConfirm(false);
-        } catch (e) { console.error(e); }
-        finally { setUnassigning(false); }
-    };
+    const cancelMode = () => { setAssignMode(null); setAssignList([]); setSelectedVendor(""); setTicketInput(""); setAssignError(null); };
 
     if (loading) return <div><PageHeader title="Detalle de Rifa" /><LoadingSkeleton rows={6} /></div>;
     if (!raffle) return <div><PageHeader title="Rifa no encontrada" /><p className="text-default-500">No se encontró la rifa.</p></div>;
 
     const statusCounts = tickets.reduce((acc, t) => { acc[t.status] = (acc[t.status] || 0) + 1; return acc; }, {} as Record<string, number>);
-    const vendorName = vendors.find((v) => v.id === selectedVendor)?.name || "";
 
     return (
         <div>
@@ -206,329 +152,150 @@ export default function RaffleDetailPage() {
                 description={raffle.description}
                 actions={
                     <div className="flex gap-2">
-                <Link href="/raffles"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button></Link>
-                        {!selectionMode && !unassignMode && (
-                            <Button variant="primary" size="sm" onPress={() => {
-                                if (vendors.length === 0) {
-                                    setShowNoVendorsModal(true);
-                                    return;
-                                }
-                                setSelectionMode(true);
-                            }}>
+                        <Link href="/raffles"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button></Link>
+                        {!assignMode && (
+                            <Button variant="primary" size="sm" onPress={() => { if (vendors.length === 0) { setShowNoVendorsModal(true); return; } setAssignMode("assign"); }}>
                                 <UserPlus className="h-4 w-4" /> Asignar
                             </Button>
                         )}
-                        {!selectionMode && !unassignMode && (
-                            <Button variant="outline" size="sm" onPress={() => setUnassignMode(true)}>
+                        {!assignMode && (
+                            <Button variant="outline" size="sm" onPress={() => setAssignMode("unassign")}>
                                 <UserMinus className="h-4 w-4" /> Desasignar
-                    </Button>
+                            </Button>
                         )}
-                  </div>
-              }
-          />
+                    </div>
+                }
+            />
 
-          {/* Raffle Info */}
-          <Card className="mb-6">
-              <CardContent className="p-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                      <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10"><Trophy className="h-5 w-5 text-primary" /></div>
-                          <div><p className="text-xs text-default-500">Premio</p><p className="font-semibold text-sm">{raffle.prize}</p></div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-success/10"><DollarSign className="h-5 w-5 text-success" /></div>
-                          <div><p className="text-xs text-default-500">Precio boleta</p><p className="font-semibold text-sm">{formatCurrency(raffle.ticketPrice)}</p></div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-warning/10"><Hash className="h-5 w-5 text-warning" /></div>
-                          <div><p className="text-xs text-default-500">Total boletas</p><p className="font-semibold text-sm">{raffle.totalTickets.toLocaleString()}</p></div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-default-100"><Calendar className="h-5 w-5 text-default-600" /></div>
-                          <div><p className="text-xs text-default-500">Sorteo</p><p className="font-semibold text-sm">{formatDate(raffle.drawDate)}</p></div>
-                      </div>
-                  </div>
-                  <Separator className="my-4" />
-                  <div className="flex items-center gap-4 flex-wrap">
-                      <div className="flex items-center gap-2"><span className="text-sm text-default-500">Estado:</span><StatusBadge status={raffle.status} /></div>
-                      <div className="flex items-center gap-2"><span className="text-sm text-default-500">Lotería:</span><span className="text-sm font-medium">{raffle.lottery}</span></div>
-                  </div>
-              </CardContent>
-          </Card>
-
-          {/* Assignment Panel */}
-          {selectionMode && (
-              <Card className="mb-4 border-2 border-amber-500/50">
-                  <CardContent className="p-4">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                          <div className="flex-1">
-                              <p className="font-semibold text-amber-300 mb-1">
-                                  Modo asignación — Toca las boletas disponibles para seleccionarlas
-                              </p>
-                              <p className="text-xs text-default-500">
-                                  {selectedTickets.length === 0
-                                      ? "Ninguna boleta seleccionada"
-                                      : `${selectedTickets.length} boleta${selectedTickets.length > 1 ? "s" : ""} seleccionada${selectedTickets.length > 1 ? "s" : ""}: ${selectedTickets.sort((a, b) => a - b).join(", ")}`}
-                              </p>
-                          </div>
-                          <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <Select
-                                    aria-label="Vendedor"
-                                    selectedKey={selectedVendor || null}
-                                    onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))}
-                                    placeholder="Seleccionar vendedor"
-                                    className="flex-1 sm:w-52"
-                              >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue />
-                                        <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
-                                    </SelectTrigger>
-                                    <SelectPopover>
-                                        <ListBox>
-                                            {vendors.map((v) => (
-                                                <ListBoxItem key={v.id} id={v.id} textValue={v.name}>
-                                                    {v.name}
-                                                </ListBoxItem>
-                                            ))}
-                                        </ListBox>
-                                    </SelectPopover>
-                                </Select>
-                              <Button
-                                  variant="primary"
-                                  size="sm"
-                                  isDisabled={!selectedVendor || selectedTickets.length === 0 || assigning}
-                                  onPress={handleAssign}
-                              >
-                                  <Check className="h-4 w-4" />
-                                  {assigning ? "Asignando..." : "Asignar"}
-                              </Button>
-                              <Button variant="ghost" size="sm" onPress={cancelSelection}>
-                                  <X className="h-4 w-4" /> Cancelar
-                              </Button>
-                          </div>
-                      </div>
-                      <FormErrorBanner message={assignError} />
-                  </CardContent>
-              </Card>
-          )}
-
-            {/* Unassign Panel */}
-            {unassignMode && (
-                <Card className="mb-4 border-2 border-red-500/50">
-                    <CardContent className="p-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                            <div className="flex-1">
-                                <p className="font-semibold text-red-300 mb-1">
-                                    Modo desasignación — Toca las boletas asignadas para liberarlas
-                                </p>
-                                <p className="text-xs text-default-500">
-                                    {unassignSelected.length === 0
-                                        ? "Ninguna boleta seleccionada"
-                                        : `${unassignSelected.length} boleta(s): ${unassignSelected.sort((a, b) => a - b).join(", ")}`}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="danger"
-                                    size="sm"
-                                    isDisabled={unassignSelected.length === 0}
-                                    onPress={() => setShowUnassignConfirm(true)}
-                                >
-                                    <UserMinus className="h-4 w-4" /> Liberar
-                                </Button>
-                                <Button variant="ghost" size="sm" onPress={cancelUnassign}>
-                                    <X className="h-4 w-4" /> Cancelar
-                                </Button>
-                            </div>
+            {/* Raffle Info */}
+            <Card className="mb-6">
+                <CardContent className="p-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30"><Trophy className="h-5 w-5 text-purple-600 dark:text-purple-400" /></div>
+                            <div><p className="text-xs text-default-500">Premio</p><p className="font-semibold text-sm">{raffle.prize}</p></div>
                         </div>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-900/30"><DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /></div>
+                            <div><p className="text-xs text-default-500">Precio boleta</p><p className="font-semibold text-sm">{formatCurrency(raffle.ticketPrice)}</p></div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30"><Hash className="h-5 w-5 text-amber-600 dark:text-amber-400" /></div>
+                            <div><p className="text-xs text-default-500">Total boletas</p><p className="font-semibold text-sm">{raffle.totalTickets.toLocaleString()}</p></div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30"><Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
+                            <div><p className="text-xs text-default-500">Sorteo</p><p className="font-semibold text-sm">{formatDate(raffle.drawDate)}</p></div>
+                        </div>
+                    </div>
+                    <Separator className="my-4" />
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex items-center gap-2"><span className="text-sm text-default-500">Estado:</span><StatusBadge status={raffle.status} /></div>
+                        <div className="flex items-center gap-2"><span className="text-sm text-default-500">Lotería:</span><span className="text-sm font-medium">{raffle.lottery}</span></div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Status summary */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+                <div className="p-3 rounded-lg border border-default-200 text-center">
+                    <p className="text-xl font-bold text-zinc-500">{statusCounts["available"] || 0}</p>
+                    <p className="text-xs text-default-500">Disponible</p>
+                </div>
+                <div className="p-3 rounded-lg border border-default-200 text-center">
+                    <p className="text-xl font-bold text-amber-500">{statusCounts["assigned"] || 0}</p>
+                    <p className="text-xs text-default-500">Asignada</p>
+                </div>
+                <div className="p-3 rounded-lg border border-default-200 text-center">
+                    <p className="text-xl font-bold text-blue-500">{statusCounts["sold"] || 0}</p>
+                    <p className="text-xs text-default-500">Vendida</p>
+                </div>
+                <div className="p-3 rounded-lg border border-default-200 text-center">
+                    <p className="text-xl font-bold text-emerald-500">{statusCounts["paid"] || 0}</p>
+                    <p className="text-xs text-default-500">Pagada</p>
+                </div>
+                <div className="p-3 rounded-lg border border-default-200 text-center">
+                    <p className="text-xl font-bold text-purple-500">{statusCounts["installment"] || 0}</p>
+                    <p className="text-xs text-default-500">Abonada</p>
+                </div>
+            </div>
+
+            {/* Assignment Panel */}
+            {assignMode && (
+                <Card className={`mb-6 border-2 ${assignMode === "assign" ? "border-teal-500/50" : "border-red-500/50"}`}>
+                    <CardContent className="p-5">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold">{assignMode === "assign" ? "Asignar boletas" : "Desasignar boletas"}</h3>
+                            <Button variant="ghost" size="sm" onPress={cancelMode}><X className="h-4 w-4" /> Cancelar</Button>
+                        </div>
+
+                        {assignMode === "assign" && (
+                            <div className="mb-4">
+                                <label className="text-sm font-medium mb-1.5 block">Vendedor</label>
+                                <Select aria-label="Vendedor" selectedKey={selectedVendor || null} onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))} placeholder="Seleccionar vendedor" className="w-full sm:w-64">
+                                    <SelectTrigger className="w-full"><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                    <SelectPopover><ListBox>{vendors.map((v) => (<ListBoxItem key={v.id} id={v.id} textValue={v.name}>{v.name}</ListBoxItem>))}</ListBox></SelectPopover>
+                                </Select>
+                            </div>
+                        )}
+
+                        <div className="flex items-end gap-2 mb-3">
+                            <div className="flex-1 max-w-xs">
+                                <label className="text-sm font-medium mb-1.5 block">Número de boleta</label>
+                                <Input placeholder="Ej: 1234" value={ticketInput} onChange={(e) => setTicketInput(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTicket(); } }} inputMode="numeric" className="w-full" />
+                            </div>
+                            <Button variant="outline" size="sm" onPress={handleAddTicket} isDisabled={!ticketInput || (assignMode === "assign" && !selectedVendor)}>Agregar</Button>
+                        </div>
+
+                        <FormErrorBanner message={assignError} />
+
+                        {assignList.length > 0 && (
+                            <div className="mt-4">
+                                <p className="text-xs text-default-500 mb-3">{assignList.length} boleta(s) seleccionadas</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {assignList.sort((a, b) => a - b).map(num => (
+                                        <div key={num} className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-default-200 bg-white dark:bg-[#1A2F50] hover:border-red-300 transition-colors">
+                                            <Ticket className="h-3.5 w-3.5 text-teal-500" />
+                                            <span className="text-sm font-semibold">{num}</span>
+                                            <button onClick={() => handleRemoveFromList(num)} className="text-default-300 group-hover:text-red-500 transition-colors">
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {assignList.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-default-200">
+                                <Button variant="primary" isDisabled={assigning || (assignMode === "assign" && !selectedVendor)} onPress={handleConfirmAssign}>
+                                    {assigning ? "Procesando..." : assignMode === "assign" ? `Confirmar asignación (${assignList.length})` : `Confirmar desasignación (${assignList.length})`}
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}
 
-            {/* Status legend with counts */}
-          <div className="flex gap-3 flex-wrap mb-4 text-xs">
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-zinc-700 border border-zinc-600" /> Disponible: {statusCounts["available"] || 0}</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-900/60 border border-amber-700" /> Asignada: {statusCounts["assigned"] || 0}</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-900/60 border border-blue-700" /> Vendida: {statusCounts["sold"] || 0}</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-900/60 border border-emerald-700" /> Pagada: {statusCounts["paid"] || 0}</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-purple-900/60 border border-purple-700" /> Abonada: {statusCounts["installment"] || 0}</span>
-          </div>
-
-          {/* Tickets Grid */}
-          {ticketsLoading ? <LoadingSkeleton rows={5} /> : (
-              <>
-                  <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15 gap-1.5">
-                        {tickets.slice(0, visibleCount).map((ticket) => (
-                            <TicketCell
-                                key={ticket.number}
-                                ticket={ticket}
-                                selectionMode={selectionMode}
-                                unassignMode={unassignMode}
-                                isSelected={selectedTickets.includes(ticket.number)}
-                                isUnassignSelected={unassignSelected.includes(ticket.number)}
-                                onToggle={toggleTicket}
-                                vendors={vendors}
-                                customersMap={customersMap}
-                            />
-                        ))}
-                    </div>
-
-                    {visibleCount < tickets.length && (
-                        <div className="mt-4 text-center">
-                            <Button variant="outline" size="sm" onPress={() => setVisibleCount((v) => Math.min(v + RENDER_BATCH_SIZE, tickets.length))}>
-                                Mostrar más ({tickets.length - visibleCount} restantes)
-                            </Button>
-                        </div>
-                    )}
-                </>
-            )}
-
-            {/* AlertDialog: No vendors */}
+            {/* No vendors modal */}
             <AlertDialog.Backdrop isOpen={showNoVendorsModal} onOpenChange={setShowNoVendorsModal} isDismissable>
                 <AlertDialog.Container placement="center" size="sm">
                     <AlertDialog.Dialog>
                         <AlertDialog.CloseTrigger />
                         <AlertDialog.Header>
                             <AlertDialog.Icon status="warning" />
-                            <AlertDialog.Heading>No hay vendedores registrados</AlertDialog.Heading>
+                            <AlertDialog.Heading>No hay vendedores</AlertDialog.Heading>
                         </AlertDialog.Header>
                         <AlertDialog.Body>
-                            <p>Para asignar boletas necesitas tener al menos un vendedor creado en el sistema.</p>
-                            <p className="text-sm text-default-500 mt-2">¿Deseas ir a crear un vendedor ahora?</p>
-                        </AlertDialog.Body>
-                        <AlertDialog.Footer>
-                            <Button slot="close" variant="tertiary">
-                                Cancelar
-                            </Button>
-                            <Button variant="primary" onPress={() => {
-                                setShowNoVendorsModal(false);
-                                router.push("/vendors/new");
-                            }}>
-                                Crear Vendedor
-                            </Button>
-                        </AlertDialog.Footer>
-                    </AlertDialog.Dialog>
-                </AlertDialog.Container>
-            </AlertDialog.Backdrop>
-
-            {/* Unassign confirmation dialog */}
-            <AlertDialog.Backdrop isOpen={showUnassignConfirm} onOpenChange={(open) => { if (!open) setShowUnassignConfirm(false); }} isDismissable>
-                <AlertDialog.Container placement="center" size="sm">
-                    <AlertDialog.Dialog>
-                        <AlertDialog.CloseTrigger />
-                        <AlertDialog.Header>
-                            <AlertDialog.Icon status="danger" />
-                            <AlertDialog.Heading>¿Desasignar {unassignSelected.length} boleta(s)?</AlertDialog.Heading>
-                        </AlertDialog.Header>
-                        <AlertDialog.Body>
-                            <p>Las boletas <strong>#{unassignSelected.sort((a, b) => a - b).join(", #")}</strong> volverán a estar disponibles.</p>
-                            <p className="text-sm text-default-500 mt-2">Se quitarán del vendedor asignado y cualquiera podrá tomarlas.</p>
+                            <p>Para asignar boletas necesitas al menos un vendedor.</p>
                         </AlertDialog.Body>
                         <AlertDialog.Footer>
                             <Button slot="close" variant="tertiary">Cancelar</Button>
-                            <Button variant="danger" isDisabled={unassigning} onPress={handleUnassign}>
-                                {unassigning ? "Liberando..." : "Sí, liberar boletas"}
-                            </Button>
+                            <Button variant="primary" onPress={() => { setShowNoVendorsModal(false); router.push("/vendors/new"); }}>Crear Vendedor</Button>
                         </AlertDialog.Footer>
                     </AlertDialog.Dialog>
                 </AlertDialog.Container>
             </AlertDialog.Backdrop>
         </div>
     );
-}
-
-// --- Ticket Cell Component ---
-
-function TicketCell({ ticket, selectionMode, unassignMode, isSelected, isUnassignSelected, onToggle, vendors, customersMap }: {
-    ticket: TicketType;
-    selectionMode: boolean;
-    unassignMode: boolean;
-    isSelected: boolean;
-    isUnassignSelected: boolean;
-    onToggle: (num: number, status: string) => void;
-    vendors: Vendor[];
-    customersMap: Map<string, string>;
-}) {
-    const [showDetail, setShowDetail] = useState(false);
-    const [showHover, setShowHover] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const isAvailable = ticket.status === "available";
-    const isAssigned = ticket.status === "assigned";
-    const inAnyMode = selectionMode || unassignMode;
-
-    let colorClass: string;
-    if (isSelected) {
-        colorClass = "bg-amber-500 text-black ring-2 ring-amber-300";
-    } else if (isUnassignSelected) {
-        colorClass = "bg-red-500 text-white ring-2 ring-red-300";
-    } else {
-        colorClass = TICKET_COLOR_MAP[ticket.status] || TICKET_COLOR_MAP.available;
-    }
-
-    const canInteract = (selectionMode && isAvailable) || (unassignMode && isAssigned);
-
-    const handleClick = () => {
-        if (inAnyMode) {
-            onToggle(ticket.number, ticket.status);
-        } else {
-            setShowDetail(!showDetail);
-        }
-    };
-
-    const vendorName = ticket.vendorId ? vendors.find((v) => v.id === ticket.vendorId)?.name || ticket.vendorId : null;
-
-    // Show popup: on click (normal mode) OR on hover (unassign mode for assigned tickets)
-    const shouldShowPopup = (!inAnyMode && showDetail) || (unassignMode && isAssigned && showHover);
-
-    // Detect if popup would overflow right edge
-    const isNearRightEdge = containerRef.current
-        ? containerRef.current.getBoundingClientRect().right + 210 > window.innerWidth
-        : false;
-
-    return (
-        <div
-            className="relative"
-            ref={containerRef}
-            onMouseEnter={() => { if (unassignMode && isAssigned) setShowHover(true); }}
-            onMouseLeave={() => setShowHover(false)}
-        >
-          <button
-              type="button"
-              onClick={handleClick}
-                className={`ticket-shape w-full aspect-square flex items-center justify-center text-xs font-mono font-bold transition-all
-          ${colorClass}
-          ${canInteract ? "cursor-pointer hover:scale-110" : ""}
-          ${selectionMode && canInteract ? "hover:ring-1 hover:ring-amber-400" : ""}
-          ${unassignMode && canInteract ? "hover:ring-1 hover:ring-red-400" : ""}
-          ${inAnyMode && !canInteract ? "opacity-40 cursor-not-allowed" : ""}
-          ${!inAnyMode ? "cursor-pointer hover:scale-105" : ""}`}
-              title={`#${ticket.number} - ${ticket.status}`}
-                disabled={inAnyMode && !canInteract}
-          >
-              {ticket.number}
-          </button>
-
-            {shouldShowPopup && (
-                <div className={`absolute z-50 top-full mt-1 w-52 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl p-3 text-xs space-y-1.5 pointer-events-none ${isNearRightEdge ? "right-0" : "left-0"}`}>
-                  <div className="flex justify-between items-center">
-                      <span className="font-bold text-white">Boleta #{ticket.number}</span>
-                        {!inAnyMode && <button onClick={() => setShowDetail(false)} className="text-zinc-400 hover:text-white pointer-events-auto">✕</button>}
-                  </div>
-                  <Separator />
-                  <div><span className="text-zinc-400">Estado:</span> <StatusBadge status={ticket.status} /></div>
-                  <div><span className="text-zinc-400">Valor:</span> <span className="text-white">{formatCurrency(ticket.value)}</span></div>
-                  <div><span className="text-zinc-400">Saldo:</span> <span className="text-white">{formatCurrency(ticket.pendingBalance)}</span></div>
-                  {vendorName && (
-                      <div><span className="text-zinc-400">Vendedor:</span> <span className="font-medium text-amber-300">{vendorName}</span></div>
-                  )}
-                  {ticket.customerId && (
-                        <div><span className="text-zinc-400">Cliente:</span> <span className="font-medium text-blue-300">{customersMap.get(ticket.customerId) || ticket.customerId}</span></div>
-                  )}
-                  {ticket.saleDate && (
-                      <div><span className="text-zinc-400">Fecha venta:</span> <span className="text-white">{formatDate(ticket.saleDate)}</span></div>
-                  )}
-              </div>
-          )}
-      </div>
-  );
 }
