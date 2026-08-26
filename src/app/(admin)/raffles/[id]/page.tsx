@@ -163,6 +163,13 @@ export default function RaffleDetailPage() {
                                 <UserMinus className="h-4 w-4" /> Desasignar
                             </Button>
                         )}
+                        {!assignMode && (
+                            <Link href={`/raffles/${raffleId}/search`}>
+                                <Button variant="outline" size="sm">
+                                    <Hash className="h-4 w-4" /> Buscar boleta
+                                </Button>
+                            </Link>
+                        )}
                     </div>
                 }
             />
@@ -229,20 +236,20 @@ export default function RaffleDetailPage() {
                             <Button variant="ghost" size="sm" onPress={cancelMode}><X className="h-4 w-4" /> Cancelar</Button>
                         </div>
 
-                        {assignMode === "assign" && (
-                            <div className="mb-4">
-                                <label className="text-sm font-medium mb-1.5 block">Vendedor</label>
-                                <Select aria-label="Vendedor" selectedKey={selectedVendor || null} onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))} placeholder="Seleccionar vendedor" className="w-full sm:w-64">
-                                    <SelectTrigger className="w-full"><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
-                                    <SelectPopover><ListBox>{vendors.map((v) => (<ListBoxItem key={v.id} id={v.id} textValue={v.name}>{v.name}</ListBoxItem>))}</ListBox></SelectPopover>
-                                </Select>
-                            </div>
-                        )}
-
-                        <div className="flex items-end gap-2 mb-3">
-                            <div className="flex-1 max-w-xs">
-                                <label className="text-sm font-medium mb-1.5 block">Número de boleta</label>
-                                <Input placeholder="Ej: 1234" value={ticketInput} onChange={(e) => setTicketInput(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTicket(); } }} inputMode="numeric" className="w-full" />
+                        {/* Inputs inline */}
+                        <div className="flex items-end gap-3 mb-3 flex-wrap">
+                            {assignMode === "assign" && (
+                                <div>
+                                    <label className="text-xs font-medium mb-1 block">Vendedor</label>
+                                    <Select aria-label="Vendedor" selectedKey={selectedVendor || null} onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))} placeholder="Seleccionar" className="w-48">
+                                        <SelectTrigger className="w-full"><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                        <SelectPopover><ListBox>{vendors.map((v) => (<ListBoxItem key={v.id} id={v.id} textValue={v.name}>{v.name}</ListBoxItem>))}</ListBox></SelectPopover>
+                                    </Select>
+                                </div>
+                            )}
+                            <div>
+                                <label className="text-xs font-medium mb-1 block">Boleta</label>
+                                <Input placeholder="Ej: 55" value={ticketInput} onChange={(e) => setTicketInput(e.target.value.replace(/\D/g, "").slice(0, 5))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTicket(); } }} inputMode="numeric" className="w-24" maxLength={5} />
                             </div>
                             <Button variant="outline" size="sm" onPress={handleAddTicket} isDisabled={!ticketInput || (assignMode === "assign" && !selectedVendor)}>Agregar</Button>
                         </div>
@@ -252,13 +259,12 @@ export default function RaffleDetailPage() {
                         {assignList.length > 0 && (
                             <div className="mt-4">
                                 <p className="text-xs text-default-500 mb-3">{assignList.length} boleta(s) seleccionadas</p>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5">
                                     {assignList.sort((a, b) => a - b).map(num => (
-                                        <div key={num} className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-default-200 bg-white dark:bg-[#1A2F50] hover:border-red-300 transition-colors">
-                                            <Ticket className="h-3.5 w-3.5 text-teal-500" />
-                                            <span className="text-sm font-semibold">{num}</span>
+                                        <div key={num} className="group flex items-center gap-1.5 px-2 py-1 rounded-md border border-default-200 bg-white dark:bg-[#1A2F50] hover:border-red-300 transition-colors">
+                                            <span className="text-xs font-semibold">{num}</span>
                                             <button onClick={() => handleRemoveFromList(num)} className="text-default-300 group-hover:text-red-500 transition-colors">
-                                                <X className="h-3.5 w-3.5" />
+                                                <X className="h-3 w-3" />
                                             </button>
                                         </div>
                                     ))}

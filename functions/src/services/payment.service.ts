@@ -99,7 +99,7 @@ export const registerPayment = onCall(
                 if (amount > pendingBalance) {
                     throw new AppError(
                         AppErrorCode.PAYMENT_EXCEEDS_BALANCE,
-                        `El pago excede el saldo pendiente. Máximo: ${pendingBalance}`
+                        `El pago excede el saldo pendiente de la boleta #${ticketDocId}. Máximo: $${pendingBalance.toLocaleString("es-CO")}`
                     );
                 }
 

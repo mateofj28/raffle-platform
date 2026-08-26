@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
-import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil, ChevronDown } from "lucide-react";
+import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, toast } from "@heroui/react";
+import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil, ChevronDown, X, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -14,6 +14,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
+import { callFunction } from "@/services/firebase-callable";
 import { getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import type { Vendor, Ticket as TicketType } from "@/types/api.types";
@@ -37,6 +38,17 @@ export default function VendorDetailPage() {
     const [loading, setLoading] = useState(true);
     const [ticketsLoading, setTicketsLoading] = useState(true);
     const [reloadKey, setReloadKey] = useState(0);
+
+    // Payment panel
+    const [showPaymentPanel, setShowPaymentPanel] = useState(false);
+    const [payTicketInput, setPayTicketInput] = useState("");
+    const [payAmountInput, setPayAmountInput] = useState("");
+    const [payMethodInput, setPayMethodInput] = useState("cash");
+    const [paymentList, setPaymentList] = useState<{ ticketNumber: number; amount: number; method: string }[]>([]);
+    const [payError, setPayError] = useState<string | null>(null);
+    const [processing, setProcessing] = useState(false);
+    const [editingPayIndex, setEditingPayIndex] = useState<number | null>(null);
+    const [editingPayValue, setEditingPayValue] = useState("");
 
     useEffect(() => {
         if (!activeRaffle) router.push("/raffles");
@@ -98,6 +110,57 @@ export default function VendorDetailPage() {
     const recaudadoAbonadas = installmentTickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
     const commission = Math.floor(totalAbonado * 0.30);
 
+    // Payment panel handlers
+    const handleAddPayment = () => {
+        const num = parseInt(payTicketInput);
+        const amount = parseInt(payAmountInput.replace(/\D/g, "") || "0");
+        if (!num) { setPayError("Ingresa un número de boleta"); return; }
+        if (amount < 5000) { setPayError("El monto mínimo es $5.000"); return; }
+
+        const ticket = tickets.find(t => t.number === num);
+        if (!ticket) { setPayError(`Boleta #${num} no pertenece a este vendedor`); return; }
+        if (ticket.pendingBalance <= 0) { setPayError(`Boleta #${num} ya está completamente pagada`); return; }
+        if (amount > ticket.pendingBalance) { setPayError(`Máximo para boleta #${num}: ${formatCurrency(ticket.pendingBalance)}`); return; }
+
+        setPaymentList(prev => [...prev, { ticketNumber: num, amount, method: payMethodInput }]);
+        setPayTicketInput("");
+        setPayAmountInput("");
+        setPayError(null);
+    };
+
+    const handleRemovePayment = (index: number) => setPaymentList(prev => prev.filter((_, i) => i !== index));
+
+    const handleConfirmPayments = async () => {
+        if (paymentList.length === 0) return;
+        setProcessing(true);
+        setPayError(null);
+        try {
+            for (const p of paymentList) {
+                try {
+                    await callFunction("registerPayment", {
+                        raffleId: activeRaffle!.id,
+                        ticketNumber: p.ticketNumber,
+                        amount: p.amount,
+                        type: p.amount >= (tickets.find(t => t.number === p.ticketNumber)?.pendingBalance || 0) ? "payment" : "installment",
+                        method: p.method,
+                        observations: "",
+                    });
+                } catch (e) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    setPayError(`Error en boleta #${p.ticketNumber}: ${msg}`);
+                    setProcessing(false);
+                    return;
+                }
+            }
+            toast.success(`${paymentList.length} pago(s) registrado(s)`);
+            setPaymentList([]);
+            setShowPaymentPanel(false);
+            setReloadKey(k => k + 1);
+        } catch (e) {
+            setPayError(e instanceof Error ? e.message : "Error al registrar pagos");
+        } finally { setProcessing(false); }
+    };
+
     return (
       <div>
           <PageHeader
@@ -105,6 +168,9 @@ export default function VendorDetailPage() {
               description={`Boletas en "${activeRaffle.name}"`}
                 actions={
                     <div className="flex items-center gap-2">
+                        <Button variant="primary" size="sm" onPress={() => setShowPaymentPanel(true)}>
+                            <DollarSign className="h-4 w-4" /> Registrar pago
+                        </Button>
                         <Link href={`/vendors/${vendorId}/edit`}>
                             <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /> Editar</Button>
                         </Link>
@@ -136,6 +202,99 @@ export default function VendorDetailPage() {
           </Card>
 
           <Separator className="my-6" />
+
+            {/* Payment Panel */}
+            {showPaymentPanel && (
+                <Card className="mb-6 border-2 border-emerald-500/50">
+                    <CardContent className="p-5">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold">Registrar pagos — {vendor.name}</h3>
+                            <Button variant="ghost" size="sm" onPress={() => { setShowPaymentPanel(false); setPaymentList([]); setPayError(null); }}>
+                                <X className="h-4 w-4" /> Cerrar
+                            </Button>
+                        </div>
+
+                        <div className="flex items-end gap-3 flex-wrap mb-3">
+                            <div>
+                                <label className="text-xs font-medium mb-1 block">Boleta</label>
+                                <Input placeholder="Ej: 55" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" className="w-24" maxLength={5} />
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium mb-1 block">Monto</label>
+                                <Input placeholder="Ej: 30.000" value={payAmountInput ? parseInt(payAmountInput).toLocaleString("es-CO") : ""} onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); const num = parseInt(raw || "0"); if (num <= (activeRaffle?.ticketPrice || 999999)) setPayAmountInput(raw); }} inputMode="numeric" className="w-32" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium mb-1 block">Método</label>
+                                <Select aria-label="Método" selectedKey={payMethodInput} onSelectionChange={(key) => setPayMethodInput(String(key ?? "cash"))} className="w-40">
+                                    <SelectTrigger className="w-full"><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                    <SelectPopover>
+                                        <ListBox>
+                                            <ListBoxItem id="cash" textValue="Efectivo">Efectivo</ListBoxItem>
+                                            <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
+                                            <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
+                                            <ListBoxItem id="transfer" textValue="Bancolombia">Bancolombia</ListBoxItem>
+                                        </ListBox>
+                                    </SelectPopover>
+                                </Select>
+                            </div>
+                            <Button variant="outline" size="sm" onPress={handleAddPayment} isDisabled={!payTicketInput || !payAmountInput}>Agregar</Button>
+                        </div>
+
+                        {payError && <div className="mb-3 p-2 rounded-lg bg-danger/10 border border-danger/20 text-xs text-danger">{payError}</div>}
+
+                        {paymentList.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                                {paymentList.map((p, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-default-200 bg-white dark:bg-[#1A2F50]">
+                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/30">
+                                            <span className="text-xs font-bold text-teal-600 dark:text-teal-400">{p.ticketNumber}</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            {editingPayIndex === i ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        value={editingPayValue ? parseInt(editingPayValue).toLocaleString("es-CO") : ""}
+                                                        onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); if (parseInt(raw || "0") <= (activeRaffle?.ticketPrice || 999999)) setEditingPayValue(raw); }}
+                                                        inputMode="numeric"
+                                                        className="w-28"
+                                                    />
+                                                    <button onClick={() => { if (editingPayValue && parseInt(editingPayValue) >= 5000) { setPaymentList(prev => prev.map((item, idx) => idx === i ? { ...item, amount: parseInt(editingPayValue) } : item)); setEditingPayIndex(null); } }} className="text-xs text-emerald-600 font-medium hover:underline">Guardar</button>
+                                                    <button onClick={() => setEditingPayIndex(null)} className="text-xs text-default-400 hover:text-default-600">Cancelar</button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm font-semibold text-emerald-500">{formatCurrency(p.amount)}</span>
+                                                    <span className="text-xs text-default-500">{{ cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata", transfer: "Bancolombia" }[p.method]}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {editingPayIndex !== i && (
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => { setEditingPayIndex(i); setEditingPayValue(String(p.amount)); }} className="p-1.5 rounded-md hover:bg-default-100 text-default-400 hover:text-amber-500 transition-colors">
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button onClick={() => handleRemovePayment(i)} className="p-1.5 rounded-md hover:bg-default-100 text-default-400 hover:text-red-500 transition-colors">
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="flex items-center justify-between mt-4 pt-3 border-t border-default-200">
+                                    <div className="flex items-center gap-6">
+                                        <p className="text-sm font-semibold">Total: <span className="text-emerald-500">{formatCurrency(paymentList.reduce((s, p) => s + p.amount, 0))}</span></p>
+                                        <p className="text-xs text-default-500">Recibe cajero (70%): <span className="font-medium">{formatCurrency(Math.floor(paymentList.reduce((s, p) => s + p.amount, 0) * 0.70))}</span></p>
+                                        <p className="text-xs text-default-500">Comisión vendedor (30%): <span className="font-medium text-amber-500">{formatCurrency(Math.floor(paymentList.reduce((s, p) => s + p.amount, 0) * 0.30))}</span></p>
+                                    </div>
+                                    <Button variant="primary" isDisabled={processing} onPress={handleConfirmPayments}>
+                                        {processing ? "Procesando..." : `Confirmar ${paymentList.length} pago(s)`}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Ticket className="h-5 w-5" /> Boletas en esta rifa
@@ -312,43 +471,23 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex items-center justify-center gap-1">
                                             {ticket.status === "assigned" && (
-                                                <>
-                                                    <Tooltip>
-                                                        <Tooltip.Trigger>
-                                                            <Button variant="ghost" size="sm" onPress={() => onSell(ticket.number)} aria-label="Vender">
-                                                                <ShoppingCart className="h-4 w-4 text-blue-400" />
-                                                            </Button>
-                                                        </Tooltip.Trigger>
-                                                        <Tooltip.Content>Vender a cliente</Tooltip.Content>
-                                                    </Tooltip>
-                                                    <Tooltip>
-                                                        <Tooltip.Trigger>
-                                                            <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
-                                                                <UserMinus className="h-4 w-4 text-danger" />
-                                                            </Button>
-                                                        </Tooltip.Trigger>
-                                                        <Tooltip.Content>Desasignar boleta</Tooltip.Content>
-                                                    </Tooltip>
-                                                </>
-                                            )}
-                                            {canPay && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
-                                                        <Button variant="ghost" size="sm" onPress={() => onPay(ticket.number)} aria-label="Abonar">
-                                                            <DollarSign className="h-4 w-4 text-emerald-400" />
+                                                        <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
+                                                            <UserMinus className="h-4 w-4 text-danger" />
                                                         </Button>
                                                     </Tooltip.Trigger>
-                                                    <Tooltip.Content>Registrar abono</Tooltip.Content>
+                                                    <Tooltip.Content>Desasignar boleta</Tooltip.Content>
                                                 </Tooltip>
                                             )}
-                                            {(ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
+                                            {(ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
-                                                        <Button variant="ghost" size="sm" onPress={() => onEditTicket(ticket.number, "client")} aria-label="Editar cliente">
+                                                        <Button variant="ghost" size="sm" onPress={() => onEditTicket(ticket.number, "client")} aria-label="Agregar cliente">
                                                             <Pencil className="h-4 w-4 text-amber-400" />
                                                         </Button>
                                                     </Tooltip.Trigger>
-                                                    <Tooltip.Content>Editar cliente</Tooltip.Content>
+                                                    <Tooltip.Content>Agregar cliente</Tooltip.Content>
                                                 </Tooltip>
                                             )}
                                             {amountPaid > 0 && userRole === "admin" && (
