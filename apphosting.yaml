@@ -1,0 +1,47 @@
+# Configuración de Firebase App Hosting
+# https://firebase.google.com/docs/app-hosting/configure
+#
+# Estas variables NEXT_PUBLIC_* son claves web públicas de Firebase (no secretos),
+# por eso se declaran directamente aquí. El build en la nube no lee tu .env.local
+# (está gitignored), así que deben vivir en este archivo versionado.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 1
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCMMmKTop-2VRLASAIVNAfp2l30xHPu2Os
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: rifas-d6681.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: rifas-d6681
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: rifas-d6681.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "570781767162"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:570781767162:web:393b2f95c1663daceb4043
+    availability:
+      - BUILD
+      - RUNTIME
