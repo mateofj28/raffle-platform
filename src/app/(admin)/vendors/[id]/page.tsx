@@ -52,6 +52,8 @@ export default function VendorDetailPage() {
 
     // Ref al panel de registrar pago para hacer scroll automático al abrirlo
     const paymentPanelRef = useRef<HTMLDivElement>(null);
+    // Ref al campo de número de boleta para devolver el foco tras agregar un pago
+    const payTicketInputRef = useRef<HTMLInputElement>(null);
 
     // Al abrir el panel de pago, desplaza la vista hasta el formulario para
     // que el usuario vea de inmediato la acción que debe realizar.
@@ -139,6 +141,8 @@ export default function VendorDetailPage() {
         setPayTicketInput("");
         setPayAmountInput("");
         setPayError(null);
+        // Devolver el foco al campo de boleta para seguir ingresando sin usar el mouse
+        payTicketInputRef.current?.focus();
     };
 
     const handleRemovePayment = (index: number) => setPaymentList(prev => prev.filter((_, i) => i !== index));
@@ -230,7 +234,7 @@ export default function VendorDetailPage() {
                         <div className="flex items-end gap-3 flex-wrap mb-3">
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Boleta</label>
-                                <Input placeholder="Ej: 55" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" className="w-24" maxLength={5} />
+                                <Input ref={payTicketInputRef} placeholder="Ej: 55" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" className="w-24" maxLength={5} />
                             </div>
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Monto</label>
