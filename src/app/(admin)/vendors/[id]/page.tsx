@@ -135,9 +135,24 @@ export default function VendorDetailPage() {
         const ticket = tickets.find(t => t.number === num);
         if (!ticket) { setPayError(`Boleta #${num} no pertenece a este vendedor`); return; }
         if (ticket.pendingBalance <= 0) { setPayError(`Boleta #${num} ya está completamente pagada`); return; }
-        if (amount > ticket.pendingBalance) { setPayError(`Máximo para boleta #${num}: ${formatCurrency(ticket.pendingBalance)}`); return; }
 
-        setPaymentList(prev => [...prev, { ticketNumber: num, amount, method: payMethodInput }]);
+        // Considerar lo ya agregado en la lista para esta misma boleta al validar el saldo
+        const alreadyForTicket = paymentList
+            .filter(p => p.ticketNumber === num)
+            .reduce((sum, p) => sum + p.amount, 0);
+        if (alreadyForTicket + amount > ticket.pendingBalance) {
+            setPayError(`Máximo para boleta #${num}: ${formatCurrency(ticket.pendingBalance - alreadyForTicket)}`);
+            return;
+        }
+
+        // Consolidar: si ya hay una entrada con la misma boleta Y el mismo método, sumar el monto
+        setPaymentList(prev => {
+            const idx = prev.findIndex(p => p.ticketNumber === num && p.method === payMethodInput);
+            if (idx !== -1) {
+                return prev.map((p, i) => i === idx ? { ...p, amount: p.amount + amount } : p);
+            }
+            return [...prev, { ticketNumber: num, amount, method: payMethodInput }];
+        });
         setPayTicketInput("");
         setPayAmountInput("");
         setPayError(null);
