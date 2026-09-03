@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, ChevronDown } from "lucide-react";
@@ -40,6 +40,20 @@ export default function RaffleDetailPage() {
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assigning, setAssigning] = useState(false);
     const [showNoVendorsModal, setShowNoVendorsModal] = useState(false);
+
+    // Ref al panel de asignar/desasignar para hacer scroll automático al activarlo
+    const assignPanelRef = useRef<HTMLDivElement>(null);
+
+    // Al activar el modo (assign/unassign), desplaza la vista hasta el panel
+    // para que el usuario vea de inmediato el formulario que debe completar.
+    useEffect(() => {
+        if (!assignMode) return;
+        // Esperar al render del panel antes de hacer scroll
+        const id = requestAnimationFrame(() => {
+            assignPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        return () => cancelAnimationFrame(id);
+    }, [assignMode]);
 
     // Load raffle
     useEffect(() => {
@@ -229,7 +243,7 @@ export default function RaffleDetailPage() {
 
             {/* Assignment Panel */}
             {assignMode && (
-                <Card className={`mb-6 border-2 ${assignMode === "assign" ? "border-teal-500/50" : "border-red-500/50"}`}>
+                <Card ref={assignPanelRef} className={`mb-6 border-2 scroll-mt-24 ${assignMode === "assign" ? "border-teal-500/50" : "border-red-500/50"}`}>
                     <CardContent className="p-5">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold">{assignMode === "assign" ? "Asignar boletas" : "Desasignar boletas"}</h3>
