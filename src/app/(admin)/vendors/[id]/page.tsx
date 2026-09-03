@@ -250,7 +250,7 @@ export default function VendorDetailPage() {
                                     </SelectPopover>
                                 </Select>
                             </div>
-                            <Button variant="outline" size="sm" onPress={handleAddPayment} isDisabled={!payTicketInput || !payAmountInput}>Agregar</Button>
+                            <Button variant="outline" size="sm" onPress={handleAddPayment} isDisabled={!payTicketInput || !payAmountInput || parseInt(payAmountInput || "0", 10) < 5000}>Agregar</Button>
                         </div>
 
                         {payError && <div className="mb-3 p-2 rounded-lg bg-danger/10 border border-danger/20 text-xs text-danger">{payError}</div>}
