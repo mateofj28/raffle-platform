@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, toast } from "@heroui/react";
@@ -49,6 +49,19 @@ export default function VendorDetailPage() {
     const [processing, setProcessing] = useState(false);
     const [editingPayIndex, setEditingPayIndex] = useState<number | null>(null);
     const [editingPayValue, setEditingPayValue] = useState("");
+
+    // Ref al panel de registrar pago para hacer scroll automático al abrirlo
+    const paymentPanelRef = useRef<HTMLDivElement>(null);
+
+    // Al abrir el panel de pago, desplaza la vista hasta el formulario para
+    // que el usuario vea de inmediato la acción que debe realizar.
+    useEffect(() => {
+        if (!showPaymentPanel) return;
+        const id = requestAnimationFrame(() => {
+            paymentPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        return () => cancelAnimationFrame(id);
+    }, [showPaymentPanel]);
 
     useEffect(() => {
         if (!activeRaffle) router.push("/raffles");
@@ -205,7 +218,7 @@ export default function VendorDetailPage() {
 
             {/* Payment Panel */}
             {showPaymentPanel && (
-                <Card className="mb-6 border-2 border-emerald-500/50">
+                <Card ref={paymentPanelRef} className="mb-6 border-2 border-emerald-500/50 scroll-mt-24">
                     <CardContent className="p-5">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold">Registrar pagos — {vendor.name}</h3>
