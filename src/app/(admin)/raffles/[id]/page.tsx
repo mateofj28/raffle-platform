@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast, Autocomplete, Input as HeroInput } from "@heroui/react";
+import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast, ComboBox, Input as HeroInput } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -255,17 +255,15 @@ export default function RaffleDetailPage() {
                             {assignMode === "assign" && (
                                 <div>
                                     <label className="text-xs font-medium mb-1 block">Vendedor</label>
-                                    <Autocomplete aria-label="Vendedor" selectedKey={selectedVendor || null} onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))} placeholder="Buscar vendedor..." className="w-56">
-                                        <Autocomplete.Trigger className="w-full">
+                                    <ComboBox aria-label="Vendedor" selectedKey={selectedVendor || null} onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))} menuTrigger="focus" className="w-56">
+                                        <ComboBox.InputGroup>
                                             <HeroInput placeholder="Buscar vendedor..." />
-                                            <Autocomplete.Indicator><ChevronDown className="h-4 w-4" /></Autocomplete.Indicator>
-                                        </Autocomplete.Trigger>
-                                        <Autocomplete.Popover>
-                                            <Autocomplete.Filter>
-                                                <ListBox>{vendors.map((v) => (<ListBoxItem key={v.id} id={v.id} textValue={v.name}>{v.name}</ListBoxItem>))}</ListBox>
-                                            </Autocomplete.Filter>
-                                        </Autocomplete.Popover>
-                                    </Autocomplete>
+                                            <ComboBox.Trigger />
+                                        </ComboBox.InputGroup>
+                                        <ComboBox.Popover>
+                                            <ListBox>{vendors.map((v) => (<ListBoxItem key={v.id} id={v.id} textValue={v.name}>{v.name}</ListBoxItem>))}</ListBox>
+                                        </ComboBox.Popover>
+                                    </ComboBox>
                                 </div>
                             )}
                             <div>
