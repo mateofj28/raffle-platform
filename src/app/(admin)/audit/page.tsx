@@ -40,7 +40,7 @@ const OPERATION_LABELS: Record<string, { label: string; color: "success" | "warn
 
 const METHOD_LABELS: Record<string, string> = {
     cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata",
-    card: "Tarjeta", transfer: "Transferencia", other: "Otro",
+    transfer: "Bancolombia", other: "Otro",
 };
 
 const STATUS_LABELS: Record<string, string> = {

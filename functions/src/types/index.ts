@@ -90,11 +90,9 @@ export type PaymentType = "payment" | "installment";
 
 export type PaymentMethod =
     | "cash"
-    | "transfer"
-    | "card"
     | "nequi"
     | "daviplata"
-    | "other";
+    | "transfer";
 
 export interface Payment {
     id: string;

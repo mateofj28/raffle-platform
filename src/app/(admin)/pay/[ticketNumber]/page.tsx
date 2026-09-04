@@ -10,18 +10,18 @@ import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency } from "@/utils/formatters";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useSettingsStore } from "@/store/settings.store";
 import { callFunction } from "@/services/firebase-callable";
 import { toast } from "@heroui/react";
 import { doc, getDoc, getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 
-const METHODS = [
+const ALL_METHODS = [
   { id: "cash", label: "Efectivo" },
   { id: "nequi", label: "Nequi" },
   { id: "daviplata", label: "Daviplata" },
   { id: "transfer", label: "Bancolombia" },
-  { id: "other", label: "Otro" },
-];
+] as const;
 
 export default function PayTicketPage() {
   const params = useParams();
@@ -29,6 +29,9 @@ export default function PayTicketPage() {
   const ticketNumber = parseInt(params.ticketNumber as string);
   const { activeRaffle, setActiveRaffle } = useRaffleStore();
   const tenantId = useAuthStore((s) => s.user?.tenantId);
+  const minInstallment = useSettingsStore((s) => s.settings.minInstallment);
+  const activePaymentMethods = useSettingsStore((s) => s.settings.activePaymentMethods);
+  const METHODS = ALL_METHODS.filter((m) => activePaymentMethods.includes(m.id));
 
   const [paymentType, setPaymentType] = useState<"full" | "partial">("partial");
   const [amount, setAmount] = useState("");
@@ -72,8 +75,9 @@ export default function PayTicketPage() {
 
     const payAmount = paymentType === "full" ? (pendingBalance ?? activeRaffle.ticketPrice) : parseInt(amount || "0");
 
-    if (payAmount < 5000) {
-      setError("El monto mínimo es $5.000");
+    // El mínimo solo aplica a abonos parciales, no a un pago que liquida la boleta.
+    if (paymentType === "partial" && payAmount < minInstallment) {
+      setError(`El monto mínimo es ${formatCurrency(minInstallment)}`);
       setProcessing(false);
       return;
     }
@@ -111,13 +115,13 @@ export default function PayTicketPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Enter") return;
       if (processing) return;
-      if (paymentType === "partial" && (!amount || parseInt(amount) < 5000)) return;
+      if (paymentType === "partial" && (!amount || parseInt(amount) < minInstallment)) return;
       e.preventDefault();
       handlePay();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [processing, paymentType, amount]);
+  }, [processing, paymentType, amount, minInstallment]);
 
   if (!activeRaffle) return null;
 
@@ -194,10 +198,10 @@ export default function PayTicketPage() {
                   className="w-full"
                   inputMode="numeric"
                 />
-                {amount && parseInt(amount) < 5000 && (
-                  <p className="text-xs text-danger mt-1">Mínimo: $5.000</p>
+                {amount && parseInt(amount) < minInstallment && (
+                  <p className="text-xs text-danger mt-1">Mínimo: {formatCurrency(minInstallment)}</p>
                 )}
-                {amount && parseInt(amount) >= 5000 && (
+                {amount && parseInt(amount) >= minInstallment && (
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-default-500">Abono: {formatCurrency(parseInt(amount))}</p>
                     <p className="text-xs text-default-500">Quedaría: {formatCurrency(displayBalance - parseInt(amount))}</p>
@@ -247,7 +251,7 @@ export default function PayTicketPage() {
           <Button
             type="submit"
             variant="primary"
-            isDisabled={processing || (paymentType === "partial" && (!amount || parseInt(amount) < 5000))}
+            isDisabled={processing || (paymentType === "partial" && (!amount || parseInt(amount) < minInstallment))}
           >
             <DollarSign className="h-4 w-4" />
             {processing ? "Registrando..." : paymentType === "full" ? `Pagar ${formatCurrency(displayBalance)}` : `Abonar ${amount ? formatCurrency(parseInt(amount)) : ""}`}

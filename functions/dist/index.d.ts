@@ -10,6 +10,7 @@ export { registerPayment, reversePayment, correctPayment } from "./services/paym
 export { createCustomer, updateCustomer } from "./services/customer.service";
 export { createVendor, updateVendor, getVendorMetrics } from "./services/vendor.service";
 export { getDashboardMetrics } from "./services/dashboard.service";
+export { getSettings, updateSettings } from "./services/settings.service";
 export { globalSearch } from "./services/search.service";
 export { exportData } from "./services/export.service";
 export { payCommission } from "./services/commission.service";

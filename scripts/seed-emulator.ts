@@ -34,8 +34,12 @@ async function seed() {
     createdAt: FieldValue.serverTimestamp(),
     settings: {
       timezone: "America/Bogota",
-      commissionRate: 0.30,
       currency: "COP",
+      commissionRate: 0.30,
+      activePaymentMethods: ["cash", "nequi", "daviplata", "transfer"],
+      defaultTicketPrice: 60000,
+      minInstallment: 5000,
+      businessInfo: { name: "Mi Empresa de Rifas", nit: "", phone: "" },
     },
   });
 

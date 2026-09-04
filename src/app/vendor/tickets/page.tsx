@@ -11,12 +11,15 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
+import { useSettingsStore } from "@/store/settings.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Ticket as TicketType, Customer } from "@/types/api.types";
 
 export default function VendorTicketsPage() {
     const user = useAuthStore((s) => s.user);
+    const commissionRate = useSettingsStore((s) => s.settings.commissionRate);
+    const commissionPct = Math.round(commissionRate * 100);
     const router = useRouter();
     const [tickets, setTickets] = useState<TicketType[]>([]);
     const [customers, setCustomers] = useState<Map<string, string>>(new Map());
@@ -86,7 +89,7 @@ export default function VendorTicketsPage() {
     const totalCollected = tickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
     const recaudadoPagadas = tickets.filter(t => t.status === "paid").reduce((sum, t) => sum + t.value, 0);
     const recaudadoAbonadas = tickets.filter(t => t.status === "installment").reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
-    const commission = Math.floor(totalCollected * 0.30);
+    const commission = Math.floor(totalCollected * commissionRate);
 
     if (loading) return <div><PageHeader title="Mis Boletas" /><LoadingSkeleton rows={6} /></div>;
 
@@ -122,7 +125,7 @@ export default function VendorTicketsPage() {
                                 <p className="text-lg font-bold text-emerald-500">{formatCurrency(recaudadoAbonadas)}</p>
                             </div>
                             <div className="p-4 rounded-lg border border-default-200">
-                                <p className="text-xs text-default-500 mb-1">Mi comisión (30%)</p>
+                                <p className="text-xs text-default-500 mb-1">Mi comisión ({commissionPct}%)</p>
                                 <p className="text-lg font-bold text-amber-500">{formatCurrency(commission)}</p>
                             </div>
                         </div>

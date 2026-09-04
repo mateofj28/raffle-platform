@@ -13,6 +13,7 @@ import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useSettingsStore } from "@/store/settings.store";
 import { getDocs, query, orderBy, where } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
@@ -46,6 +47,7 @@ export default function AdminDashboardPage() {
     const router = useRouter();
     const { activeRaffle } = useRaffleStore();
     const tenantId = useAuthStore((s) => s.user?.tenantId);
+    const commissionRate = useSettingsStore((s) => s.settings.commissionRate);
     const [metrics, setMetrics] = useState<RaffleMetrics | null>(null);
     const [todayMetrics, setTodayMetrics] = useState<TodayMetrics | null>(null);
     const [methodTotals, setMethodTotals] = useState<Record<string, number>>({});
@@ -98,7 +100,7 @@ export default function AdminDashboardPage() {
                 });
 
                 const totalPotential = activeRaffle.totalTickets * activeRaffle.ticketPrice;
-                const commissionGenerated = Math.floor(totalCollected * 0.30);
+                const commissionGenerated = Math.floor(totalCollected * commissionRate);
                 const companyProfit = totalCollected - commissionGenerated;
 
                 setMetrics({
@@ -167,7 +169,7 @@ export default function AdminDashboardPage() {
             finally { setLoading(false); }
         };
         load();
-    }, [tenantId, activeRaffle]);
+    }, [tenantId, activeRaffle, commissionRate]);
 
     if (!activeRaffle) return null;
 

@@ -5,7 +5,7 @@
  * Uses lazy exports to avoid initialization timeout on Node 24.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
+exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.updateSettings = exports.getSettings = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
 // Initialize Firebase Admin immediately (lightweight)
 const firestore_1 = require("./utils/firestore");
 (0, firestore_1.initAdmin)();
@@ -47,6 +47,10 @@ Object.defineProperty(exports, "getVendorMetrics", { enumerable: true, get: func
 // Dashboard
 var dashboard_service_1 = require("./services/dashboard.service");
 Object.defineProperty(exports, "getDashboardMetrics", { enumerable: true, get: function () { return dashboard_service_1.getDashboardMetrics; } });
+// Settings
+var settings_service_1 = require("./services/settings.service");
+Object.defineProperty(exports, "getSettings", { enumerable: true, get: function () { return settings_service_1.getSettings; } });
+Object.defineProperty(exports, "updateSettings", { enumerable: true, get: function () { return settings_service_1.updateSettings; } });
 // Search
 var search_service_1 = require("./services/search.service");
 Object.defineProperty(exports, "globalSearch", { enumerable: true, get: function () { return search_service_1.globalSearch; } });

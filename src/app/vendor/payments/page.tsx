@@ -149,7 +149,6 @@ export default function VendorPaymentsPage() {
                                         <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
                                         <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
                                         <ListBoxItem id="transfer" textValue="Bancolombia">Bancolombia</ListBoxItem>
-                                        <ListBoxItem id="other" textValue="Otro">Otro</ListBoxItem>
                                     </ListBox>
                                 </SelectPopover>
                             </Select>

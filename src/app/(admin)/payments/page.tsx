@@ -11,16 +11,18 @@ import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
+import { useSettingsStore } from "@/store/settings.store";
 import { getDocs, query, orderBy, where, limit, startAfter, type QueryDocumentSnapshot } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
 
 const TYPE_LABELS: Record<string, string> = { payment: "Pago completo", installment: "Abono" };
-const METHOD_LABELS: Record<string, string> = { cash: "Efectivo", transfer: "Transferencia", card: "Tarjeta", nequi: "Nequi", daviplata: "Daviplata", other: "Otro" };
+const METHOD_LABELS: Record<string, string> = { cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata", transfer: "Bancolombia", other: "Otro" };
 
 export default function PaymentsPage() {
     const tenantId = useAuthStore((s) => s.user?.tenantId);
     const { activeRaffle } = useRaffleStore();
+    const commissionRate = useSettingsStore((s) => s.settings.commissionRate);
     const [payments, setPayments] = useState<Payment[]>([]);
     const [vendors, setVendors] = useState<Map<string, string>>(new Map());
     const [customers, setCustomers] = useState<Map<string, string>>(new Map());
@@ -155,10 +157,9 @@ export default function PaymentsPage() {
                                             <ListBox>
                                                 <ListBoxItem id="" textValue="Todos los métodos">Todos los métodos</ListBoxItem>
                                                 <ListBoxItem id="cash" textValue="Efectivo">Efectivo</ListBoxItem>
-                                                <ListBoxItem id="transfer" textValue="Transferencia">Transferencia</ListBoxItem>
                                                 <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
                                                 <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
-                                                <ListBoxItem id="other" textValue="Otro">Otro</ListBoxItem>
+                                                <ListBoxItem id="transfer" textValue="Bancolombia">Bancolombia</ListBoxItem>
                                             </ListBox>
                                         </SelectPopover>
                                     </Select>
@@ -190,7 +191,7 @@ export default function PaymentsPage() {
                           </thead>
                           <tbody className="divide-y divide-default-200">
                                     {paginated.map((payment) => {
-                                        const vendorCommission = Math.floor(payment.amount * 0.30);
+                                        const vendorCommission = Math.floor(payment.amount * commissionRate);
                                         const companyProfit = payment.amount - vendorCommission;
                                         return (
                                   <tr key={payment.id} className="hover:bg-default-50">
