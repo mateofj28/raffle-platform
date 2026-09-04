@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, CardContent, Separator } from "@heroui/react";
-import { User, Mail, Shield, Trophy, DollarSign, Hash, Calendar, Ticket, Palette, LogOut } from "lucide-react";
+import { Button, Card, CardContent, Separator, toast } from "@heroui/react";
+import { User, Mail, Shield, Trophy, DollarSign, Hash, Calendar, Ticket, Palette, LogOut, Pencil, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FormErrorBanner } from "@/components/ui/form-error-banner";
+import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
+import { callFunction } from "@/services/firebase-callable";
+import { reauthenticate } from "@/lib/firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { getDb } from "@/lib/firebase/firestore";
 import type { Raffle } from "@/types/api.types";
@@ -26,10 +30,83 @@ export default function SettingsPage() {
     const { logout } = useAuth();
     const tenantId = useAuthStore((s) => s.user?.tenantId);
     const user = useAuthStore((s) => s.user);
+    const setUser = useAuthStore((s) => s.setUser);
     const { activeRaffle } = useRaffleStore();
 
     const [raffle, setRaffle] = useState<Raffle | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // --- Editar perfil ---
+    const [editing, setEditing] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [editEmail, setEditEmail] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [savingProfile, setSavingProfile] = useState(false);
+    const [profileError, setProfileError] = useState<string | null>(null);
+
+    const openEdit = () => {
+        setEditName(user?.displayName || "");
+        setEditEmail(user?.email || "");
+        setNewPassword("");
+        setCurrentPassword("");
+        setProfileError(null);
+        setEditing(true);
+    };
+
+    const emailChanged = editEmail.trim() !== (user?.email || "");
+    const wantsPasswordChange = newPassword.length > 0;
+    // La reautenticación solo es obligatoria para cambiar correo o contraseña.
+    const requiresReauth = emailChanged || wantsPasswordChange;
+
+    const handleSaveProfile = async () => {
+        setProfileError(null);
+
+        if (!user?.uid) { setProfileError("No hay sesión activa."); return; }
+        if (!editName.trim()) { setProfileError("El nombre es obligatorio."); return; }
+        if (emailChanged && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
+            setProfileError("El correo no es válido."); return;
+        }
+        if (wantsPasswordChange && newPassword.length < 6) {
+            setProfileError("La nueva contraseña debe tener al menos 6 caracteres."); return;
+        }
+        if (requiresReauth && !currentPassword) {
+            setProfileError("Ingresa tu contraseña actual para confirmar los cambios."); return;
+        }
+
+        setSavingProfile(true);
+        try {
+            // Reautenticar antes de cambios sensibles (correo/contraseña)
+            if (requiresReauth) {
+                try {
+                    await reauthenticate(currentPassword);
+                } catch {
+                    setProfileError("La contraseña actual es incorrecta.");
+                    setSavingProfile(false);
+                    return;
+                }
+            }
+
+            const payload: { uid: string; displayName?: string; email?: string; password?: string } = { uid: user.uid };
+            payload.displayName = editName.trim();
+            if (emailChanged) payload.email = editEmail.trim();
+            if (wantsPasswordChange) payload.password = newPassword;
+
+            await callFunction("updateUser", payload);
+
+            // Reflejar cambios de nombre/correo en el store local
+            setUser({ ...user, displayName: editName.trim(), email: emailChanged ? editEmail.trim() : user.email });
+
+            toast.success("Perfil actualizado");
+            setEditing(false);
+            setCurrentPassword("");
+            setNewPassword("");
+        } catch (e) {
+            setProfileError(e instanceof Error ? e.message : "No se pudo actualizar el perfil");
+        } finally {
+            setSavingProfile(false);
+        }
+    };
 
     // Cargar la rifa seleccionada completa desde Firestore
     useEffect(() => {
@@ -87,14 +164,57 @@ export default function SettingsPage() {
                 {/* Usuario en sesión */}
                 <Card>
                     <CardContent className="p-6">
-                        <h3 className="text-sm font-semibold uppercase tracking-wide mb-4 flex items-center gap-2">
-                            <User className="h-4 w-4 text-primary" /> Mi cuenta
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                            <InfoItem icon={<User className="h-5 w-5 text-primary" />} label="Nombre" value={user?.displayName || "—"} />
-                            <InfoItem icon={<Mail className="h-5 w-5 text-blue-500" />} label="Correo" value={user?.email || "—"} />
-                            <InfoItem icon={<Shield className="h-5 w-5 text-emerald-500" />} label="Rol" value={user?.role ? ROLE_LABELS[user.role] || user.role : "—"} />
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                                <User className="h-4 w-4 text-primary" /> Mi cuenta
+                            </h3>
+                            {!editing && (
+                                <Button variant="outline" size="sm" onPress={openEdit}>
+                                    <Pencil className="h-4 w-4" /> Editar perfil
+                                </Button>
+                            )}
                         </div>
+
+                        {!editing ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                                <InfoItem icon={<User className="h-5 w-5 text-primary" />} label="Nombre" value={user?.displayName || "—"} />
+                                <InfoItem icon={<Mail className="h-5 w-5 text-blue-500" />} label="Correo" value={user?.email || "—"} />
+                                <InfoItem icon={<Shield className="h-5 w-5 text-emerald-500" />} label="Rol" value={user?.role ? ROLE_LABELS[user.role] || user.role : "—"} />
+                            </div>
+                        ) : (
+                            <div>
+                                <FormErrorBanner message={profileError} />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Nombre</label>
+                                        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full" />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Correo</label>
+                                        <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="w-full" />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Nueva contraseña</label>
+                                        <Input type="password" placeholder="Dejar vacío para no cambiar" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full" />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">
+                                            Contraseña actual {requiresReauth && <span className="text-danger">*</span>}
+                                        </label>
+                                        <Input type="password" placeholder={requiresReauth ? "Requerida para confirmar" : "Solo si cambias correo o contraseña"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full" disabled={!requiresReauth} />
+                                    </div>
+                                </div>
+                                {requiresReauth && (
+                                    <p className="text-xs text-default-500 mt-2">Por seguridad, para cambiar el correo o la contraseña debes confirmar con tu contraseña actual.</p>
+                                )}
+                                <div className="flex gap-2 mt-4">
+                                    <Button variant="ghost" size="sm" onPress={() => setEditing(false)}><X className="h-4 w-4" /> Cancelar</Button>
+                                    <Button variant="primary" size="sm" isDisabled={savingProfile} onPress={handleSaveProfile}>
+                                        {savingProfile ? "Guardando..." : "Guardar cambios"}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
