@@ -152,6 +152,7 @@ export default function CustomerDetailPage() {
                                             <th className="px-4 py-3 text-left font-medium">#</th>
                                       <th className="px-4 py-3 text-left font-medium">Estado</th>
                                             <th className="px-4 py-3 text-right font-medium">Pagado</th>
+                                            <th className="px-4 py-3 text-right font-medium">Pendiente</th>
                                   </tr>
                               </thead>
                               <tbody className="divide-y divide-default-200">
@@ -161,6 +162,12 @@ export default function CustomerDetailPage() {
                                           <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
                                           <td className="px-4 py-3 text-right">
                                               <span className="text-success font-medium">{formatCurrency(ticket.value - ticket.pendingBalance)}</span>
+                                          </td>
+                                          <td className="px-4 py-3 text-right">
+                                              {ticket.pendingBalance === 0
+                                                  ? <span className="text-success font-medium">$0</span>
+                                                  : <span className="text-warning font-medium">{formatCurrency(ticket.pendingBalance)}</span>
+                                              }
                                           </td>
                                       </tr>
                                   ))}
