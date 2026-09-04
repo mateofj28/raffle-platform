@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button, Card, CardContent, AlertDialog, Separator } from "@heroui/react";
+import { Button, Card, CardContent, AlertDialog, Separator, toast } from "@heroui/react";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Pencil, Trash2, DollarSign, Calendar, CreditCard, Printer } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -34,7 +34,6 @@ export default function CorrectPaymentPage() {
   const [newAmount, setNewAmount] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
   const [customerName, setCustomerName] = useState<string>("");
@@ -145,10 +144,10 @@ export default function CorrectPaymentPage() {
     const amount = parseInt(newAmount || "0");
     if (amount < 5000) { setError("El monto mínimo es $5.000"); return; }
     if (amount > ticketPrice) { setError(`Máximo: ${formatCurrency(ticketPrice)}`); return; }
-    setProcessing(true); setError(null); setSuccess(null);
+    setProcessing(true); setError(null);
     try {
       await callFunction("correctPayment", { paymentId, newAmount: amount, reason: "Corrección manual" });
-      setSuccess("✅ Monto corregido exitosamente");
+      toast.success("Monto corregido exitosamente");
       setEditingId(null); setNewAmount("");
       await loadPayments();
     } catch (e) { setError(e instanceof Error ? e.message : "Error al corregir"); }
@@ -156,27 +155,27 @@ export default function CorrectPaymentPage() {
   };
 
   const handleDelete = async (paymentId: string) => {
-    setProcessing(true); setError(null); setSuccess(null);
+    setProcessing(true); setError(null);
     try {
       const payment = payments.find(p => p.id === paymentId)!;
       await callFunction("reversePayment", { paymentId, amount: payment.amount, reason: "Eliminación por admin" });
       // Optimistic update: remove from local state immediately
       setPayments(prev => prev.filter(p => p.id !== paymentId));
-      setSuccess("✅ Abono eliminado");
+      toast.success("Abono eliminado");
       setDeleteConfirm(null);
     } catch (e) { setError(e instanceof Error ? e.message : "Error al eliminar"); }
     finally { setProcessing(false); }
   };
 
   const handleDeleteAll = async () => {
-    setProcessing(true); setError(null); setSuccess(null);
+    setProcessing(true); setError(null);
     try {
       for (const payment of payments) {
         await callFunction("reversePayment", { paymentId: payment.id, amount: payment.amount, reason: "Eliminación masiva" });
       }
       // Optimistic update: clear all payments from local state
       setPayments([]);
-      setSuccess("✅ Todos los abonos eliminados");
+      toast.success("Todos los abonos eliminados");
       setDeleteAllConfirm(false);
     } catch (e) { setError(e instanceof Error ? e.message : "Error"); }
     finally { setProcessing(false); }
@@ -197,7 +196,6 @@ export default function CorrectPaymentPage() {
       />
 
       <FormErrorBanner message={error} />
-      {success && <div className="mb-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-sm">{success}</div>}
 
       {loading ? <LoadingSkeleton rows={4} /> : (
         <>
@@ -283,7 +281,7 @@ export default function CorrectPaymentPage() {
                             <Button variant="ghost" size="sm" isIconOnly onPress={() => printReceipt(payment)} aria-label="Imprimir comprobante">
                               <Printer className="h-4 w-4 text-blue-400" />
                             </Button>
-                            <Button variant="ghost" size="sm" isIconOnly onPress={() => { setEditingId(payment.id); setNewAmount(String(payment.amount)); setError(null); setSuccess(null); }} aria-label="Editar">
+                            <Button variant="ghost" size="sm" isIconOnly onPress={() => { setEditingId(payment.id); setNewAmount(String(payment.amount)); setError(null); }} aria-label="Editar">
                               <Pencil className="h-4 w-4 text-amber-400" />
                             </Button>
                             <Button variant="ghost" size="sm" isIconOnly onPress={() => setDeleteConfirm(payment.id)} aria-label="Eliminar">
