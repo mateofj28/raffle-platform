@@ -165,7 +165,7 @@ export default function CustomerDetailPage() {
                                           </td>
                                           <td className="px-4 py-3 text-right">
                                               {ticket.pendingBalance === 0
-                                                  ? <span className="text-success font-medium">$0</span>
+                                                  ? <span className="text-white font-medium">$0</span>
                                                   : <span className="text-warning font-medium">{formatCurrency(ticket.pendingBalance)}</span>
                                               }
                                           </td>
