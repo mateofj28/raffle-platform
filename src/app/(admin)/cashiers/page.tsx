@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent, AlertDialog } from "@heroui/react";
 import { Input } from "@/components/ui/input";
-import { UserCog, Plus, Trash2, Pencil } from "lucide-react";
+import { UserCog, Plus, Trash2, Pencil, Copy } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -208,9 +208,25 @@ export default function CashiersPage() {
                                 <p className="font-mono font-bold text-lg">{createdCredentials.password}</p>
                             </div>
                         </div>
-                        <Button variant="ghost" size="sm" className="mt-3" onPress={() => setCreatedCredentials(null)}>
-                            Cerrar
-                        </Button>
+                        <div className="flex items-center gap-2 mt-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onPress={async () => {
+                                    try {
+                                        await navigator.clipboard.writeText(`Usuario: ${createdCredentials.username}\nContraseña: ${createdCredentials.password}`);
+                                        toast.success("Credenciales copiadas");
+                                    } catch {
+                                        toast.danger("No se pudieron copiar");
+                                    }
+                                }}
+                            >
+                                <Copy className="h-4 w-4" /> Copiar credenciales
+                            </Button>
+                            <Button variant="danger" size="sm" onPress={() => setCreatedCredentials(null)}>
+                                Cerrar
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             )}
