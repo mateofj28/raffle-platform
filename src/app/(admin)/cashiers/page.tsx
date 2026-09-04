@@ -157,8 +157,9 @@ export default function CashiersPage() {
                                     type="text"
                                     placeholder="Ej: 1004445566"
                                     value={document}
-                                    onChange={(e) => setDocument(e.target.value.replace(/\D/g, ""))}
+                                    onChange={(e) => setDocument(e.target.value.replace(/\D/g, "").slice(0, 10))}
                                     inputMode="numeric"
+                                    maxLength={10}
                                     className="w-full"
                                 />
                             </div>
@@ -168,8 +169,9 @@ export default function CashiersPage() {
                                     type="text"
                                     placeholder="Ej: 3001234567"
                                     value={phone}
-                                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                                     inputMode="numeric"
+                                    maxLength={10}
                                     className="w-full"
                                 />
                             </div>
