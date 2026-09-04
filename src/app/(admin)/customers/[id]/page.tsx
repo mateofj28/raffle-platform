@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, CardContent, Separator, Chip } from "@heroui/react";
-import { ArrowLeft, User, Phone, MapPin, Hash, Ticket, CreditCard, Pencil } from "lucide-react";
+import { Button, Card, CardContent, Separator, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem } from "@heroui/react";
+import { ArrowLeft, User, Phone, MapPin, Hash, Ticket, CreditCard, Pencil, ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
@@ -32,6 +34,11 @@ export default function CustomerDetailPage() {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
     const [dataLoading, setDataLoading] = useState(true);
+
+    // Filtros del historial de pagos
+    const [filterTicket, setFilterTicket] = useState("");
+    const [filterType, setFilterType] = useState("");
+    const [filterMethod, setFilterMethod] = useState("");
 
     // Load customer
     useEffect(() => {
@@ -82,6 +89,14 @@ export default function CustomerDetailPage() {
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const totalPending = tickets.reduce((sum, t) => sum + t.pendingBalance, 0);
+
+    // Pagos filtrados por boleta, tipo y método
+    const filteredPayments = payments.filter((p) => {
+        if (filterTicket && !String(p.ticketId).includes(filterTicket.trim())) return false;
+        if (filterType && p.type !== filterType) return false;
+        if (filterMethod && p.method !== filterMethod) return false;
+        return true;
+    });
 
     return (
         <div>
@@ -184,36 +199,76 @@ export default function CustomerDetailPage() {
                   {payments.length === 0 ? (
                       <EmptyState title="Sin pagos" description="Este cliente no ha realizado pagos" icon={<CreditCard className="h-10 w-10" />} />
                   ) : (
-                      <div className="overflow-x-auto rounded-lg border border-default-200">
-                          <table className="w-full text-sm">
-                              <thead className="bg-default-100">
-                                  <tr>
-                                      <th className="px-4 py-3 text-left font-medium">Fecha</th>
-                                      <th className="px-4 py-3 text-left font-medium">Boleta</th>
-                                      <th className="px-4 py-3 text-left font-medium">Tipo</th>
-                                      <th className="px-4 py-3 text-left font-medium">Método</th>
-                                      <th className="px-4 py-3 text-right font-medium">Monto</th>
-                                  </tr>
-                              </thead>
-                              <tbody className="divide-y divide-default-200">
-                                  {payments.map((payment) => (
-                                      <tr key={payment.id} className="hover:bg-default-50">
-                                          <td className="px-4 py-3 text-xs text-default-500">{payment.createdAt ? formatDateTime(payment.createdAt) : "—"}</td>
-                                          <td className="px-4 py-3 font-mono font-bold">{payment.ticketId}</td>
-                                          <td className="px-4 py-3">
-                                              <span className={payment.type === "payment" ? "text-success font-medium" : "text-amber-400"}>
-                                                  {payment.type === "payment" ? "Pago completo" : "Abono"}
-                                              </span>
-                                          </td>
-                                          <td className="px-4 py-3 text-default-600">
-                                              {{ cash: "Efectivo", transfer: "Transferencia", card: "Tarjeta", nequi: "Nequi", daviplata: "Daviplata", other: "Otro" }[payment.method] || payment.method}
-                                          </td>
-                                          <td className="px-4 py-3 text-right font-semibold">{formatCurrency(payment.amount)}</td>
-                                      </tr>
-                                  ))}
-                              </tbody>
-                          </table>
-                      </div>
+                            <>
+                                {/* Filtros */}
+                                <div className="flex flex-wrap items-center gap-3 mb-4">
+                                    <Input
+                                        placeholder="Buscar por # boleta..."
+                                        value={filterTicket}
+                                        onChange={(e) => setFilterTicket(e.target.value.replace(/\D/g, ""))}
+                                        inputMode="numeric"
+                                        className="w-full sm:w-56"
+                                    />
+                                    <Select aria-label="Tipo de pago" selectedKey={filterType || null} onSelectionChange={(key) => setFilterType(key ? String(key) : "")} placeholder="Todos los tipos" className="w-44">
+                                        <SelectTrigger><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                        <SelectPopover>
+                                            <ListBox>
+                                                <ListBoxItem id="" textValue="Todos los tipos">Todos los tipos</ListBoxItem>
+                                                <ListBoxItem id="payment" textValue="Pago completo">Pago completo</ListBoxItem>
+                                                <ListBoxItem id="installment" textValue="Abono">Abono</ListBoxItem>
+                                            </ListBox>
+                                        </SelectPopover>
+                                    </Select>
+                                    <Select aria-label="Método de pago" selectedKey={filterMethod || null} onSelectionChange={(key) => setFilterMethod(key ? String(key) : "")} placeholder="Todos los métodos" className="w-52">
+                                        <SelectTrigger><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                        <SelectPopover>
+                                            <ListBox>
+                                                <ListBoxItem id="" textValue="Todos los métodos">Todos los métodos</ListBoxItem>
+                                                <ListBoxItem id="cash" textValue="Efectivo">Efectivo</ListBoxItem>
+                                                <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
+                                                <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
+                                                <ListBoxItem id="transfer" textValue="Bancolombia Ahorros">Bancolombia Ahorros</ListBoxItem>
+                                                <ListBoxItem id="other" textValue="Otro">Otro</ListBoxItem>
+                                            </ListBox>
+                                        </SelectPopover>
+                                    </Select>
+                                    {(filterTicket || filterType || filterMethod) && (
+                                        <Button variant="ghost" size="sm" onPress={() => { setFilterTicket(""); setFilterType(""); setFilterMethod(""); }}>✕ Limpiar</Button>
+                                    )}
+                                    <span className="text-xs text-default-500 ml-auto">{filteredPayments.length} pago(s)</span>
+                                </div>
+
+                                <div className="overflow-x-auto rounded-lg border border-default-200">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-default-100">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left font-medium">Fecha</th>
+                                                <th className="px-4 py-3 text-left font-medium">Boleta</th>
+                                                <th className="px-4 py-3 text-left font-medium">Tipo</th>
+                                                <th className="px-4 py-3 text-left font-medium">Método</th>
+                                                <th className="px-4 py-3 text-right font-medium">Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-default-200">
+                                            {filteredPayments.length === 0 ? (
+                                                <tr><td colSpan={5} className="px-4 py-8 text-center text-default-400 text-sm">No hay pagos que coincidan con los filtros</td></tr>
+                                            ) : filteredPayments.map((payment) => (
+                                                <tr key={payment.id} className="hover:bg-default-50">
+                                                    <td className="px-4 py-3 text-xs text-default-500">{payment.createdAt ? formatDateTime(payment.createdAt) : "—"}</td>
+                                                    <td className="px-4 py-3 font-mono font-bold">{payment.ticketId}</td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={payment.type === "payment" ? "text-success font-medium" : "text-amber-400"}>
+                                                            {payment.type === "payment" ? "Pago completo" : "Abono"}
+                                                        </span>
+                                                    </td>
+                                              <td className="px-4 py-3"><PaymentMethodBadge method={payment.method} /></td>
+                                              <td className="px-4 py-3 text-right font-semibold text-success">{formatCurrency(payment.amount)}</td>
+                                          </tr>
+                                      ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
                   )}
               </>
           )}
