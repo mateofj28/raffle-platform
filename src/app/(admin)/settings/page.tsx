@@ -187,7 +187,7 @@ export default function SettingsPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-sm font-medium mb-1 block">Nombre</label>
-                                        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full" />
+                                            <Input value={editName} onChange={(e) => setEditName(e.target.value.replace(/\b\w/g, (c) => c.toUpperCase()))} className="w-full" />
                                     </div>
                                     <div>
                                         <label className="text-sm font-medium mb-1 block">Correo</label>
@@ -208,7 +208,7 @@ export default function SettingsPage() {
                                     <p className="text-xs text-default-500 mt-2">Por seguridad, para cambiar el correo o la contraseña debes confirmar con tu contraseña actual.</p>
                                 )}
                                 <div className="flex gap-2 mt-4">
-                                    <Button variant="ghost" size="sm" onPress={() => setEditing(false)}><X className="h-4 w-4" /> Cancelar</Button>
+                                        <Button variant="outline" size="sm" onPress={() => setEditing(false)}><X className="h-4 w-4" /> Cancelar</Button>
                                     <Button variant="primary" size="sm" isDisabled={savingProfile} onPress={handleSaveProfile}>
                                         {savingProfile ? "Guardando..." : "Guardar cambios"}
                                     </Button>
