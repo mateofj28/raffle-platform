@@ -13,12 +13,10 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
-import { useSettingsStore } from "@/store/settings.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
 import { callFunction } from "@/services/firebase-callable";
 import { getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
-import { PAYMENT_METHODS } from "@/constants/statuses";
 import type { Vendor, Ticket as TicketType } from "@/types/api.types";
 
 interface TicketWithCustomer extends TicketType {
@@ -34,10 +32,6 @@ export default function VendorDetailPage() {
     const tenantId = useAuthStore((s) => s.user?.tenantId);
     const userRole = useAuthStore((s) => s.user?.role);
     const { activeRaffle } = useRaffleStore();
-    const commissionRate = useSettingsStore((s) => s.settings.commissionRate);
-    const minInstallment = useSettingsStore((s) => s.settings.minInstallment);
-    const activePaymentMethods = useSettingsStore((s) => s.settings.activePaymentMethods);
-    const methodOptions = PAYMENT_METHODS.filter((m) => activePaymentMethods.includes(m.value));
 
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [tickets, setTickets] = useState<TicketWithCustomer[]>([]);
@@ -129,14 +123,14 @@ export default function VendorDetailPage() {
     const totalAbonado = tickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
     const recaudadoPagadas = paidTickets.reduce((sum, t) => sum + t.value, 0);
     const recaudadoAbonadas = installmentTickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
-    const commission = Math.floor(totalAbonado * commissionRate);
+    const commission = Math.floor(totalAbonado * 0.30);
 
     // Payment panel handlers
     const handleAddPayment = () => {
         const num = parseInt(payTicketInput);
         const amount = parseInt(payAmountInput.replace(/\D/g, "") || "0");
         if (!num) { setPayError("Ingresa un número de boleta"); return; }
-        if (amount < minInstallment) { setPayError(`El monto mínimo es ${formatCurrency(minInstallment)}`); return; }
+        if (amount < 5000) { setPayError("El monto mínimo es $5.000"); return; }
 
         const ticket = tickets.find(t => t.number === num);
         if (!ticket) { setPayError(`Boleta #${num} no pertenece a este vendedor`); return; }
@@ -267,14 +261,15 @@ export default function VendorDetailPage() {
                                     <SelectTrigger className="w-full"><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
                                     <SelectPopover>
                                         <ListBox>
-                                            {methodOptions.map((m) => (
-                                                <ListBoxItem key={m.value} id={m.value} textValue={m.label}>{m.label}</ListBoxItem>
-                                            ))}
+                                            <ListBoxItem id="cash" textValue="Efectivo">Efectivo</ListBoxItem>
+                                            <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
+                                            <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
+                                            <ListBoxItem id="transfer" textValue="Bancolombia">Bancolombia</ListBoxItem>
                                         </ListBox>
                                     </SelectPopover>
                                 </Select>
                             </div>
-                            <Button variant="outline" size="sm" onPress={handleAddPayment} isDisabled={!payTicketInput || !payAmountInput || parseInt(payAmountInput || "0", 10) < minInstallment}>Agregar</Button>
+                            <Button variant="outline" size="sm" onPress={handleAddPayment} isDisabled={!payTicketInput || !payAmountInput || parseInt(payAmountInput || "0", 10) < 5000}>Agregar</Button>
                         </div>
 
                         {payError && <div className="mb-3 p-2 rounded-lg bg-danger/10 border border-danger/20 text-xs text-danger">{payError}</div>}
@@ -295,7 +290,7 @@ export default function VendorDetailPage() {
                                                         inputMode="numeric"
                                                         className="w-28"
                                                     />
-                                                    <button onClick={() => { if (editingPayValue && parseInt(editingPayValue) >= minInstallment) { setPaymentList(prev => prev.map((item, idx) => idx === i ? { ...item, amount: parseInt(editingPayValue) } : item)); setEditingPayIndex(null); } }} className="text-xs text-emerald-600 font-medium hover:underline">Guardar</button>
+                                                    <button onClick={() => { if (editingPayValue && parseInt(editingPayValue) >= 5000) { setPaymentList(prev => prev.map((item, idx) => idx === i ? { ...item, amount: parseInt(editingPayValue) } : item)); setEditingPayIndex(null); } }} className="text-xs text-emerald-600 font-medium hover:underline">Guardar</button>
                                                     <button onClick={() => setEditingPayIndex(null)} className="text-xs text-default-400 hover:text-default-600">Cancelar</button>
                                                 </div>
                                             ) : (
@@ -319,17 +314,9 @@ export default function VendorDetailPage() {
                                 ))}
                                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-default-200">
                                     <div className="flex items-center gap-6">
-                                        {(() => {
-                                            const total = paymentList.reduce((s, p) => s + p.amount, 0);
-                                            const vendorCommission = Math.floor(total * commissionRate);
-                                            const companyShare = total - vendorCommission;
-                                            const commissionPct = Math.round(commissionRate * 100);
-                                            return (<>
-                                                <p className="text-sm font-semibold">Total: <span className="text-emerald-500">{formatCurrency(total)}</span></p>
-                                                <p className="text-xs text-default-500">Recibe cajero ({100 - commissionPct}%): <span className="font-medium">{formatCurrency(companyShare)}</span></p>
-                                                <p className="text-xs text-default-500">Comisión vendedor ({commissionPct}%): <span className="font-medium text-amber-500">{formatCurrency(vendorCommission)}</span></p>
-                                            </>);
-                                        })()}
+                                        <p className="text-sm font-semibold">Total: <span className="text-emerald-500">{formatCurrency(paymentList.reduce((s, p) => s + p.amount, 0))}</span></p>
+                                        <p className="text-xs text-default-500">Recibe cajero (70%): <span className="font-medium">{formatCurrency(Math.floor(paymentList.reduce((s, p) => s + p.amount, 0) * 0.70))}</span></p>
+                                        <p className="text-xs text-default-500">Comisión vendedor (30%): <span className="font-medium text-amber-500">{formatCurrency(Math.floor(paymentList.reduce((s, p) => s + p.amount, 0) * 0.30))}</span></p>
                                     </div>
                                     <Button variant="primary" isDisabled={processing} onPress={handleConfirmPayments}>
                                         {processing ? "Procesando..." : `Confirmar ${paymentList.length} pago(s)`}

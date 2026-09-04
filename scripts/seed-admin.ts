@@ -55,12 +55,8 @@ async function seed() {
         createdAt: FieldValue.serverTimestamp(),
         settings: {
             timezone: "America/Bogota",
-            currency: "COP",
             commissionRate: 0.30,
-            activePaymentMethods: ["cash", "nequi", "daviplata", "transfer"],
-            defaultTicketPrice: 60000,
-            minInstallment: 5000,
-            businessInfo: { name: TENANT_NAME, nit: "", phone: "" },
+            currency: "COP",
         },
     });
     console.log(`   ✅ Tenant creado: ${TENANT_ID}\n`);

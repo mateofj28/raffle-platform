@@ -13,7 +13,6 @@ import { validateAuth, requireAdmin, requireVendorOwnership, type AuthContext } 
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb } from "../utils/firestore";
-import { getTenantSettings } from "../utils/settings";
 import { createAuditEntry } from "./audit.service";
 
 // --- Zod Schemas ---
@@ -23,7 +22,7 @@ const registerPaymentSchema = z.object({
     ticketNumber: z.number().int().min(1),
     amount: z.number().int().min(1),
     type: z.enum(["payment", "installment"]),
-    method: z.enum(["cash", "nequi", "daviplata", "transfer"]),
+    method: z.enum(["cash", "transfer", "card", "nequi", "daviplata", "other"]),
     observations: z.string().max(500).optional().default(""),
 });
 
@@ -53,24 +52,6 @@ export const registerPayment = onCall(
 
             const data = validateData(registerPaymentSchema, request.data);
             const { raffleId, ticketNumber, amount, type, method, observations } = data;
-
-            // Validar método y monto mínimo contra la configuración del tenant.
-            const settings = await getTenantSettings(context.tenantId);
-            if (!settings.activePaymentMethods.includes(method)) {
-                throw new AppError(
-                    AppErrorCode.VALIDATION_ERROR,
-                    "El método de pago no está habilitado.",
-                    { method: "Método no permitido" }
-                );
-            }
-            // El mínimo aplica a abonos parciales (no a un pago que liquida la boleta).
-            if (type === "installment" && amount < settings.minInstallment) {
-                throw new AppError(
-                    AppErrorCode.VALIDATION_ERROR,
-                    `El monto mínimo de abono es $${settings.minInstallment.toLocaleString("es-CO")}.`,
-                    { amount: `Mínimo ${settings.minInstallment}` }
-                );
-            }
 
             const db = getDb();
             const ticketDocId = padTicketNumber(ticketNumber);

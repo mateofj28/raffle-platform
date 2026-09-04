@@ -90,9 +90,11 @@ export type PaymentType = "payment" | "installment";
 
 export type PaymentMethod =
     | "cash"
+    | "transfer"
+    | "card"
     | "nequi"
     | "daviplata"
-    | "transfer";
+    | "other";
 
 export interface Payment {
     id: string;
@@ -108,42 +110,6 @@ export interface Payment {
     createdAt: string;
     createdBy: string;
 }
-
-// --- Tenant Settings ---
-
-/** Métodos de pago válidos del sistema. */
-export type ActivePaymentMethod = "cash" | "nequi" | "daviplata" | "transfer";
-
-export interface BusinessInfo {
-    name: string;
-    nit: string;
-    phone: string;
-}
-
-export interface TenantSettings {
-    /** Comisión del vendedor como fracción (0.30 = 30%). El resto es de la empresa. */
-    commissionRate: number;
-    /** Métodos de pago habilitados. */
-    activePaymentMethods: ActivePaymentMethod[];
-    /** Precio de boleta sugerido al crear una rifa. */
-    defaultTicketPrice: number;
-    /** Monto mínimo permitido para un abono. */
-    minInstallment: number;
-    /** Datos del negocio. */
-    businessInfo: BusinessInfo;
-    timezone: string;
-    currency: string;
-}
-
-export const DEFAULT_TENANT_SETTINGS: TenantSettings = {
-    commissionRate: 0.30,
-    activePaymentMethods: ["cash", "nequi", "daviplata", "transfer"],
-    defaultTicketPrice: 60000,
-    minInstallment: 5000,
-    businessInfo: { name: "", nit: "", phone: "" },
-    timezone: "America/Bogota",
-    currency: "COP",
-};
 
 // --- Commission ---
 

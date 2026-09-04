@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
-import { useSettingsStore } from "@/store/settings.store";
 import { subscribeToAuthState, getUserWithClaims } from "../services/auth.service";
-import { settingsService } from "@/features/settings/services/settings.service";
 import { onAuthChange } from "@/lib/firebase/auth";
 import { getAuth } from "firebase/auth";
 import { ROUTES } from "@/constants/routes";
@@ -23,8 +21,6 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     const router = useRouter();
     const pathname = usePathname();
     const { user, isAuthenticated, setUser, reset } = useAuthStore();
-    const setSettings = useSettingsStore((s) => s.setSettings);
-    const resetSettings = useSettingsStore((s) => s.reset);
     const [authChecked, setAuthChecked] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const failureCountRef = useRef(0);
@@ -36,14 +32,11 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
                 try {
                     const authUser = await getUserWithClaims(firebaseUser);
                     setUser(authUser);
-                    // Cargar la configuración del tenant (no bloquea el login si falla)
-                    settingsService.getSettings().then(setSettings).catch(() => { /* usa defaults */ });
                 } catch {
                     setUser(null);
                 }
             } else {
                 setUser(null);
-                resetSettings();
             }
             setAuthChecked(true);
         });
@@ -57,7 +50,7 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
             unsubscribe();
             clearTimeout(timeout);
         };
-    }, [setUser, setSettings, resetSettings]);
+    }, [setUser]);
 
     // Periodic token refresh: validates session is still active and claims haven't changed
     useEffect(() => {

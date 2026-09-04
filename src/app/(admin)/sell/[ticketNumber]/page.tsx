@@ -11,11 +11,9 @@ import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
-import { useSettingsStore } from "@/store/settings.store";
 import { callFunction } from "@/services/firebase-callable";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
-import { PAYMENT_METHODS } from "@/constants/statuses";
 import { toast } from "@heroui/react";
 import type { Customer } from "@/types/api.types";
 
@@ -26,9 +24,6 @@ export default function SellTicketPage() {
   const tenantId = useAuthStore((s) => s.user?.tenantId);
   const userRole = useAuthStore((s) => s.user?.role);
   const { activeRaffle, setActiveRaffle } = useRaffleStore();
-  const minInstallment = useSettingsStore((s) => s.settings.minInstallment);
-  const activePaymentMethods = useSettingsStore((s) => s.settings.activePaymentMethods);
-  const methodOptions = PAYMENT_METHODS.filter((m) => activePaymentMethods.includes(m.value));
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -105,7 +100,7 @@ export default function SellTicketPage() {
         });
       } else if (paymentOption === "partial" && paymentAmount) {
         const amount = parseInt(paymentAmount);
-        if (amount >= minInstallment) {
+        if (amount >= 5000) {
           await callFunction("registerPayment", {
             raffleId: activeRaffle.id,
             ticketNumber,
@@ -135,13 +130,13 @@ export default function SellTicketPage() {
       if (target.tagName === "INPUT" && !selectedCustomerId) return;
       // Don't trigger if button is disabled
       if (!selectedCustomerId || selling) return;
-      if (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < minInstallment)) return;
+      if (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < 5000)) return;
       e.preventDefault();
       handleSell();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedCustomerId, selling, paymentOption, paymentAmount, minInstallment]);
+  }, [selectedCustomerId, selling, paymentOption, paymentAmount]);
 
   if (!activeRaffle) return null;
 
@@ -283,10 +278,10 @@ export default function SellTicketPage() {
                     className="w-full"
                     inputMode="numeric"
                   />
-                  {paymentAmount && parseInt(paymentAmount) < minInstallment && (
-                    <p className="text-xs text-danger mt-1">Mínimo: {formatCurrency(minInstallment)}</p>
+                  {paymentAmount && parseInt(paymentAmount) < 5000 && (
+                    <p className="text-xs text-danger mt-1">Mínimo: $5.000</p>
                   )}
-                  {paymentAmount && parseInt(paymentAmount) >= minInstallment && (
+                  {paymentAmount && parseInt(paymentAmount) >= 5000 && (
                     <p className="text-xs text-default-500 mt-1">
                       Abono: {formatCurrency(parseInt(paymentAmount))} — Restante: {formatCurrency(activeRaffle.ticketPrice - parseInt(paymentAmount))}
                     </p>
@@ -302,12 +297,18 @@ export default function SellTicketPage() {
                 <div className="mt-4 pt-4 border-t border-default-100">
                   <label className="text-sm font-medium mb-2 block">Método de pago</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {methodOptions.map(m => (
+                    {[
+                      { id: "cash", label: "Efectivo" },
+                      { id: "nequi", label: "Nequi" },
+                      { id: "daviplata", label: "Daviplata" },
+                      { id: "transfer", label: "Bancolombia" },
+                      { id: "other", label: "Otro" },
+                    ].map(m => (
                       <button
-                        key={m.value}
+                        key={m.id}
                         type="button"
-                        onClick={() => setPaymentMethod(m.value)}
-                        className={`p-2.5 rounded-lg border text-xs text-center transition-all ${paymentMethod === m.value ? "border-primary bg-primary/5 ring-1 ring-primary/30 font-medium" : "border-default-200 hover:bg-default-50"}`}
+                        onClick={() => setPaymentMethod(m.id)}
+                        className={`p-2.5 rounded-lg border text-xs text-center transition-all ${paymentMethod === m.id ? "border-primary bg-primary/5 ring-1 ring-primary/30 font-medium" : "border-default-200 hover:bg-default-50"}`}
                       >
                         {m.label}
                       </button>
@@ -327,7 +328,7 @@ export default function SellTicketPage() {
           <Button
             type="submit"
             variant="primary"
-            isDisabled={!selectedCustomerId || selling || (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < minInstallment))}
+            isDisabled={!selectedCustomerId || selling || (paymentOption === "partial" && (!paymentAmount || parseInt(paymentAmount) < 5000))}
           >
             <Ticket className="h-4 w-4" />
             {selling ? "Procesando..." : "Confirmar venta"}

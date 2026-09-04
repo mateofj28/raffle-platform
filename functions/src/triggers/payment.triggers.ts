@@ -9,7 +9,6 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "../utils/firestore";
-import { getTenantSettings } from "../utils/settings";
 
 /**
  * Triggered when a payment document is created.
@@ -40,11 +39,9 @@ export const onPaymentCreated = onDocumentCreated(
         // Only generate commission if ticket is fully paid
         if (ticket.pendingBalance !== 0) return;
 
-        // Comisión del vendedor según la tasa configurada del tenant.
-        // El resto (valor - comisión) es lo que le corresponde a la empresa.
-        const { commissionRate } = await getTenantSettings(tenantId);
-        const commissionAmount = Math.floor(ticket.value * commissionRate);
-        const companyProfit = ticket.value - commissionAmount;
+        // Calculate commission (30%) and company profit (70%)
+        const commissionAmount = Math.floor(ticket.value * 0.30);
+        const companyProfit = Math.ceil(ticket.value * 0.70);
 
         // Create commission document
         const commissionsRef = db.collection(`tenants/${tenantId}/commissions`);

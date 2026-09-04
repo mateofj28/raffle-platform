@@ -60,7 +60,7 @@ export interface Vendor {
     createdBy: string;
 }
 export type PaymentType = "payment" | "installment";
-export type PaymentMethod = "cash" | "nequi" | "daviplata" | "transfer";
+export type PaymentMethod = "cash" | "transfer" | "card" | "nequi" | "daviplata" | "other";
 export interface Payment {
     id: string;
     ticketId: string;

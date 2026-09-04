@@ -8,15 +8,12 @@ import { StatCard } from "@/components/ui/stat-card";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
-import { useSettingsStore } from "@/store/settings.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Ticket as TicketType, Payment } from "@/types/api.types";
 
 export default function VendorDashboardPage() {
     const user = useAuthStore((s) => s.user);
-    const commissionRate = useSettingsStore((s) => s.settings.commissionRate);
-    const commissionPct = Math.round(commissionRate * 100);
     const [loading, setLoading] = useState(true);
     const [metrics, setMetrics] = useState({
         assigned: 0,
@@ -71,7 +68,7 @@ export default function VendorDashboardPage() {
                     totalCollected += (t.value - t.pendingBalance);
                 });
 
-                const commission = Math.floor(totalCollected * commissionRate);
+                const commission = Math.floor(totalCollected * 0.30);
                 const toDeliver = totalCollected - commission;
 
                 setMetrics({ assigned, sold, paid, installment, totalCollected, commission, toDeliver });
@@ -112,7 +109,7 @@ export default function VendorDashboardPage() {
             finally { setLoading(false); }
         };
         load();
-    }, [user?.tenantId, user?.vendorId, commissionRate]);
+    }, [user?.tenantId, user?.vendorId]);
 
     if (loading) return <div><PageHeader title="Mi Panel" /><LoadingSkeleton rows={8} /></div>;
 
@@ -153,7 +150,7 @@ export default function VendorDashboardPage() {
                     {/* Financial */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <StatCard title="Total recaudado" value={formatCurrency(metrics.totalCollected)} icon={<DollarSign className="h-5 w-5" />} />
-                        <StatCard title={`Mi comisión (${commissionPct}%)`} value={formatCurrency(metrics.commission)} icon={<TrendingUp className="h-5 w-5" />} />
+                        <StatCard title="Mi comisión (30%)" value={formatCurrency(metrics.commission)} icon={<TrendingUp className="h-5 w-5" />} />
                     </div>
                 </section>
             </div>

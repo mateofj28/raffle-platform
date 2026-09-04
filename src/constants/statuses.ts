@@ -39,9 +39,10 @@ export const COMMISSION_STATUSES: Record<CommissionStatus, { label: string; colo
 
 export const PAYMENT_METHODS = [
     { value: "cash", label: "Efectivo" },
+    { value: "transfer", label: "Bancolombia Ahorros" },
     { value: "nequi", label: "Nequi" },
     { value: "daviplata", label: "Daviplata" },
-    { value: "transfer", label: "Bancolombia" },
+    { value: "other", label: "Otro" },
 ] as const;
 
 // --- Pagination ---

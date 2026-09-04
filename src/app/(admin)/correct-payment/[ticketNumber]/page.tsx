@@ -12,14 +12,13 @@ import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
-import { useSettingsStore } from "@/store/settings.store";
 import { callFunction } from "@/services/firebase-callable";
 import { getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
 
 const TYPE_LABELS: Record<string, string> = { payment: "Pago completo", installment: "Abono" };
-const METHOD_LABELS: Record<string, string> = { cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata", transfer: "Bancolombia", other: "Otro" };
+const METHOD_LABELS: Record<string, string> = { cash: "Efectivo", transfer: "Transferencia", card: "Tarjeta", nequi: "Nequi", daviplata: "Daviplata", other: "Otro" };
 
 export default function CorrectPaymentPage() {
   const params = useParams();
@@ -28,7 +27,6 @@ export default function CorrectPaymentPage() {
   const tenantId = useAuthStore((s) => s.user?.tenantId);
   const userRole = useAuthStore((s) => s.user?.role);
   const { activeRaffle } = useRaffleStore();
-  const settings = useSettingsStore((s) => s.settings);
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +38,7 @@ export default function CorrectPaymentPage() {
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
   const [customerName, setCustomerName] = useState<string>("");
 
-  const ticketPrice = activeRaffle?.ticketPrice || settings.defaultTicketPrice;
+  const ticketPrice = activeRaffle?.ticketPrice || 60000;
 
   useEffect(() => {
     if (!activeRaffle) router.push("/raffles");
@@ -85,7 +83,7 @@ export default function CorrectPaymentPage() {
   const pendiente = ticketPrice - totalAbonado;
 
   const printReceipt = (payment: Payment) => {
-    const methodLabels: Record<string, string> = { cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata", transfer: "Bancolombia", other: "Otro" };
+    const methodLabels: Record<string, string> = { cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata", card: "Tarjeta", transfer: "Transferencia", other: "Otro" };
 
     const html = `
       <!DOCTYPE html>
@@ -144,7 +142,7 @@ export default function CorrectPaymentPage() {
 
   const handleCorrect = async (paymentId: string) => {
     const amount = parseInt(newAmount || "0");
-    if (amount < settings.minInstallment) { setError(`El monto mínimo es ${formatCurrency(settings.minInstallment)}`); return; }
+    if (amount < 5000) { setError("El monto mínimo es $5.000"); return; }
     if (amount > ticketPrice) { setError(`Máximo: ${formatCurrency(ticketPrice)}`); return; }
     setProcessing(true); setError(null);
     try {
@@ -312,17 +310,17 @@ export default function CorrectPaymentPage() {
                               inputMode="numeric"
                             />
                             <div className="flex items-center justify-between mt-2">
-                              {newAmount && parseInt(newAmount) >= settings.minInstallment && (
+                              {newAmount && parseInt(newAmount) >= 5000 && (
                                 <p className="text-xs text-default-500">{formatCurrency(payment.amount)} → {formatCurrency(parseInt(newAmount))}</p>
                               )}
-                              {newAmount && parseInt(newAmount) < settings.minInstallment && (
-                                <p className="text-xs text-danger">Mínimo: {formatCurrency(settings.minInstallment)}</p>
+                              {newAmount && parseInt(newAmount) < 5000 && (
+                                <p className="text-xs text-danger">Mínimo: $5.000</p>
                               )}
                               {!newAmount && <p className="text-xs text-default-500">Máximo: {formatCurrency(ticketPrice)}</p>}
                             </div>
                             <div className="flex gap-2 mt-4">
                               <Button variant="ghost" size="sm" onPress={() => { setEditingId(null); setNewAmount(""); }}>Cancelar</Button>
-                              <Button variant="primary" size="sm" isDisabled={processing || !newAmount || parseInt(newAmount) < settings.minInstallment || parseInt(newAmount) > ticketPrice} onPress={() => handleCorrect(payment.id)}>
+                              <Button variant="primary" size="sm" isDisabled={processing || !newAmount || parseInt(newAmount) < 5000 || parseInt(newAmount) > ticketPrice} onPress={() => handleCorrect(payment.id)}>
                                 {processing ? "Guardando..." : "Guardar cambio"}
                               </Button>
                             </div>

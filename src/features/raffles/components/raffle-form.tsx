@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DatePicker, DateField, Calendar } from "@heroui/react";
 import { createRaffleSchema, type CreateRaffleFormData } from "../schemas/raffle.schema";
 import { parseDate, today, getLocalTimeZone, type CalendarDate } from "@internationalized/date";
-import { useSettingsStore } from "@/store/settings.store";
 
 interface RaffleFormProps {
     onSubmit: (data: CreateRaffleFormData) => void;
@@ -38,13 +37,12 @@ function CurrencyInput({ value, onChange, placeholder }: { value: number | undef
 }
 
 export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormProps) {
-    const defaultTicketPrice = useSettingsStore((s) => s.settings.defaultTicketPrice);
     const { register, handleSubmit, control, watch, formState: { errors } } = useForm<CreateRaffleFormData>({
         resolver: zodResolver(createRaffleSchema),
         defaultValues: {
             numbersPerTicket: 1,
             prizeValue: 0,
-            ticketPrice: defaultTicketPrice,
+            ticketPrice: 60000,
             ...defaultValues,
         },
     });

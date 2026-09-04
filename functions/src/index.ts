@@ -30,9 +30,6 @@ export { createVendor, updateVendor, getVendorMetrics } from "./services/vendor.
 // Dashboard
 export { getDashboardMetrics } from "./services/dashboard.service";
 
-// Settings
-export { getSettings, updateSettings } from "./services/settings.service";
-
 // Search
 export { globalSearch } from "./services/search.service";
 

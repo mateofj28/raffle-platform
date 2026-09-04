@@ -10,7 +10,6 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
-import { useSettingsStore } from "@/store/settings.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Payment, Vendor, Customer, Ticket } from "@/types/api.types";
@@ -366,8 +365,6 @@ function PendingBalance({ tickets, customers, vendors, ticketPrice }: { tickets:
 }
 
 function Commissions({ tickets, vendors, ticketPrice }: { tickets: Ticket[]; vendors: Map<string, Vendor>; ticketPrice: number }) {
-    const commissionRate = useSettingsStore((s) => s.settings.commissionRate);
-    const commissionPct = Math.round(commissionRate * 100);
     const byVendor = new Map<string, { collected: number; commission: number }>();
     tickets.forEach(t => {
         if (!t.vendorId) return;
@@ -375,14 +372,14 @@ function Commissions({ tickets, vendors, ticketPrice }: { tickets: Ticket[]; ven
         if (collected <= 0) return;
         const current = byVendor.get(t.vendorId) || { collected: 0, commission: 0 };
         current.collected += collected;
-        current.commission += Math.floor(collected * commissionRate);
+        current.commission += Math.floor(collected * 0.30);
         byVendor.set(t.vendorId, current);
     });
 
     return (
         <div>
             <h2 className="text-lg font-bold mb-4">Comisiones por vendedor</h2>
-            <Table headers={["Vendedor", "Recaudado", `Comisión (${commissionPct}%)`, "Entrega a empresa"]}>
+            <Table headers={["Vendedor", "Recaudado", "Comisión (10%)", "Entrega a empresa"]}>
                 {Array.from(byVendor.entries()).sort((a, b) => b[1].commission - a[1].commission).map(([vendorId, data]) => (
                     <tr key={vendorId}>
                         <td className="px-3 py-2 font-medium">{vendors.get(vendorId)?.name || vendorId}</td>
@@ -518,7 +515,6 @@ function RaffleStatus({ tickets, ticketPrice }: { tickets: Ticket[]; ticketPrice
 }
 
 function VendorLiquidation({ tickets, vendors, ticketPrice }: { tickets: Ticket[]; vendors: Map<string, Vendor>; ticketPrice: number }) {
-    const commissionRate = useSettingsStore((s) => s.settings.commissionRate);
     const byVendor = new Map<string, { assigned: number; sold: number; paid: number; installment: number; collected: number; commission: number }>();
 
     tickets.forEach(t => {
@@ -530,7 +526,7 @@ function VendorLiquidation({ tickets, vendors, ticketPrice }: { tickets: Ticket[
         if (t.status === "installment") current.installment++;
         const collected = t.value - t.pendingBalance;
         current.collected += collected;
-        current.commission += Math.floor(collected * commissionRate);
+        current.commission += Math.floor(collected * 0.30);
         byVendor.set(t.vendorId, current);
     });
 
