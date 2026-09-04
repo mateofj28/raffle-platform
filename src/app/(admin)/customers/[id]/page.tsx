@@ -149,25 +149,18 @@ export default function CustomerDetailPage() {
                           <table className="w-full text-sm">
                               <thead className="bg-default-100">
                                   <tr>
-                                      <th className="px-4 py-3 text-left font-medium">#</th>
-                                      <th className="px-4 py-3 text-left font-medium">Rifa</th>
+                                            <th className="px-4 py-3 text-left font-medium">#</th>
                                       <th className="px-4 py-3 text-left font-medium">Estado</th>
-                                      <th className="px-4 py-3 text-right font-medium">Valor</th>
-                                      <th className="px-4 py-3 text-right font-medium">Saldo</th>
+                                            <th className="px-4 py-3 text-right font-medium">Pagado</th>
                                   </tr>
                               </thead>
                               <tbody className="divide-y divide-default-200">
                                   {tickets.map((ticket, i) => (
                                       <tr key={`${ticket.number}-${i}`} className="hover:bg-default-50">
                                           <td className="px-4 py-3 font-mono font-bold">{ticket.number}</td>
-                                          <td className="px-4 py-3 text-default-600">{ticket.raffleName || "—"}</td>
                                           <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
-                                          <td className="px-4 py-3 text-right">{formatCurrency(ticket.value)}</td>
                                           <td className="px-4 py-3 text-right">
-                                              {ticket.pendingBalance === 0
-                                                  ? <span className="text-success font-medium">$0</span>
-                                                  : <span className="text-warning font-medium">{formatCurrency(ticket.pendingBalance)}</span>
-                                              }
+                                              <span className="text-success font-medium">{formatCurrency(ticket.value - ticket.pendingBalance)}</span>
                                           </td>
                                       </tr>
                                   ))}
