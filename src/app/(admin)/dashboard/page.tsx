@@ -181,7 +181,7 @@ export default function AdminDashboardPage() {
                 description="Panel de administración"
                 actions={
                     <Link href="/raffles">
-                        <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Cambiar Rifa</Button>
+                        <Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4" /> Cambiar Rifa</Button>
                     </Link>
                 }
             />

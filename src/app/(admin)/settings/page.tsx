@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent, Separator, toast } from "@heroui/react";
-import { User, Mail, Shield, Trophy, DollarSign, Hash, Calendar, Ticket, Palette, LogOut, Pencil, X } from "lucide-react";
+import { User, Mail, Shield, Trophy, DollarSign, Hash, Calendar, Ticket, Palette, LogOut, Pencil, X, Eye, EyeOff } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -44,6 +44,8 @@ export default function SettingsPage() {
     const [currentPassword, setCurrentPassword] = useState("");
     const [savingProfile, setSavingProfile] = useState(false);
     const [profileError, setProfileError] = useState<string | null>(null);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
     const openEdit = () => {
         setEditName(user?.displayName || "");
@@ -195,13 +197,23 @@ export default function SettingsPage() {
                                     </div>
                                     <div>
                                         <label className="text-sm font-medium mb-1 block">Nueva contraseña</label>
-                                        <Input type="password" placeholder="Dejar vacío para no cambiar" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full" />
+                                            <div className="relative">
+                                                <Input type={showNewPassword ? "text" : "password"} placeholder="Dejar vacío para no cambiar" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full pr-10" />
+                                                <button type="button" tabIndex={-1} onClick={() => setShowNewPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-default-400 hover:text-default-600 transition-colors" aria-label={showNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
+                                                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                     </div>
                                     <div>
                                         <label className="text-sm font-medium mb-1 block">
                                             Contraseña actual {requiresReauth && <span className="text-danger">*</span>}
                                         </label>
-                                        <Input type="password" placeholder={requiresReauth ? "Requerida para confirmar" : "Solo si cambias correo o contraseña"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full" disabled={!requiresReauth} />
+                                            <div className="relative">
+                                                <Input type={showCurrentPassword ? "text" : "password"} placeholder={requiresReauth ? "Requerida para confirmar" : "Solo si cambias correo o contraseña"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full pr-10" disabled={!requiresReauth} />
+                                                <button type="button" tabIndex={-1} onClick={() => setShowCurrentPassword((v) => !v)} disabled={!requiresReauth} className="absolute right-3 top-1/2 -translate-y-1/2 text-default-400 hover:text-default-600 transition-colors disabled:opacity-40" aria-label={showCurrentPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
+                                                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                     </div>
                                 </div>
                                 {requiresReauth && (
