@@ -13,7 +13,7 @@ initAdmin();
 export { setCustomClaims, createUser, updateUser, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
 
 // Raffle service
-export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber } from "./services/raffle.service";
+export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber, deleteRaffle } from "./services/raffle.service";
 
 // Ticket service
 export { assignTickets, sellTicket, unassignTickets, updateTicketClient, generateTickets } from "./services/ticket.service";

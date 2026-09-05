@@ -28,3 +28,11 @@ export function useTransitionRaffle() {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["raffles"] }),
     });
 }
+
+export function useDeleteRaffle() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (raffleId: string) => raffleService.delete(raffleId),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["raffles"] }),
+    });
+}

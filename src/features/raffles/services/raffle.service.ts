@@ -12,6 +12,9 @@ export const raffleService = {
     update: (raffleId: string, data: Partial<CreateRaffleInput>) =>
         callFunction<{ success: boolean }>("updateRaffle", { raffleId, ...data }),
 
+    delete: (raffleId: string) =>
+        callFunction<{ success: boolean }>("deleteRaffle", { raffleId }),
+
     transition: (raffleId: string, targetState: RaffleStatus) =>
         callFunction<{ success: boolean; newStatus: string }>("transitionRaffleState", { raffleId, targetState }),
 

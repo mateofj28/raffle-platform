@@ -14,7 +14,7 @@ import { z } from "zod";
 import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth";
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
-import { tenantCollection } from "../utils/firestore";
+import { tenantCollection, getDb, BATCH_SIZE } from "../utils/firestore";
 import { createAuditEntry } from "./audit.service";
 import type { RaffleStatus } from "../types/index";
 
@@ -55,6 +55,10 @@ const transitionRaffleStateSchema = z.object({
 const setWinningNumberSchema = z.object({
     raffleId: z.string().min(1),
     winningNumber: z.number().int().min(0).max(9999),
+});
+
+const deleteRaffleSchema = z.object({
+    raffleId: z.string().min(1),
 });
 
 // --- Valid Transitions ---
@@ -307,6 +311,86 @@ export const setWinningNumber = onCall(
             });
 
             return { winner: winningTicketDoc.id };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
+
+/**
+ * Borra en lotes todos los documentos que devuelve una query, respetando
+ * el límite de operaciones por batch de Firestore.
+ */
+async function deleteQueryInBatches(query: FirebaseFirestore.Query): Promise<number> {
+    const db = getDb();
+    let deleted = 0;
+    // Se procesa en páginas para no cargar todo en memoria.
+    // Cada página se borra en batches de BATCH_SIZE.
+    // Repetir hasta que no queden documentos.
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const snap = await query.limit(BATCH_SIZE).get();
+        if (snap.empty) break;
+        const batch = db.batch();
+        snap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+        deleted += snap.size;
+        if (snap.size < BATCH_SIZE) break;
+    }
+    return deleted;
+}
+
+/**
+ * Elimina una rifa y TODO lo asociado a ella:
+ * - la subcolección de boletas (tickets) de la rifa
+ * - los pagos, comisiones y ajustes del tenant que pertenezcan a esa rifa
+ * - el documento de la rifa
+ * NO elimina clientes, vendedores ni usuarios (cajeros/admin): esos se conservan.
+ * Admin-only.
+ */
+export const deleteRaffle = onCall(
+    { region: "us-central1", timeoutSeconds: 540 },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const { raffleId } = validateData(deleteRaffleSchema, request.data);
+
+            const db = getDb();
+            const raffleRef = tenantCollection(context.tenantId, "raffles").doc(raffleId);
+            const raffleSnap = await raffleRef.get();
+
+            if (!raffleSnap.exists) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Rifa no encontrada.");
+            }
+
+            const raffleName = raffleSnap.data()?.name ?? "";
+
+            // 1. Boletas de la rifa (subcolección)
+            const ticketsDeleted = await deleteQueryInBatches(raffleRef.collection("tickets"));
+
+            // 2. Pagos, comisiones y ajustes del tenant asociados a esta rifa
+            const tenantPath = `tenants/${context.tenantId}`;
+            const paymentsDeleted = await deleteQueryInBatches(
+                db.collection(`${tenantPath}/payments`).where("raffleId", "==", raffleId)
+            );
+            const commissionsDeleted = await deleteQueryInBatches(
+                db.collection(`${tenantPath}/commissions`).where("raffleId", "==", raffleId)
+            );
+            const adjustmentsDeleted = await deleteQueryInBatches(
+                db.collection(`${tenantPath}/adjustments`).where("raffleId", "==", raffleId)
+            );
+
+            // 3. El documento de la rifa
+            await raffleRef.delete();
+
+            // Audit trail
+            await createAuditEntry(context.tenantId, "raffle_deleted", "raffle", raffleId, context.uid, null, {
+                name: raffleName, ticketsDeleted, paymentsDeleted, commissionsDeleted, adjustmentsDeleted,
+            });
+
+            return { success: true, ticketsDeleted, paymentsDeleted, commissionsDeleted, adjustmentsDeleted };
         } catch (error) {
             handleError(error);
         }
