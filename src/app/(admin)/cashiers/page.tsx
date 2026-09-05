@@ -44,6 +44,11 @@ export default function CashiersPage() {
     const [showEditPassword, setShowEditPassword] = useState(false);
     const [editingAction, setEditingAction] = useState(false);
 
+    // Búsqueda y paginación
+    const [search, setSearch] = useState("");
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 10;
+
     function capitalizeWords(text: string): string {
         return text.replace(/\b\w/g, (char) => char.toUpperCase());
     }
@@ -118,6 +123,16 @@ export default function CashiersPage() {
             setCreating(false);
         }
     };
+
+    // Filtrado por nombre/correo y paginación
+    const filteredCashiers = search.trim()
+        ? cashiers.filter(c => {
+            const term = search.toLowerCase();
+            return (c.displayName || "").toLowerCase().includes(term) || (c.email || "").toLowerCase().includes(term);
+        })
+        : cashiers;
+    const totalPages = Math.ceil(filteredCashiers.length / PAGE_SIZE);
+    const paginatedCashiers = filteredCashiers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     if (loading) return <div><PageHeader title="Cajeros" /><LoadingSkeleton rows={4} /></div>;
 
@@ -244,8 +259,24 @@ export default function CashiersPage() {
                     }
                 />
             ) : cashiers.length > 0 && (
+                    <>
+                        {/* Buscador */}
+                        <div className="mb-4">
+                            <Input
+                                placeholder="Buscar cajero por nombre o correo..."
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                                className="max-w-md"
+                            />
+                        </div>
+
+                        {filteredCashiers.length === 0 ? (
+                            <div className="text-center py-8">
+                                <p className="text-default-500 text-sm">No se encontraron cajeros con ese criterio</p>
+                            </div>
+                        ) : (
                 <div className="space-y-3">
-                    {cashiers.map((cashier) => (
+                                    {paginatedCashiers.map((cashier) => (
                         <Card key={cashier.id}>
                             <CardContent className="p-4">
                                 <div className="flex items-center justify-between">
@@ -279,7 +310,23 @@ export default function CashiersPage() {
                             </CardContent>
                         </Card>
                     ))}
-                </div>
+
+                                    {/* Paginación */}
+                                    {totalPages > 1 && (
+                                        <div className="flex items-center justify-between pt-2">
+                                            <p className="text-xs text-default-500">
+                                                {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, filteredCashiers.length)} de {filteredCashiers.length}
+                                            </p>
+                                            <div className="flex gap-1">
+                                                <Button variant="ghost" size="sm" isDisabled={page === 1} onPress={() => setPage(p => p - 1)}>Anterior</Button>
+                                                <span className="text-xs text-default-500 flex items-center px-2">{page} / {totalPages}</span>
+                                                <Button variant="ghost" size="sm" isDisabled={page === totalPages} onPress={() => setPage(p => p + 1)}>Siguiente</Button>
+                                            </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </>
             )}
 
             {/* Edit dialog */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, Chip } from "@heroui/react";
+import { Button, Card, CardContent, Chip } from "@heroui/react";
 import { Input } from "@/components/ui/input";
 import { Shield } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -92,6 +92,8 @@ export default function AuditPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [usersMap, setUsersMap] = useState<Map<string, { name: string; role: string }>>(new Map());
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 20;
 
     // Load users to resolve names (from users collection + vendors + customers)
     useEffect(() => {
@@ -149,6 +151,9 @@ export default function AuditPage() {
         })
         : entries;
 
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
     if (loading) return <div><PageHeader title="Auditoría" /><LoadingSkeleton rows={8} /></div>;
 
     return (
@@ -160,7 +165,7 @@ export default function AuditPage() {
                 <Input
                     placeholder="Buscar en el historial..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                     className="max-w-md"
                 />
             </div>
@@ -175,7 +180,7 @@ export default function AuditPage() {
                 />
             ) : (
                 <div className="space-y-2">
-                    {filtered.map((entry) => {
+                        {paginated.map((entry) => {
                         const config = OPERATION_LABELS[entry.operationType] || { label: entry.operationType, color: "default" as const };
                         // Use stored userName/userRole (new entries) or resolve from map (old entries)
                         const storedRole = entry.userRole;
@@ -208,6 +213,20 @@ export default function AuditPage() {
                             </Card>
                         );
                     })}
+
+                        {/* Paginación */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between pt-2">
+                                <p className="text-xs text-default-500">
+                                    {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
+                                </p>
+                                <div className="flex gap-1">
+                                    <Button variant="ghost" size="sm" isDisabled={page === 1} onPress={() => setPage(p => p - 1)}>Anterior</Button>
+                                    <span className="text-xs text-default-500 flex items-center px-2">{page} / {totalPages}</span>
+                                    <Button variant="ghost" size="sm" isDisabled={page === totalPages} onPress={() => setPage(p => p + 1)}>Siguiente</Button>
+                                </div>
+                            </div>
+                        )}
                 </div>
             )}
         </div>
