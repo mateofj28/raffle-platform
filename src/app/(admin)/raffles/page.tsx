@@ -85,8 +85,10 @@ export default function RafflesPage() {
                 />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                            {raffles.map((raffle) => {
-                                const isCurrent = activeRaffle?.id === raffle.id;
+                            {raffles.map((raffle, index) => {
+                                // La "rifa actual" es la creada más recientemente.
+                                // La lista viene ordenada por createdAt desc, así que es la primera.
+                                const isCurrent = index === 0;
                                 return (
                                     <Card
                                         key={raffle.id}
