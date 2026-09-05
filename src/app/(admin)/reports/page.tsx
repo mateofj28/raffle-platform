@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
@@ -221,7 +221,7 @@ function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; ven
                     <Table headers={["#", "Cliente", "Estado", "Abonado", "Saldo"]}>
                             {selectedTickets.map(t => (
                             <tr key={t.number}>
-                                <td className="px-3 py-2 font-mono">{t.number}</td>
+                                    <td className="px-3 py-2 font-mono">{formatTicketNumber(t.number)}</td>
                                 <td className="px-3 py-2">{t.customerId ? customers.get(t.customerId)?.name || "—" : "—"}</td>
                                     <td className="px-3 py-2"><StatusBadge status={t.status} /></td>
                                     <td className="px-3 py-2 text-right text-success font-medium">{formatCurrency(t.value - t.pendingBalance)}</td>
@@ -244,7 +244,7 @@ function UnsoldTickets({ tickets, vendors }: { tickets: Ticket[]; vendors: Map<s
             <Table headers={["#", "Vendedor"]}>
                 {unsold.map(t => (
                     <tr key={t.number}>
-                        <td className="px-3 py-2 font-mono">{t.number}</td>
+                        <td className="px-3 py-2 font-mono">{formatTicketNumber(t.number)}</td>
                         <td className="px-3 py-2">{t.vendorId ? vendors.get(t.vendorId)?.name || "—" : "Sin asignar"}</td>
                     </tr>
                 ))}
@@ -351,7 +351,7 @@ function PendingBalance({ tickets, customers, vendors, ticketPrice }: { tickets:
                     <Table headers={["#", "Cliente", "Abonado", "Pendiente"]}>
                         {(selectedData?.tickets || []).sort((a, b) => b.pendingBalance - a.pendingBalance).map(t => (
                             <tr key={t.number}>
-                                <td className="px-3 py-2 font-mono">{t.number}</td>
+                                <td className="px-3 py-2 font-mono">{formatTicketNumber(t.number)}</td>
                                 <td className="px-3 py-2">{t.customerId ? customers.get(t.customerId)?.name || "—" : "—"}</td>
                                 <td className="px-3 py-2 text-right text-emerald-500 font-medium">{formatCurrency(t.value - t.pendingBalance)}</td>
                                 <td className="px-3 py-2 text-right text-red-400 font-semibold">{formatCurrency(t.pendingBalance)}</td>
@@ -464,7 +464,7 @@ function Morosos({ tickets, customers, ticketPrice }: { tickets: Ticket[]; custo
                     <Table headers={["#", "Pendiente"]}>
                         {(selectedData?.tickets || []).sort((a, b) => b.pendingBalance - a.pendingBalance).map(t => (
                             <tr key={t.number}>
-                                <td className="px-3 py-2 font-mono font-bold">#{t.number}</td>
+                                <td className="px-3 py-2 font-mono font-bold">#{formatTicketNumber(t.number)}</td>
                                 <td className="px-3 py-2 text-right text-red-400 font-semibold">{formatCurrency(t.pendingBalance)}</td>
                             </tr>
                         ))}

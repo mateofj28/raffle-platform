@@ -10,7 +10,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
@@ -129,7 +129,7 @@ export default function VendorDetailPage() {
     const handleAddPayment = () => {
         const num = parseInt(payTicketInput);
         const amount = parseInt(payAmountInput.replace(/\D/g, "") || "0");
-        if (!num) { setPayError("Ingresa un número de boleta"); return; }
+        if (Number.isNaN(num) || num < 0 || num > 9999) { setPayError("Ingresa un número de boleta válido"); return; }
         if (amount < 5000) { setPayError("El monto mínimo es $5.000"); return; }
 
         const ticket = tickets.find(t => t.number === num);
@@ -249,7 +249,7 @@ export default function VendorDetailPage() {
                         <div className="flex items-end gap-3 flex-wrap mb-3">
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Boleta</label>
-                                <Input ref={payTicketInputRef} placeholder="Ej: 55" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" className="w-24" maxLength={5} />
+                                <Input ref={payTicketInputRef} placeholder="Ej: 55" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 4))} inputMode="numeric" className="w-24" maxLength={4} />
                             </div>
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Monto</label>
@@ -389,7 +389,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
         if (statusFilter && t.status !== statusFilter) return false;
         if (search) {
             const term = search.toLowerCase();
-            const matchesNumber = String(t.number).includes(term);
+            const matchesNumber = String(t.number).includes(term) || formatTicketNumber(t.number).includes(term);
             const matchesName = t.customerName?.toLowerCase().includes(term);
             if (!matchesNumber && !matchesName) return false;
         }
@@ -477,7 +477,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                             const canPay = (ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment") && ticket.pendingBalance > 0;
                             return (
               <tr key={ticket.number} className="hover:bg-default-50">
-                    <td className="px-4 py-3 font-mono font-bold">{ticket.number}</td>
+                                    <td className="px-4 py-3 font-mono font-bold">{formatTicketNumber(ticket.number)}</td>
                     <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
                     <td className="px-4 py-3">
                         {ticket.customerName ? (

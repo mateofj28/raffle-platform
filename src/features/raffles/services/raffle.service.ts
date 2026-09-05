@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store/auth.store";
 
 export const raffleService = {
     create: (data: CreateRaffleInput) =>
-        callFunction<{ raffleId: string }>("createRaffle", { ...data, totalTickets: 5000 }),
+        callFunction<{ raffleId: string }>("createRaffle", { ...data }),
 
     update: (raffleId: string, data: Partial<CreateRaffleInput>) =>
         callFunction<{ success: boolean }>("updateRaffle", { raffleId, ...data }),

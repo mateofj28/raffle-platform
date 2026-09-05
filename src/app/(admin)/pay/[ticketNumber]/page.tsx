@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
 import { callFunction } from "@/services/firebase-callable";
@@ -56,7 +56,7 @@ export default function PayTicketPage() {
   // Load ticket pending balance
   useEffect(() => {
     if (!tenantId || !activeRaffle) return;
-    const padded = String(ticketNumber).padStart(5, "0");
+    const padded = String(ticketNumber).padStart(4, "0");
     const ticketRef = doc(tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`), padded);
     getDoc(ticketRef).then((snap) => {
       if (snap.exists()) {
@@ -126,7 +126,7 @@ export default function PayTicketPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <PageHeader
-        title={`Abonar boleta #${ticketNumber}`}
+        title={`Abonar boleta #${formatTicketNumber(ticketNumber)}`}
         description={`Rifa: ${activeRaffle.name}`}
         actions={
           <Button variant="ghost" size="sm" onPress={() => router.back()}>

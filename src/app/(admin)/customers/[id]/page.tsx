@@ -11,7 +11,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
@@ -173,7 +173,7 @@ export default function CustomerDetailPage() {
                               <tbody className="divide-y divide-default-200">
                                   {tickets.map((ticket, i) => (
                                       <tr key={`${ticket.number}-${i}`} className="hover:bg-default-50">
-                                          <td className="px-4 py-3 font-mono font-bold">{ticket.number}</td>
+                                          <td className="px-4 py-3 font-mono font-bold">{formatTicketNumber(ticket.number)}</td>
                                           <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
                                           <td className="px-4 py-3 text-right">
                                               <span className="text-success font-medium">{formatCurrency(ticket.value - ticket.pendingBalance)}</span>

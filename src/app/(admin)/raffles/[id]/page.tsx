@@ -103,7 +103,7 @@ export default function RaffleDetailPage() {
     // Add ticket to list
     const handleAddTicket = () => {
         const num = parseInt(ticketInput);
-        if (!num || num < 1) { setAssignError("Ingresa un número válido"); return; }
+        if (Number.isNaN(num) || num < 0 || num > 9999) { setAssignError("Ingresa un número entre 0 y 9999"); return; }
         if (assignList.includes(num)) { setAssignError(`Boleta #${num} ya está en la lista`); return; }
 
         const ticket = tickets.find(t => t.number === num);
@@ -268,7 +268,7 @@ export default function RaffleDetailPage() {
                             )}
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Boleta</label>
-                                <Input placeholder="Ej: 55" value={ticketInput} onChange={(e) => setTicketInput(e.target.value.replace(/\D/g, "").slice(0, 5))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTicket(); } }} inputMode="numeric" className="w-24" maxLength={5} />
+                                <Input placeholder="Ej: 55" value={ticketInput} onChange={(e) => setTicketInput(e.target.value.replace(/\D/g, "").slice(0, 4))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTicket(); } }} inputMode="numeric" className="w-24" maxLength={4} />
                             </div>
                             <Button variant="outline" size="sm" onPress={handleAddTicket} isDisabled={!ticketInput || (assignMode === "assign" && !selectedVendor)}>Agregar</Button>
                         </div>

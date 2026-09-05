@@ -34,7 +34,7 @@ export default function TicketSearchPage() {
 
     const handleSearch = async () => {
         const num = parseInt(searchInput);
-        if (!num || num < 1 || !tenantId) return;
+        if (Number.isNaN(num) || num < 0 || num > 9999 || !tenantId) return;
 
         setSearching(true);
         setResult(null);
@@ -43,7 +43,7 @@ export default function TicketSearchPage() {
 
         try {
             const db = getDb();
-            const ticketDocId = String(num).padStart(5, "0");
+            const ticketDocId = String(num).padStart(4, "0");
             const ticketRef = doc(db, "tenants", tenantId, "raffles", raffleId, "tickets", ticketDocId);
             const ticketSnap = await getDoc(ticketRef);
 
@@ -119,7 +119,7 @@ export default function TicketSearchPage() {
                             <Input
                                 placeholder="Ej: 55"
                                 value={searchInput}
-                                onChange={(e) => setSearchInput(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                                onChange={(e) => setSearchInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                         e.preventDefault();

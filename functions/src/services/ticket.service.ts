@@ -22,27 +22,28 @@ import { createAuditEntry } from "./audit.service";
 const assignTicketsSchema = z.object({
     raffleId: z.string().min(1),
     vendorId: z.string().min(1),
-    // Supports either a range (fromNumber/toNumber) or a list of specific numbers
-    fromNumber: z.number().int().min(1).optional(),
-    toNumber: z.number().int().min(1).optional(),
-    ticketNumbers: z.array(z.number().int().min(1)).optional(),
+    // Supports either a range (fromNumber/toNumber) or a list of specific numbers.
+    // Los números de boleta van de 0 a 9999.
+    fromNumber: z.number().int().min(0).max(9999).optional(),
+    toNumber: z.number().int().min(0).max(9999).optional(),
+    ticketNumbers: z.array(z.number().int().min(0).max(9999)).optional(),
 });
 
 const unassignTicketsSchema = z.object({
     raffleId: z.string().min(1),
-    ticketNumbers: z.array(z.number().int().min(1)).min(1),
+    ticketNumbers: z.array(z.number().int().min(0).max(9999)).min(1),
 });
 
 const sellTicketSchema = z.object({
     raffleId: z.string().min(1),
-    ticketNumber: z.number().int().min(1),
+    ticketNumber: z.number().int().min(0).max(9999),
     customerId: z.string().min(1),
 });
 
 // --- Helpers ---
 
 function padTicketNumber(num: number): string {
-    return String(num).padStart(5, "0");
+    return String(num).padStart(4, "0");
 }
 
 // --- Internal Function (non-callable) ---
@@ -50,35 +51,40 @@ function padTicketNumber(num: number): string {
 /**
  * Batch generates tickets for a raffle.
  * Called internally by raffle service during raffle creation.
- * 
- * When numbersPerTicket = 1: each ticket has a single number (1, 2, 3...).
- * When numbersPerTicket = 2: each ticket has a pair of consecutive numbers (1-2, 3-4, 5-6...).
- * The winner matches if any of their numbers is drawn.
+ *
+ * Lo fijo son los `totalNumbers` (10.000: números 0000..9999). Cada boleta
+ * cubre `numbersPerTicket` números consecutivos, así que la cantidad de
+ * boletas es totalNumbers / numbersPerTicket:
+ *  - numbersPerTicket = 1 → 10.000 boletas; boleta N juega [N].
+ *  - numbersPerTicket = 2 → 5.000 boletas; boleta N juega [N*2, N*2+1]
+ *    (boleta 0 → [0,1], ... boleta 4999 → [9998,9999]).
+ * El ganador acierta si cualquiera de los números de su boleta es sorteado.
  */
 export async function generateTickets(
     tenantId: string,
     raffleId: string,
-    totalTickets: number,
+    totalNumbers: number,
     ticketPrice: number,
     numbersPerTicket: number = 1
 ): Promise<void> {
     const db = getDb();
     const ticketsBasePath = `tenants/${tenantId}/raffles/${raffleId}/tickets`;
 
+    const totalTickets = Math.floor(totalNumbers / numbersPerTicket);
+
     for (let i = 0; i < totalTickets; i += BATCH_SIZE) {
         const batch = db.batch();
         const end = Math.min(i + BATCH_SIZE, totalTickets);
 
         for (let ticketIndex = i; ticketIndex < end; ticketIndex++) {
-            const ticketNum = ticketIndex + 1; // 1-based ticket number
+            const ticketNum = ticketIndex; // 0-based ticket number
             const docId = padTicketNumber(ticketNum);
             const ticketRef = db.collection(ticketsBasePath).doc(docId);
 
-            // Calculate the lottery numbers this ticket covers
+            // Números que cubre esta boleta, todos dentro de 0000..9999
             let numbers: number[];
             if (numbersPerTicket === 2) {
-                // Pairs: ticket 1 = [1,2], ticket 2 = [3,4], ticket 3 = [5,6]...
-                const firstNum = (ticketNum - 1) * 2 + 1;
+                const firstNum = ticketNum * 2; // boleta 0 → [0,1], boleta 4999 → [9998,9999]
                 numbers = [firstNum, firstNum + 1];
             } else {
                 numbers = [ticketNum];
@@ -144,7 +150,7 @@ export const assignTickets = onCall(
             if (ticketNumbers && ticketNumbers.length > 0) {
                 // Mode: specific ticket numbers
                 numbersToAssign = ticketNumbers;
-            } else if (fromNumber && toNumber) {
+            } else if (fromNumber !== undefined && toNumber !== undefined) {
                 // Mode: range
                 if (fromNumber > toNumber) {
                     throw new AppError(
@@ -353,7 +359,7 @@ export const updateTicketClient = onCall(
 
             const schema = z.object({
                 raffleId: z.string().min(1),
-                ticketNumber: z.number().int().min(1),
+                ticketNumber: z.number().int().min(0).max(9999),
                 customerId: z.string().min(1),
             });
 

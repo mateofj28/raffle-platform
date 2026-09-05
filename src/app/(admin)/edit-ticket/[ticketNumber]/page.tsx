@@ -8,7 +8,7 @@ import { ArrowLeft, User, DollarSign, Search } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
@@ -42,7 +42,7 @@ export default function EditTicketPage() {
     if (!tenantId || !activeRaffle) return;
     const load = async () => {
       // Load ticket
-      const padded = String(ticketNumber).padStart(5, "0");
+      const padded = String(ticketNumber).padStart(4, "0");
       const ticketDoc = await getDoc(doc(getDb(), "tenants", tenantId, "raffles", activeRaffle.id, "tickets", padded));
       if (ticketDoc.exists()) setTicket(ticketDoc.data() as TicketType);
 
@@ -96,7 +96,7 @@ export default function EditTicketPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <PageHeader
-        title={`Editar boleta #${ticketNumber}`}
+        title={`Editar boleta #${formatTicketNumber(ticketNumber)}`}
         description={action === "client" ? "Cambiar o asignar cliente" : "Editar información"}
         actions={
           <Button variant="ghost" size="sm" onPress={() => router.back()}>

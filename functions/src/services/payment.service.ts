@@ -19,7 +19,7 @@ import { createAuditEntry } from "./audit.service";
 
 const registerPaymentSchema = z.object({
     raffleId: z.string().min(1),
-    ticketNumber: z.number().int().min(1),
+    ticketNumber: z.number().int().min(0).max(9999),
     amount: z.number().int().min(1),
     type: z.enum(["payment", "installment"]),
     method: z.enum(["cash", "transfer", "card", "nequi", "daviplata", "other"]),
@@ -35,7 +35,7 @@ const reversePaymentSchema = z.object({
 // --- Helpers ---
 
 function padTicketNumber(num: number): string {
-    return String(num).padStart(5, "0");
+    return String(num).padStart(4, "0");
 }
 
 // --- Callable Functions ---

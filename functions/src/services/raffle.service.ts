@@ -30,7 +30,6 @@ const createRaffleSchema = z.object({
     drawDate: z.string().min(1),
     lottery: z.string().min(1),
     ticketPrice: z.number().int().positive(),
-    totalTickets: z.number().int().min(1).max(50000),
     numbersPerTicket: z.number().int().min(1).max(2).default(1),
 });
 
@@ -45,7 +44,6 @@ const updateRaffleSchema = z.object({
     drawDate: z.string().min(1).optional(),
     lottery: z.string().min(1).optional(),
     ticketPrice: z.number().int().positive().optional(),
-    totalTickets: z.number().int().min(1).max(50000).optional(),
     numbersPerTicket: z.number().int().min(1).max(2).optional(),
 });
 
@@ -56,7 +54,7 @@ const transitionRaffleStateSchema = z.object({
 
 const setWinningNumberSchema = z.object({
     raffleId: z.string().min(1),
-    winningNumber: z.number().int().positive(),
+    winningNumber: z.number().int().min(0).max(9999),
 });
 
 // --- Valid Transitions ---
@@ -98,6 +96,11 @@ export const createRaffle = onCall(
             const newRaffleRef = rafflesRef.doc();
             const raffleId = newRaffleRef.id;
 
+            // Los números siempre son 10.000 (0000..9999). La cantidad de boletas
+            // depende de cuántos números tenga cada una: 1 → 10.000 boletas, 2 → 5.000.
+            const TOTAL_NUMBERS = 10000;
+            const totalTickets = Math.floor(TOTAL_NUMBERS / data.numbersPerTicket);
+
             await newRaffleRef.set({
                 id: raffleId,
                 name: data.name,
@@ -109,7 +112,7 @@ export const createRaffle = onCall(
                 drawDate: data.drawDate,
                 lottery: data.lottery,
                 ticketPrice: data.ticketPrice,
-                totalTickets: data.totalTickets,
+                totalTickets,
                 numbersPerTicket: data.numbersPerTicket,
                 semester: getSemester(data.startDate),
                 status: "draft" as RaffleStatus,
@@ -120,13 +123,13 @@ export const createRaffle = onCall(
                 updatedAt: FieldValue.serverTimestamp(),
             });
 
-            // Generate tickets for the raffle
+            // Generate tickets for the raffle (se le pasa el total de NÚMEROS)
             const { generateTickets } = await import("./ticket.service");
-            await generateTickets(context.tenantId, raffleId, data.totalTickets, data.ticketPrice, data.numbersPerTicket);
+            await generateTickets(context.tenantId, raffleId, TOTAL_NUMBERS, data.ticketPrice, data.numbersPerTicket);
 
             // Audit trail
             await createAuditEntry(context.tenantId, "raffle_created", "raffle", raffleId, context.uid, null, {
-                name: data.name, totalTickets: data.totalTickets, ticketPrice: data.ticketPrice,
+                name: data.name, totalTickets, ticketPrice: data.ticketPrice,
             });
 
             return { raffleId };

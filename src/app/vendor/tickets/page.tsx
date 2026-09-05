@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
@@ -67,7 +67,7 @@ export default function VendorTicketsPage() {
         if (statusFilter && t.status !== statusFilter) return false;
         if (search) {
             const term = search.toLowerCase();
-            const matchesNumber = String(t.number).includes(term);
+            const matchesNumber = String(t.number).includes(term) || formatTicketNumber(t.number).includes(term);
             const customerName = t.customerId ? customers.get(t.customerId)?.toLowerCase() || "" : "";
             if (!matchesNumber && !customerName.includes(term)) return false;
         }
@@ -190,7 +190,7 @@ export default function VendorTicketsPage() {
                                                 const customerName = ticket.customerId ? customers.get(ticket.customerId) || "—" : "—";
                                                 return (
                                                     <tr key={ticket.number} className="hover:bg-default-50">
-                                                        <td className="px-4 py-3 font-mono font-bold">{ticket.number}</td>
+                                                        <td className="px-4 py-3 font-mono font-bold">{formatTicketNumber(ticket.number)}</td>
                                                         <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
                                                         <td className="px-4 py-3">{customerName}</td>
                                                         <td className="px-4 py-3 text-right">

@@ -61,9 +61,9 @@ export function formatDateTime(dateStr: unknown): string {
 }
 
 /**
- * Formats a ticket number with leading zeros.
+ * Formats a ticket number with leading zeros (0000..9999).
  */
-export function formatTicketNumber(num: number, totalDigits = 5): string {
+export function formatTicketNumber(num: number, totalDigits = 4): string {
     return String(num).padStart(totalDigits, "0");
 }
 

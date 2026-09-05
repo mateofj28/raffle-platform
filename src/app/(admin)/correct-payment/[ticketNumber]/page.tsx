@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
@@ -52,7 +52,7 @@ export default function CorrectPaymentPage() {
   // Load customer name from ticket
   useEffect(() => {
     if (!tenantId || !activeRaffle) return;
-    const padded = String(ticketNumber).padStart(5, "0");
+    const padded = String(ticketNumber).padStart(4, "0");
     const ticketRef = doc(getDb(), "tenants", tenantId, "raffles", activeRaffle.id, "tickets", padded);
     getDoc(ticketRef).then((snap) => {
       if (snap.exists() && snap.data().customerId) {
@@ -66,7 +66,7 @@ export default function CorrectPaymentPage() {
 
   const loadPayments = async () => {
     if (!tenantId) return;
-    const padded = String(ticketNumber).padStart(5, "0");
+    const padded = String(ticketNumber).padStart(4, "0");
     const col = tenantCollection(tenantId, "payments");
     const q = query(col, where("ticketId", "==", padded), orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
@@ -110,7 +110,7 @@ export default function CorrectPaymentPage() {
         </div>
         <div class="amount">$ ${payment.amount.toLocaleString("es-CO")}</div>
         <div class="field"><span class="field-label">Cliente</span><span class="field-value">${customerName || "—"}</span></div>
-        <div class="field"><span class="field-label">Boleta #</span><span class="field-value">${ticketNumber}</span></div>
+        <div class="field"><span class="field-label">Boleta #</span><span class="field-value">${formatTicketNumber(ticketNumber)}</span></div>
         <div class="field"><span class="field-label">Método de pago</span><span class="field-value">${methodLabels[payment.method] || payment.method}</span></div>
         <div class="field"><span class="field-label">Fecha</span><span class="field-value">${payment.createdAt ? formatDateTime(payment.createdAt) : "—"}</span></div>
         <div class="field"><span class="field-label">Tipo</span><span class="field-value">${payment.type === "payment" ? "Pago completo" : "Abono"}</span></div>
@@ -186,7 +186,7 @@ export default function CorrectPaymentPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <PageHeader
-        title={`Boleta #${ticketNumber}`}
+        title={`Boleta #${formatTicketNumber(ticketNumber)}`}
         description="Gestionar abonos y pagos"
         actions={
           <Button variant="ghost" size="sm" onPress={() => router.back()}>

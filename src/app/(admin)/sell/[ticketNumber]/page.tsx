@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, User, Ticket, DollarSign, Search } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
@@ -143,7 +143,7 @@ export default function SellTicketPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <PageHeader
-        title={`Vender boleta #${ticketNumber}`}
+        title={`Vender boleta #${formatTicketNumber(ticketNumber)}`}
         description={`Rifa: ${activeRaffle.name} — Valor: ${formatCurrency(activeRaffle.ticketPrice)}`}
         actions={
           <Button variant="ghost" size="sm" onPress={() => router.back()}>
