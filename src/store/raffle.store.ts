@@ -9,6 +9,7 @@ interface ActiveRaffle {
   status: string;
   ticketPrice: number;
   totalTickets: number;
+  semester?: 1 | 2;
 }
 
 interface RaffleStore {

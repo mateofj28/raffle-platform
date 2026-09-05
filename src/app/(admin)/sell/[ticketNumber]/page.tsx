@@ -44,7 +44,7 @@ export default function SellTicketPage() {
       const snap = await getDocs(q);
       if (!snap.empty) {
         const r = snap.docs[0];
-        setActiveRaffle({ id: r.id, name: r.data().name, status: r.data().status, ticketPrice: r.data().ticketPrice, totalTickets: r.data().totalTickets });
+        setActiveRaffle({ id: r.id, name: r.data().name, status: r.data().status, ticketPrice: r.data().ticketPrice, totalTickets: r.data().totalTickets, semester: r.data().semester });
       } else {
         router.push("/vendor/dashboard");
       }

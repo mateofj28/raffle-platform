@@ -31,6 +31,11 @@ export function Header({ onMenuToggle }: HeaderProps) {
               <Link href="/raffles" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   <Ticket className="h-4 w-4 text-primary" />
                   <span className="text-sm font-semibold truncate max-w-[200px]">{activeRaffle.name}</span>
+                    {activeRaffle.semester && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary whitespace-nowrap">
+                            {activeRaffle.semester === 1 ? "1er semestre" : "2do semestre"}
+                        </span>
+                    )}
               </Link>
           ) : (
               <span className="text-sm text-default-500">Sin rifa seleccionada</span>
