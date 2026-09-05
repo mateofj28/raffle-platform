@@ -109,7 +109,7 @@ export default function RafflesPage() {
                                             type="button"
                                             aria-label="Eliminar rifa"
                                             onClick={() => setToDelete(raffle)}
-                                            className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-danger/10 text-danger opacity-0 scale-90 transition-all duration-200 hover:bg-danger/20 group-hover:opacity-100 group-hover:scale-100 focus-visible:opacity-100 focus-visible:scale-100"
+                                            className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-danger/10 text-danger transition-all duration-200 hover:bg-danger/20 opacity-100 scale-100 md:opacity-0 md:scale-90 md:group-hover:opacity-100 md:group-hover:scale-100 md:focus-visible:opacity-100 md:focus-visible:scale-100"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>
