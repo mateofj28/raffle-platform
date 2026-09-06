@@ -170,7 +170,8 @@ export default function SettingsPage() {
                             <h3 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
                                 <User className="h-4 w-4 text-primary" /> Mi cuenta
                             </h3>
-                            {!editing && (
+                            {/* Solo el admin puede editar su perfil. El cajero lo ve en modo lectura. */}
+                            {!editing && user?.role === "admin" && (
                                 <Button variant="outline" size="sm" onPress={openEdit}>
                                     <Pencil className="h-4 w-4" /> Editar perfil
                                 </Button>
