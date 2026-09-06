@@ -119,7 +119,7 @@ export const createRaffle = onCall(
                 totalTickets,
                 numbersPerTicket: data.numbersPerTicket,
                 semester: getSemester(data.startDate),
-                status: "draft" as RaffleStatus,
+                status: "active" as RaffleStatus,
                 winningNumber: null,
                 imageUrl: "",
                 createdBy: context.uid,
