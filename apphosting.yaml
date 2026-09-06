@@ -6,8 +6,10 @@
 # (está gitignored), así que deben vivir en este archivo versionado.
 
 runConfig:
-  minInstances: 0
-  maxInstances: 1
+  # 1 instancia siempre encendida para evitar cold starts (errores 500 al entrar
+  # tras inactividad). maxInstances permite escalar con varios usuarios a la vez.
+  minInstances: 1
+  maxInstances: 2
 
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
