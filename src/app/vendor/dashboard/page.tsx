@@ -77,12 +77,10 @@ export default function VendorDashboardPage() {
                 const now = new Date();
                 const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-                // Pagos registrados POR este vendedor (su actividad real). El raffleId se filtra en memoria.
                 const paymentsCol = tenantCollection(user.tenantId, "payments");
-                const paymentsQ = query(paymentsCol, where("createdBy", "==", user.uid), orderBy("createdAt", "desc"));
+                const paymentsQ = query(paymentsCol, where("vendorId", "==", user.vendorId), where("raffleId", "==", raffleId), orderBy("createdAt", "desc"));
                 const paymentsSnap = await getDocs(paymentsQ);
-                const allPayments = (paymentsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[])
-                    .filter(p => p.raffleId === raffleId);
+                const allPayments = paymentsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[];
 
                 const todayPayments = allPayments.filter(p => {
                     if (!p.createdAt) return false;
@@ -111,7 +109,7 @@ export default function VendorDashboardPage() {
             finally { setLoading(false); }
         };
         load();
-    }, [user?.tenantId, user?.vendorId, user?.uid]);
+    }, [user?.tenantId, user?.vendorId]);
 
     if (loading) return <div><PageHeader title="Mi Panel" /><LoadingSkeleton rows={8} /></div>;
 

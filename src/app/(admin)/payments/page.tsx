@@ -20,6 +20,8 @@ const METHOD_LABELS: Record<string, string> = { cash: "Efectivo", transfer: "Tra
 
 export default function PaymentsPage() {
     const tenantId = useAuthStore((s) => s.user?.tenantId);
+    const userRole = useAuthStore((s) => s.user?.role);
+    const userUid = useAuthStore((s) => s.user?.uid);
     const { activeRaffle } = useRaffleStore();
     const [payments, setPayments] = useState<Payment[]>([]);
     const [vendors, setVendors] = useState<Map<string, string>>(new Map());
@@ -45,11 +47,17 @@ export default function PaymentsPage() {
         const load = async () => {
             setLoading(true);
             try {
-                // Load payments filtered by active raffle with limit
                 const col = tenantCollection(tenantId, "payments");
-                const q = query(col, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc"), limit(INITIAL_LOAD));
+                // El cajero solo ve los pagos que él registró (createdBy). El admin ve todos los de la rifa.
+                const isCashier = userRole === "cashier";
+                const q = isCashier
+                    ? query(col, where("createdBy", "==", userUid), orderBy("createdAt", "desc"), limit(INITIAL_LOAD))
+                    : query(col, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc"), limit(INITIAL_LOAD));
                 const snap = await getDocs(q);
-                setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
+                // Para el cajero, la query es por createdBy (todas las rifas); acotamos a la rifa activa en memoria.
+                let rows = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[];
+                if (isCashier) rows = rows.filter(p => p.raffleId === activeRaffle.id);
+                setPayments(rows);
                 lastPaymentDocRef.current = snap.docs[snap.docs.length - 1] || null;
                 setHasMorePayments(snap.docs.length === INITIAL_LOAD);
 
@@ -68,7 +76,7 @@ export default function PaymentsPage() {
             finally { setLoading(false); }
         };
         load();
-    }, [tenantId, activeRaffle]);
+    }, [tenantId, activeRaffle, userRole, userUid]);
 
     // Apply filters
     const filtered = payments.filter(p => {
@@ -245,9 +253,13 @@ export default function PaymentsPage() {
                                     setLoadingMore(true);
                                     try {
                                         const col = tenantCollection(tenantId, "payments");
-                                        const q = query(col, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc"), startAfter(lastPaymentDocRef.current), limit(INITIAL_LOAD));
+                                        const isCashier = userRole === "cashier";
+                                        const q = isCashier
+                                            ? query(col, where("createdBy", "==", userUid), orderBy("createdAt", "desc"), startAfter(lastPaymentDocRef.current), limit(INITIAL_LOAD))
+                                            : query(col, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc"), startAfter(lastPaymentDocRef.current), limit(INITIAL_LOAD));
                                         const snap = await getDocs(q);
-                                        const morePayments = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[];
+                                        let morePayments = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[];
+                                        if (isCashier) morePayments = morePayments.filter(p => p.raffleId === activeRaffle.id);
                                         setPayments(prev => [...prev, ...morePayments]);
                                         lastPaymentDocRef.current = snap.docs[snap.docs.length - 1] || null;
                                         setHasMorePayments(snap.docs.length === INITIAL_LOAD);
