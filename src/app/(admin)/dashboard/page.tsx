@@ -146,15 +146,21 @@ export default function AdminDashboardPage() {
                 // Calculate today metrics
                 const todayMoney = todayPayments.reduce((s, p) => s + p.amount, 0);
 
-                // Count tickets sold today (sold via saleDate)
+                // Boletas de hoy:
+                // - Cajero: cantidad de boletas distintas sobre las que registró pagos hoy.
+                // - Admin: boletas de la rifa cuya venta (saleDate) fue hoy.
                 let ticketsSoldToday = 0;
-                ticketsSnap.docs.forEach(d => {
-                    const t = d.data();
-                    if (t.saleDate) {
-                        const saleDate = t.saleDate.toDate?.() || new Date(t.saleDate.seconds * 1000);
-                        if (saleDate >= startOfDay) ticketsSoldToday++;
-                    }
-                });
+                if (isCashier) {
+                    ticketsSoldToday = new Set(todayPayments.map(p => p.ticketId)).size;
+                } else {
+                    ticketsSnap.docs.forEach(d => {
+                        const t = d.data();
+                        if (t.saleDate) {
+                            const saleDate = t.saleDate.toDate?.() || new Date(t.saleDate.seconds * 1000);
+                            if (saleDate >= startOfDay) ticketsSoldToday++;
+                        }
+                    });
+                }
 
                 // Top method today
                 const methodCounts = new Map<string, number>();
@@ -278,7 +284,10 @@ export default function AdminDashboardPage() {
                             {/* Financial */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
                                 <StatCard title="Recaudado" value={formatCurrency(metrics.totalCollected)} icon={<DollarSign className="h-5 w-5" />} />
-                                <StatCard title="Pendiente por cobrar" value={formatCurrency(metrics.totalPending)} icon={<CreditCard className="h-5 w-5" />} />
+                                    {/* "Pendiente por cobrar" es un dato global de la rifa; no aplica a la vista del cajero */}
+                                    {userRole !== "cashier" && (
+                                        <StatCard title="Pendiente por cobrar" value={formatCurrency(metrics.totalPending)} icon={<CreditCard className="h-5 w-5" />} />
+                                    )}
                                 <StatCard title="Ganancia empresa" value={formatCurrency(metrics.companyProfit)} icon={<TrendingUp className="h-5 w-5" />} />
                                 <StatCard title="Comisión vendedores" value={formatCurrency(metrics.commissionGenerated)} icon={<Percent className="h-5 w-5" />} />
                             </div>
@@ -292,11 +301,16 @@ export default function AdminDashboardPage() {
                                     <StatCard title="Bancolombia Ahorros" value={formatCurrency(methodTotals["transfer"] || 0)} icon={<CreditCard className="h-5 w-5" />} />
                                 </div>
 
-                                {/* People */}
+                                {/* People / totales: Vendedores, Clientes y Potencial total son globales
+                                    de la rifa; para el cajero solo mostramos el % vendido. */}
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                                    <StatCard title="Vendedores" value={metrics.vendorsCount} icon={<Users className="h-5 w-5" />} />
-                                    <StatCard title="Clientes" value={metrics.customersCount} icon={<Users className="h-5 w-5" />} />
-                                    <StatCard title="Potencial total" value={formatCurrency(metrics.totalPotential)} icon={<DollarSign className="h-5 w-5" />} />
+                                    {userRole !== "cashier" && (
+                                        <>
+                                            <StatCard title="Vendedores" value={metrics.vendorsCount} icon={<Users className="h-5 w-5" />} />
+                                            <StatCard title="Clientes" value={metrics.customersCount} icon={<Users className="h-5 w-5" />} />
+                                            <StatCard title="Potencial total" value={formatCurrency(metrics.totalPotential)} icon={<DollarSign className="h-5 w-5" />} />
+                                        </>
+                                    )}
                                     <StatCard title="% Vendido" value={`${progressPercent}%`} icon={<TrendingUp className="h-5 w-5" />} />
                                 </div>
 
