@@ -48,7 +48,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { href: "/cashiers", label: "Cajeros", icon: UserCog, roles: ["admin"] },
         { href: "/reports", label: "Reportes", icon: BarChart3, roles: ["admin"] },
         { href: "/audit", label: "Auditoría", icon: Shield, roles: ["admin"] },
-        { href: "/settings", label: "Configuración", icon: Settings, roles: ["admin"] },
+        { href: "/settings", label: "Configuración", icon: Settings, roles: ["admin", "cashier"] },
     ].filter(item => item.roles.includes(userRole || ""));
 
     return (
