@@ -46,3 +46,4 @@ export { onTicketStatusChanged } from "./triggers/ticket.triggers";
 // Scheduled
 export { aggregateMetrics } from "./scheduled/metrics.scheduled";
 export { cleanupExports } from "./scheduled/cleanup.scheduled";
+export { finishExpiredRaffles } from "./scheduled/finish-raffles.scheduled";
