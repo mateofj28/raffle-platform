@@ -220,7 +220,10 @@ export default function AdminDashboardPage() {
                                 <StatCard title="Boletas vendidas hoy" value={todayMetrics.ticketsSold} icon={<Calendar className="h-5 w-5" />} />
                                 <StatCard title="Recaudado hoy" value={formatCurrency(todayMetrics.moneyCollected)} icon={<DollarSign className="h-5 w-5" />} />
                                 <StatCard title="Abonos registrados" value={todayMetrics.paymentsCount} icon={<CreditCard className="h-5 w-5" />} />
-                                <StatCard title="Mejor vendedor hoy" value={todayMetrics.topVendor} icon={<TrendingUp className="h-5 w-5" />} />
+                                    {/* "Mejor vendedor hoy" no aplica para el cajero (ve solo su propia actividad) */}
+                                    {userRole !== "cashier" && (
+                                        <StatCard title="Mejor vendedor hoy" value={todayMetrics.topVendor} icon={<TrendingUp className="h-5 w-5" />} />
+                                    )}
                             </div>
 
                             {todayMetrics.topMethod !== "—" && (
