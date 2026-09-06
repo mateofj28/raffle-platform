@@ -46,6 +46,8 @@ export default function AdminDashboardPage() {
     const router = useRouter();
     const { activeRaffle } = useRaffleStore();
     const tenantId = useAuthStore((s) => s.user?.tenantId);
+    const userRole = useAuthStore((s) => s.user?.role);
+    const userUid = useAuthStore((s) => s.user?.uid);
     const [metrics, setMetrics] = useState<RaffleMetrics | null>(null);
     const [todayMetrics, setTodayMetrics] = useState<TodayMetrics | null>(null);
     const [methodTotals, setMethodTotals] = useState<Record<string, number>>({});
@@ -98,24 +100,34 @@ export default function AdminDashboardPage() {
                 });
 
                 const totalPotential = activeRaffle.totalTickets * activeRaffle.ticketPrice;
-                const commissionGenerated = Math.floor(totalCollected * 0.30);
-                const companyProfit = totalCollected - commissionGenerated;
-
-                setMetrics({
-                    totalTickets: ticketsSnap.size,
-                    available, assigned, sold, paid, installment,
-                    totalCollected, totalPending, totalPotential,
-                    vendorsCount: vendorIds.size,
-                    customersCount: customerIds.size,
-                    commissionGenerated, companyProfit,
-                });
 
                 // Load today's payments
                 const now = new Date();
                 const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                // El cajero ve su propia actividad (pagos que él registró); el admin ve toda la rifa.
+                const isCashier = userRole === "cashier";
                 const paymentsCol = tenantCollection(tenantId, "payments");
-                const paymentsSnap = await getDocs(query(paymentsCol, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc")));
-                const allPayments = paymentsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[];
+                const paymentsSnap = isCashier
+                    ? await getDocs(query(paymentsCol, where("createdBy", "==", userUid), orderBy("createdAt", "desc")))
+                    : await getDocs(query(paymentsCol, where("raffleId", "==", activeRaffle.id), orderBy("createdAt", "desc")));
+                const allPayments = (paymentsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[])
+                    .filter(p => p.raffleId === activeRaffle.id);
+
+                // Para cajero, "recaudado" y comisión salen de SUS pagos; para admin, del acumulado de boletas.
+                const collectedForRole = isCashier
+                    ? allPayments.reduce((s, p) => s + p.amount, 0)
+                    : totalCollected;
+                const commissionGenerated = Math.floor(collectedForRole * 0.30);
+                const companyProfit = collectedForRole - commissionGenerated;
+
+                setMetrics({
+                    totalTickets: ticketsSnap.size,
+                    available, assigned, sold, paid, installment,
+                    totalCollected: collectedForRole, totalPending, totalPotential,
+                    vendorsCount: vendorIds.size,
+                    customersCount: customerIds.size,
+                    commissionGenerated, companyProfit,
+                });
 
                 // Calculate totals by payment method
                 const byMethod: Record<string, number> = {};
@@ -167,7 +179,7 @@ export default function AdminDashboardPage() {
             finally { setLoading(false); }
         };
         load();
-    }, [tenantId, activeRaffle]);
+    }, [tenantId, activeRaffle, userRole, userUid]);
 
     if (!activeRaffle) return null;
 
