@@ -44,19 +44,20 @@ export default function VendorPaymentsPage() {
     const [filterMonth, setFilterMonth] = useState("");
 
     useEffect(() => {
-        if (!user?.tenantId || !user?.vendorId) return;
+        if (!user?.tenantId || !user?.uid) return;
         const load = async () => {
             setLoading(true);
             try {
+                // Solo los pagos registrados POR este vendedor (no los de sus boletas cobrados por otros).
                 const col = tenantCollection(user.tenantId, "payments");
-                const q = query(col, where("vendorId", "==", user.vendorId), orderBy("createdAt", "desc"));
+                const q = query(col, where("createdBy", "==", user.uid), orderBy("createdAt", "desc"));
                 const snap = await getDocs(q);
                 setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
         };
         load();
-    }, [user?.tenantId, user?.vendorId]);
+    }, [user?.tenantId, user?.uid]);
 
     // Apply filters
     const filtered = payments.filter(p => {
