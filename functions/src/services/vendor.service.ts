@@ -151,14 +151,35 @@ export const getVendorMetrics = onCall(
             const tenantPath = `tenants/${context.tenantId}`;
 
             // --- Query tickets ---
-            let ticketsQuery: FirebaseFirestore.Query = db.collectionGroup("tickets")
-                .where("vendorId", "==", vendorId);
+            // Los tickets viven en tenants/{tenantId}/raffles/{raffleId}/tickets.
+            // Consultamos SIEMPRE dentro del tenant (nunca con collectionGroup global),
+            // de modo que el aislamiento entre tenants lo garantiza la ruta de Firestore
+            // y no un filtrado en memoria.
+            const ticketDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
 
             if (raffleId) {
-                ticketsQuery = ticketsQuery.where("raffleId", "==", raffleId);
+                // Rifa específica: apuntamos directo a su subcolección de tickets.
+                const snap = await db
+                    .collection(`${tenantPath}/raffles/${raffleId}/tickets`)
+                    .where("vendorId", "==", vendorId)
+                    .get();
+                ticketDocs.push(...snap.docs);
+            } else {
+                // Todas las rifas del tenant: recorremos cada rifa y consultamos
+                // los tickets del vendedor en su subcolección.
+                const rafflesSnap = await db.collection(`${tenantPath}/raffles`).get();
+                const perRaffle = await Promise.all(
+                    rafflesSnap.docs.map((raffle) =>
+                        db
+                            .collection(`${tenantPath}/raffles/${raffle.id}/tickets`)
+                            .where("vendorId", "==", vendorId)
+                            .get()
+                    )
+                );
+                for (const snap of perRaffle) {
+                    ticketDocs.push(...snap.docs);
+                }
             }
-
-            const ticketsSnap = await ticketsQuery.get();
 
             let assignedCount = 0;
             let soldCount = 0;
@@ -168,10 +189,7 @@ export const getVendorMetrics = onCall(
             let cancelledCount = 0;
             let pendingCount = 0;
 
-            for (const doc of ticketsSnap.docs) {
-                // Only include tickets belonging to this tenant
-                if (!doc.ref.path.startsWith(tenantPath)) continue;
-
+            for (const doc of ticketDocs) {
                 const ticket = doc.data();
                 switch (ticket.status) {
                     case "assigned":
