@@ -34,9 +34,11 @@ service cloud.firestore {
         allow write: if false; // Only via Cloud Functions
 
         // Tickets (subcollection of raffles)
+        // Admin y cajero ven todas; el vendedor solo las suyas (vendorId == su claim).
         match /tickets/{ticketNumber} {
           allow read: if belongsToTenant(tenantId)
-            && (isAdmin() || isCashier() || isVendor());
+            && (isAdmin() || isCashier()
+              || (isVendor() && resource.data.vendorId == request.auth.token.vendorId));
           allow write: if false; // Only via Cloud Functions
         }
       }
@@ -55,9 +57,11 @@ service cloud.firestore {
       }
 
       // Payments
+      // Admin y cajero ven todos; el vendedor solo los de sus boletas (vendorId == su claim).
       match /payments/{paymentId} {
         allow read: if belongsToTenant(tenantId)
-          && (isAdmin() || isCashier() || isVendor());
+          && (isAdmin() || isCashier()
+            || (isVendor() && resource.data.vendorId == request.auth.token.vendorId));
         allow write: if false; // Only via Cloud Functions
       }
 
