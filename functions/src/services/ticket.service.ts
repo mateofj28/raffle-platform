@@ -377,6 +377,11 @@ export const updateTicketClient = onCall(
 
             // Update client — if ticket is "assigned", also move to "sold"
             const ticket = ticketSnap.data()!;
+
+            // If vendor role, validate ownership — a vendor can only touch their own tickets
+            if (context.role === "vendor") {
+                requireVendorOwnership(context, ticket.vendorId);
+            }
             const updates: Record<string, unknown> = {
                 customerId,
                 updatedAt: FieldValue.serverTimestamp(),

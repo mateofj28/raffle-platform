@@ -29,6 +29,8 @@ export default function PayTicketPage() {
   const ticketNumber = parseInt(params.ticketNumber as string);
   const { activeRaffle, setActiveRaffle } = useRaffleStore();
   const tenantId = useAuthStore((s) => s.user?.tenantId);
+  const userRole = useAuthStore((s) => s.user?.role);
+  const userVendorId = useAuthStore((s) => s.user?.vendorId);
 
   const [paymentType, setPaymentType] = useState<"full" | "partial">("partial");
   const [amount, setAmount] = useState("");
@@ -60,10 +62,17 @@ export default function PayTicketPage() {
     const ticketRef = doc(tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`), padded);
     getDoc(ticketRef).then((snap) => {
       if (snap.exists()) {
-        setPendingBalance(snap.data().pendingBalance ?? activeRaffle.ticketPrice);
+        const data = snap.data();
+        // Vendor may only pay on their own tickets
+        if (userRole === "vendor" && data.vendorId !== userVendorId) {
+          toast.danger("No tienes acceso a esta boleta");
+          router.replace("/vendor/tickets");
+          return;
+        }
+        setPendingBalance(data.pendingBalance ?? activeRaffle.ticketPrice);
       }
     });
-  }, [tenantId, activeRaffle, ticketNumber]);
+  }, [tenantId, activeRaffle, ticketNumber, userRole, userVendorId, router]);
 
   const handlePay = async () => {
     if (!activeRaffle) return;

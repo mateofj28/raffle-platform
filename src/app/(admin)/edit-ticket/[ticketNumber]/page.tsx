@@ -23,6 +23,8 @@ export default function EditTicketPage() {
   const ticketNumber = parseInt(params.ticketNumber as string);
   const action = searchParams.get("action") || "client";
   const tenantId = useAuthStore((s) => s.user?.tenantId);
+  const userRole = useAuthStore((s) => s.user?.role);
+  const userVendorId = useAuthStore((s) => s.user?.vendorId);
   const { activeRaffle } = useRaffleStore();
 
   const [ticket, setTicket] = useState<TicketType | null>(null);
@@ -44,14 +46,23 @@ export default function EditTicketPage() {
       // Load ticket
       const padded = String(ticketNumber).padStart(4, "0");
       const ticketDoc = await getDoc(doc(getDb(), "tenants", tenantId, "raffles", activeRaffle.id, "tickets", padded));
-      if (ticketDoc.exists()) setTicket(ticketDoc.data() as TicketType);
+      if (ticketDoc.exists()) {
+        const t = ticketDoc.data() as TicketType;
+        // Vendor may only view/edit their own tickets
+        if (userRole === "vendor" && t.vendorId !== userVendorId) {
+          toast.danger("No tienes acceso a esta boleta");
+          router.replace("/vendor/tickets");
+          return;
+        }
+        setTicket(t);
+      }
 
       // Load customers
       const snap = await getDocs(tenantCollection(tenantId, "customers"));
       setCustomers(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Customer[]);
     };
     load();
-  }, [tenantId, activeRaffle, ticketNumber]);
+  }, [tenantId, activeRaffle, ticketNumber, userRole, userVendorId, router]);
 
   const filteredCustomers = customerSearch.length >= 2
     ? customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.document.includes(customerSearch)).slice(0, 6)

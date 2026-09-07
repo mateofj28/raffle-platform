@@ -78,7 +78,7 @@ export default function VendorPaymentsPage() {
 
     return (
         <div>
-            <PageHeader title="Mis Pagos" description="Historial de pagos y abonos registrados por ti" />
+            <PageHeader title="Mis Pagos" description="Historial de pagos y abonos de tus boletas" />
 
             {payments.length === 0 ? (
                 <EmptyState title="Sin pagos" description="Aún no has registrado pagos" icon={<CreditCard className="h-12 w-12" />} />
