@@ -14,7 +14,7 @@ import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
-import { getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
+import { getDocs, query, orderBy, doc, getDoc, where, limit } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import { callFunction } from "@/services/firebase-callable";
 import type { Raffle, Ticket as TicketType, Vendor } from "@/types/api.types";
@@ -40,6 +40,13 @@ export default function RaffleDetailPage() {
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assigning, setAssigning] = useState(false);
     const [showNoVendorsModal, setShowNoVendorsModal] = useState(false);
+
+    // Reasignación de boletas de la rifa anterior
+    // previousTickets: números que el vendedor seleccionado tuvo en la rifa inmediatamente anterior.
+    const [previousTickets, setPreviousTickets] = useState<number[] | null>(null);
+    const [loadingPrevious, setLoadingPrevious] = useState(false);
+    const [previousRaffleName, setPreviousRaffleName] = useState("");
+    const [previousDismissed, setPreviousDismissed] = useState(false);
 
     // Ref al panel de asignar/desasignar para hacer scroll automático al activarlo
     const assignPanelRef = useRef<HTMLDivElement>(null);
@@ -100,6 +107,85 @@ export default function RaffleDetailPage() {
         load();
     }, [tenantId]);
 
+    // Al seleccionar un vendedor en modo asignar, busca las boletas que ese vendedor
+    // tuvo en la rifa INMEDIATAMENTE ANTERIOR (por createdAt) y las ofrece para reasignar.
+    useEffect(() => {
+        // Reset del aviso cuando cambia el vendedor o se sale del modo asignar
+        setPreviousTickets(null);
+        setPreviousRaffleName("");
+        setPreviousDismissed(false);
+
+        if (assignMode !== "assign" || !selectedVendor || !tenantId || !raffle) return;
+
+        let cancelled = false;
+        const load = async () => {
+            setLoadingPrevious(true);
+            try {
+                // Buscar la rifa inmediatamente anterior a la actual por createdAt.
+                const rafflesCol = tenantCollection(tenantId, "raffles");
+                const prevQ = query(
+                    rafflesCol,
+                    where("createdAt", "<", raffle.createdAt),
+                    orderBy("createdAt", "desc"),
+                    limit(1)
+                );
+                const prevSnap = await getDocs(prevQ);
+                if (prevSnap.empty) return; // Es la primera rifa: no hay anterior
+
+                const prevRaffle = prevSnap.docs[0];
+
+                // Boletas que el vendedor tuvo en esa rifa (cualquier estado con su vendorId).
+                const prevTicketsCol = tenantCollection(tenantId, `raffles/${prevRaffle.id}/tickets`);
+                const prevTicketsQ = query(prevTicketsCol, where("vendorId", "==", selectedVendor));
+                const prevTicketsSnap = await getDocs(prevTicketsQ);
+
+                if (cancelled) return;
+
+                const nums = prevTicketsSnap.docs
+                    .map((d) => d.data().number as number)
+                    .sort((a, b) => a - b);
+
+                if (nums.length > 0) {
+                    setPreviousTickets(nums);
+                    setPreviousRaffleName(prevRaffle.data().name || "rifa anterior");
+                }
+            } catch (e) {
+                console.error("Error buscando boletas de la rifa anterior", e);
+            } finally {
+                if (!cancelled) setLoadingPrevious(false);
+            }
+        };
+        load();
+        return () => { cancelled = true; };
+    }, [assignMode, selectedVendor, tenantId, raffle]);
+
+    // Precarga en la lista de asignación las boletas de la rifa anterior que
+    // sigan DISPONIBLES en la rifa actual. Informa cuántas se omiten.
+    const handleReassignPrevious = () => {
+        if (!previousTickets) return;
+        const availableNow = previousTickets.filter((num) => {
+            const t = tickets.find((tk) => tk.number === num);
+            return t && t.status === "available";
+        });
+        const skipped = previousTickets.length - availableNow.length;
+
+        // Agrega solo las que no estén ya en la lista.
+        setAssignList((prev) => {
+            const set = new Set(prev);
+            availableNow.forEach((n) => set.add(n));
+            return Array.from(set);
+        });
+
+        if (availableNow.length === 0) {
+            toast.warning("Ninguna de esas boletas está disponible en esta rifa");
+        } else if (skipped > 0) {
+            toast.success(`${availableNow.length} boleta(s) precargada(s). ${skipped} ya no está(n) disponible(s).`);
+        } else {
+            toast.success(`${availableNow.length} boleta(s) precargada(s)`);
+        }
+        setPreviousDismissed(true);
+    };
+
     // Add ticket to list
     const handleAddTicket = () => {
         const num = parseInt(ticketInput);
@@ -152,7 +238,7 @@ export default function RaffleDetailPage() {
         } finally { setAssigning(false); }
     };
 
-    const cancelMode = () => { setAssignMode(null); setAssignList([]); setSelectedVendor(""); setTicketInput(""); setAssignError(null); };
+    const cancelMode = () => { setAssignMode(null); setAssignList([]); setSelectedVendor(""); setTicketInput(""); setAssignError(null); setPreviousTickets(null); setPreviousDismissed(false); };
 
     if (loading) return <div><PageHeader title="Detalle de Rifa" /><LoadingSkeleton rows={6} /></div>;
     if (!raffle) return <div><PageHeader title="Rifa no encontrada" /><p className="text-default-500">No se encontró la rifa.</p></div>;
@@ -272,6 +358,28 @@ export default function RaffleDetailPage() {
                             </div>
                             <Button variant="outline" size="sm" onPress={handleAddTicket} isDisabled={!ticketInput || (assignMode === "assign" && !selectedVendor)}>Agregar</Button>
                         </div>
+
+                        {/* Aviso: reasignar boletas de la rifa anterior */}
+                        {assignMode === "assign" && loadingPrevious && (
+                            <p className="text-xs text-default-500 mb-3">Buscando boletas de la rifa anterior…</p>
+                        )}
+                        {assignMode === "assign" && !loadingPrevious && previousTickets && previousTickets.length > 0 && !previousDismissed && (
+                            <div className="mb-4 rounded-lg border border-teal-500/40 bg-teal-500/5 p-4">
+                                <p className="text-sm font-medium mb-1">Boletas de la rifa anterior</p>
+                                <p className="text-xs text-default-500 mb-3">
+                                    Este vendedor tuvo <span className="font-semibold text-foreground">{previousTickets.length}</span> boleta(s) en <span className="font-semibold text-foreground">{previousRaffleName}</span>. ¿Deseas reasignarle las mismas en esta rifa? (Solo se agregarán las que sigan disponibles.)
+                                </p>
+                                <div className="flex flex-wrap gap-1.5 mb-3 max-h-24 overflow-y-auto">
+                                    {previousTickets.map((num) => (
+                                        <span key={num} className="text-xs font-semibold px-2 py-0.5 rounded-md border border-default-200">{num}</span>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="primary" size="sm" onPress={handleReassignPrevious}>Sí, reasignar</Button>
+                                    <Button variant="ghost" size="sm" onPress={() => setPreviousDismissed(true)}>No</Button>
+                                </div>
+                            </div>
+                        )}
 
                         <FormErrorBanner message={assignError} />
 
