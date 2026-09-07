@@ -33,31 +33,52 @@ export const finishExpiredRaffles = onSchedule(
         const db = getDb();
         const today = todayInBogota();
         let finished = 0;
+        let errors = 0;
 
-        // Recorre todos los tenants y sus rifas activas.
+        // Recorre todos los tenants y sus rifas activas. Cada tenant y cada rifa
+        // se procesan de forma aislada: un fallo puntual (permiso, red, doc
+        // corrupto) se registra pero NO aborta el resto del ciclo.
         const tenants = await db.collection("tenants").get();
         for (const tenant of tenants.docs) {
-            const activeRaffles = await tenant.ref
-                .collection("raffles")
-                .where("status", "==", "active")
-                .get();
+            try {
+                const activeRaffles = await tenant.ref
+                    .collection("raffles")
+                    .where("status", "==", "active")
+                    .get();
 
-            for (const raffle of activeRaffles.docs) {
-                const drawDate: string | undefined = raffle.data().drawDate;
-                if (!drawDate) continue;
+                for (const raffle of activeRaffles.docs) {
+                    try {
+                        const drawDate: string | undefined = raffle.data().drawDate;
+                        if (!drawDate) continue;
 
-                // Corte al final del día del sorteo: finaliza solo cuando HOY
-                // es estrictamente posterior a la fecha de sorteo.
-                if (today > drawDate) {
-                    await raffle.ref.update({
-                        status: "finished",
-                        updatedAt: FieldValue.serverTimestamp(),
-                    });
-                    finished++;
+                        // Corte al final del día del sorteo: finaliza solo cuando HOY
+                        // es estrictamente posterior a la fecha de sorteo.
+                        if (today > drawDate) {
+                            await raffle.ref.update({
+                                status: "finished",
+                                updatedAt: FieldValue.serverTimestamp(),
+                            });
+                            finished++;
+                        }
+                    } catch (raffleErr) {
+                        errors++;
+                        logger.error(
+                            `finishExpiredRaffles: error al finalizar rifa ${raffle.ref.path}`,
+                            raffleErr
+                        );
+                    }
                 }
+            } catch (tenantErr) {
+                errors++;
+                logger.error(
+                    `finishExpiredRaffles: error al procesar tenant ${tenant.id}`,
+                    tenantErr
+                );
             }
         }
 
-        logger.info(`finishExpiredRaffles: ${finished} rifa(s) finalizada(s). Fecha ${today}`);
+        logger.info(
+            `finishExpiredRaffles: ${finished} rifa(s) finalizada(s), ${errors} error(es). Fecha ${today}`
+        );
     }
 );
