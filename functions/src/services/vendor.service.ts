@@ -2,7 +2,7 @@
  * Vendor Service - Cloud Functions for vendor management.
  *
  * Provides:
- * - createVendor: Creates a new vendor (admin-only)
+ * - createVendor: Creates a new vendor (admin or cashier)
  * - updateVendor: Updates vendor fields (admin-only)
  * - getVendorMetrics: Retrieves vendor performance metrics (vendor or admin)
  */
@@ -43,7 +43,7 @@ const getVendorMetricsSchema = z.object({
 
 /**
  * Creates a new vendor within the tenant.
- * Admin-only.
+ * Admin or cashier.
  */
 export const createVendor = onCall(
     { region: "us-central1", timeoutSeconds: 120 },

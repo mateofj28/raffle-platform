@@ -3,9 +3,10 @@
  *
  * Provides:
  * - generateTickets: Batch generates tickets for a raffle (internal, non-callable)
- * - assignTickets: Assigns a range of tickets to a vendor (admin-only)
- * - sellTicket: Sells a ticket to a customer (vendor or admin)
- * - cancelTicket: Cancels a ticket (admin-only)
+ * - assignTickets: Assigns a range of tickets to a vendor (admin or cashier)
+ * - unassignTickets: Returns assigned tickets to "available" (admin or cashier)
+ * - sellTicket: Sells a ticket to a customer (admin, cashier, or vendor — vendor only their own)
+ * - updateTicketClient: Changes the client on a ticket (admin, cashier, or vendor — vendor only their own)
  */
 
 import { onCall, type CallableRequest } from "firebase-functions/v2/https";
@@ -113,7 +114,7 @@ export async function generateTickets(
 
 /**
  * Assigns a range of tickets to a vendor.
- * Admin-only. Updates available tickets to "assigned" status with the given vendorId.
+ * Admin or cashier. Updates available tickets to "assigned" status with the given vendorId.
  */
 export const assignTickets = onCall(
     { region: "us-central1", timeoutSeconds: 120 },
@@ -296,7 +297,7 @@ export const sellTicket = onCall(
 
 /**
  * Unassigns tickets - returns them to "available" status.
- * Admin-only. Only tickets in "assigned" state can be unassigned.
+ * Admin or cashier. Only tickets in "assigned" state can be unassigned.
  */
 export const unassignTickets = onCall(
     { region: "us-central1", timeoutSeconds: 120 },
@@ -347,7 +348,8 @@ export const unassignTickets = onCall(
 
 
 /**
- * Updates the client on a ticket. Admin-only.
+ * Updates the client on a ticket.
+ * Admin, cashier, or vendor (a vendor may only update their own tickets — ownership enforced below).
  * Works on any ticket status (assigned, sold, installment, paid).
  */
 export const updateTicketClient = onCall(
