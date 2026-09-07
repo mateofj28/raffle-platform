@@ -104,7 +104,7 @@ export const updateVendor = onCall(
             if (!vendorSnap.exists) {
                 throw new AppError(
                     AppErrorCode.NOT_FOUND,
-                    "Vendor not found."
+                    "Vendedor no encontrado."
                 );
             }
 

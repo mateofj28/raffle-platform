@@ -163,7 +163,7 @@ export const updateRaffle = onCall(
             if (!raffleDoc.exists) {
                 throw new AppError(
                     AppErrorCode.NOT_FOUND,
-                    "Raffle not found."
+                    "Rifa no encontrada."
                 );
             }
 
@@ -172,7 +172,7 @@ export const updateRaffle = onCall(
             if (currentStatus === "finished" || currentStatus === "cancelled") {
                 throw new AppError(
                     AppErrorCode.INVALID_TRANSITION,
-                    `Cannot modify a raffle in "${currentStatus}" state.`
+                    `No se puede modificar una rifa en estado "${currentStatus}".`
                 );
             }
 
@@ -216,7 +216,7 @@ export const transitionRaffleState = onCall(
             if (!raffleDoc.exists) {
                 throw new AppError(
                     AppErrorCode.NOT_FOUND,
-                    "Raffle not found."
+                    "Rifa no encontrada."
                 );
             }
 
@@ -226,7 +226,7 @@ export const transitionRaffleState = onCall(
             if (!allowedTargets.includes(data.targetState)) {
                 throw new AppError(
                     AppErrorCode.INVALID_TRANSITION,
-                    `Transition from ${currentStatus} to ${data.targetState} is not allowed`
+                    `No se permite la transición de "${currentStatus}" a "${data.targetState}".`
                 );
             }
 
@@ -267,7 +267,7 @@ export const setWinningNumber = onCall(
             if (!raffleDoc.exists) {
                 throw new AppError(
                     AppErrorCode.NOT_FOUND,
-                    "Raffle not found."
+                    "Rifa no encontrada."
                 );
             }
 
@@ -276,7 +276,7 @@ export const setWinningNumber = onCall(
             if (currentStatus !== "finished") {
                 throw new AppError(
                     AppErrorCode.INVALID_TRANSITION,
-                    "Winning number can only be set on a finished raffle."
+                    "El número ganador solo se puede definir en una rifa finalizada."
                 );
             }
 

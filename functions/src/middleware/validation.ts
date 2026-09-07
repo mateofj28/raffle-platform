@@ -20,7 +20,7 @@ export function validateData<T extends z.ZodTypeAny>(
 
         throw new AppError(
             AppErrorCode.VALIDATION_ERROR,
-            "Validation failed.",
+            "Error de validación de los datos.",
             fields
         );
     }

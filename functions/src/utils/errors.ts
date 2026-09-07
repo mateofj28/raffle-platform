@@ -56,5 +56,5 @@ export function handleError(error: unknown): never {
         throw error;
     }
     console.error("Unexpected error:", error);
-    throw new HttpsError("internal", "An unexpected error occurred.");
+    throw new HttpsError("internal", "Ocurrió un error inesperado.");
 }

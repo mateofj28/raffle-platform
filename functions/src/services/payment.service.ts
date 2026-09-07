@@ -91,7 +91,7 @@ export const registerPayment = onCall(
                 if (pendingBalance <= 0) {
                     throw new AppError(
                         AppErrorCode.VALIDATION_ERROR,
-                        "La boleta ya está completamente pagada"
+                        "La boleta ya está completamente pagada."
                     );
                 }
 

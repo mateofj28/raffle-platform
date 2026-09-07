@@ -59,14 +59,14 @@ export const exportData = onCall(
             if (count === 0) {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "No data available to export"
+                    "No hay datos disponibles para exportar."
                 );
             }
 
             if (count > maxRows) {
                 throw new AppError(
                     AppErrorCode.EXPORT_LIMIT_EXCEEDED,
-                    "Dataset exceeds the export limit. Apply additional filters."
+                    "El conjunto de datos excede el límite de exportación. Aplica filtros adicionales."
                 );
             }
 
@@ -127,7 +127,7 @@ async function countTickets(
     if (!filters?.raffleId) {
         throw new AppError(
             AppErrorCode.VALIDATION_ERROR,
-            "A raffleId filter is required when exporting tickets."
+            "Se requiere seleccionar una rifa para exportar boletas."
         );
     }
 
@@ -159,7 +159,7 @@ async function countPayments(
     if (!filters?.raffleId) {
         throw new AppError(
             AppErrorCode.VALIDATION_ERROR,
-            "A raffleId filter is required when exporting payments."
+            "Se requiere seleccionar una rifa para exportar pagos."
         );
     }
 

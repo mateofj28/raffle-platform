@@ -102,7 +102,7 @@ export default function PayTicketPage() {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("internal") || msg.includes("INTERNAL")) {
         setError("Ocurrió un error al registrar el pago. Intenta de nuevo.");
-      } else if (msg.includes("sold or installment")) {
+      } else if (msg.includes("asignada, vendida o en abonos") || msg.includes("estado actual")) {
         setError("La boleta no puede recibir pagos en su estado actual.");
       } else if (msg.includes("excede") || msg.includes("exceeds") || msg.includes("PAYMENT_EXCEEDS")) {
         const max = pendingBalance ?? activeRaffle.ticketPrice;

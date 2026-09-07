@@ -242,8 +242,8 @@ async function searchTickets(
         return {
             id: doc.id,
             type: "ticket",
-            primaryText: `Ticket #${d.number}`,
-            secondaryText: `Raffle: ${raffleId}`,
+            primaryText: `Boleta #${d.number}`,
+            secondaryText: `Rifa: ${raffleId}`,
             status: d.status ?? "available",
         };
     });

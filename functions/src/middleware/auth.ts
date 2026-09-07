@@ -18,7 +18,7 @@ export function validateAuth(request: CallableRequest): AuthContext {
     if (!auth) {
         throw new AppError(
             AppErrorCode.UNAUTHORIZED,
-            "Authentication is required."
+            "Se requiere autenticación."
         );
     }
 
@@ -27,14 +27,14 @@ export function validateAuth(request: CallableRequest): AuthContext {
     if (!tenantId || typeof tenantId !== "string") {
         throw new AppError(
             AppErrorCode.UNAUTHORIZED,
-            "Missing or malformed tenant identifier."
+            "Identificador de organización ausente o inválido."
         );
     }
 
     if (role !== "admin" && role !== "cashier" && role !== "vendor") {
         throw new AppError(
             AppErrorCode.UNAUTHORIZED,
-            "Invalid user role."
+            "Rol de usuario inválido."
         );
     }
 
@@ -53,7 +53,7 @@ export function requireAdmin(context: AuthContext): void {
     if (context.role !== "admin") {
         throw new AppError(
             AppErrorCode.FORBIDDEN,
-            "Insufficient permissions. Administrator role required."
+            "Permisos insuficientes. Se requiere rol de administrador."
         );
     }
 }
@@ -65,7 +65,7 @@ export function requireAdminOrCashier(context: AuthContext): void {
     if (context.role !== "admin" && context.role !== "cashier") {
         throw new AppError(
             AppErrorCode.FORBIDDEN,
-            "Insufficient permissions. Admin or cashier role required."
+            "Permisos insuficientes. Se requiere rol de administrador o cajero."
         );
     }
 }
@@ -82,7 +82,7 @@ export function requireVendorOwnership(
     if (context.vendorId !== resourceVendorId) {
         throw new AppError(
             AppErrorCode.FORBIDDEN,
-            "You are not authorized to access this resource."
+            "No tienes autorización para acceder a este recurso."
         );
     }
 }

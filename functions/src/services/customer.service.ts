@@ -65,7 +65,7 @@ export const createCustomer = onCall(
             if (!duplicateQuery.empty) {
                 throw new AppError(
                     AppErrorCode.CONFLICT,
-                    "A customer with this document already exists"
+                    "Ya existe un cliente con este documento."
                 );
             }
 
@@ -115,7 +115,7 @@ export const updateCustomer = onCall(
             if (!customerSnap.exists) {
                 throw new AppError(
                     AppErrorCode.NOT_FOUND,
-                    "Customer not found."
+                    "Cliente no encontrado."
                 );
             }
 
@@ -135,7 +135,7 @@ export const updateCustomer = onCall(
                     if (!duplicateQuery.empty) {
                         throw new AppError(
                             AppErrorCode.CONFLICT,
-                            "A customer with this document already exists"
+                            "Ya existe un cliente con este documento."
                         );
                     }
                 }

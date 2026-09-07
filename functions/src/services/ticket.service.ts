@@ -132,7 +132,7 @@ export const assignTickets = onCall(
             const raffleSnap = await raffleRef.get();
 
             if (!raffleSnap.exists) {
-                throw new AppError(AppErrorCode.NOT_FOUND, "Raffle not found.");
+                throw new AppError(AppErrorCode.NOT_FOUND, "Rifa no encontrada.");
             }
 
             const raffle = raffleSnap.data()!;
@@ -140,7 +140,7 @@ export const assignTickets = onCall(
             if (raffle.status !== "active" && raffle.status !== "draft") {
                 throw new AppError(
                     AppErrorCode.INVALID_TRANSITION,
-                    "Raffle must be active or draft to assign tickets."
+                    "La rifa debe estar activa o en borrador para asignar boletas."
                 );
             }
 
@@ -155,8 +155,8 @@ export const assignTickets = onCall(
                 if (fromNumber > toNumber) {
                     throw new AppError(
                         AppErrorCode.VALIDATION_ERROR,
-                        "fromNumber must be less than or equal to toNumber.",
-                        { fromNumber: "Must be <= toNumber" }
+                        "El número inicial debe ser menor o igual al número final.",
+                        { fromNumber: "Debe ser <= al número final" }
                     );
                 }
                 for (let n = fromNumber; n <= toNumber; n++) {
@@ -165,7 +165,7 @@ export const assignTickets = onCall(
             } else {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "Provide either ticketNumbers array or fromNumber/toNumber range."
+                    "Proporciona una lista de boletas o un rango (número inicial/final)."
                 );
             }
 
@@ -241,7 +241,7 @@ export const sellTicket = onCall(
 
                 // Validate ticket exists
                 if (!ticketSnap.exists) {
-                    throw new AppError(AppErrorCode.NOT_FOUND, "Ticket not found.");
+                    throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
                 }
 
                 const ticket = ticketSnap.data()!;
@@ -250,7 +250,7 @@ export const sellTicket = onCall(
                 if (ticket.status !== "assigned") {
                     throw new AppError(
                         AppErrorCode.CONFLICT,
-                        "Ticket is no longer available."
+                        "La boleta ya no está disponible."
                     );
                 }
 
@@ -261,7 +261,7 @@ export const sellTicket = onCall(
 
                 // Validate raffle is active
                 if (!raffleSnap.exists) {
-                    throw new AppError(AppErrorCode.NOT_FOUND, "Raffle not found.");
+                    throw new AppError(AppErrorCode.NOT_FOUND, "Rifa no encontrada.");
                 }
 
                 const raffle = raffleSnap.data()!;
@@ -372,7 +372,7 @@ export const updateTicketClient = onCall(
 
             const ticketSnap = await ticketRef.get();
             if (!ticketSnap.exists) {
-                throw new AppError(AppErrorCode.NOT_FOUND, "Ticket not found.");
+                throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
             }
 
             // Update client — if ticket is "assigned", also move to "sold"

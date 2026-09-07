@@ -50,8 +50,8 @@ function validateEmail(email: string): void {
     if (!email || !emailRegex.test(email)) {
         throw new AppError(
             AppErrorCode.VALIDATION_ERROR,
-            "A valid email address is required.",
-            { email: "Invalid email format" }
+            "Se requiere un correo electrónico válido.",
+            { email: "Formato de correo inválido" }
         );
     }
 }
@@ -60,8 +60,8 @@ function validateRole(role: unknown): asserts role is "admin" | "cashier" | "ven
     if (role !== "admin" && role !== "cashier" && role !== "vendor") {
         throw new AppError(
             AppErrorCode.VALIDATION_ERROR,
-            "Role must be 'admin', 'cashier', or 'vendor'.",
-            { role: "Invalid role value" }
+            "El rol debe ser 'admin', 'cashier' o 'vendor'.",
+            { role: "Valor de rol inválido" }
         );
     }
 }
@@ -89,16 +89,16 @@ export const setCustomClaims = onCall(
             if (!data.uid || typeof data.uid !== "string") {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "Target user UID is required.",
-                    { uid: "Required field" }
+                    "El identificador del usuario objetivo es requerido.",
+                    { uid: "Campo requerido" }
                 );
             }
 
             if (!data.tenantId || typeof data.tenantId !== "string") {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "Tenant ID is required.",
-                    { tenantId: "Required field" }
+                    "El identificador de la organización es requerido.",
+                    { tenantId: "Campo requerido" }
                 );
             }
 
@@ -108,7 +108,7 @@ export const setCustomClaims = onCall(
             if (data.tenantId !== context.tenantId) {
                 throw new AppError(
                     AppErrorCode.FORBIDDEN,
-                    "Cannot set claims for a different tenant."
+                    "No se pueden asignar permisos a una organización diferente."
                 );
             }
 
@@ -116,8 +116,8 @@ export const setCustomClaims = onCall(
             if (data.role === "vendor" && !data.vendorId) {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "Vendor ID is required when role is 'vendor'.",
-                    { vendorId: "Required for vendor role" }
+                    "El identificador del vendedor es requerido cuando el rol es 'vendor'.",
+                    { vendorId: "Requerido para el rol de vendedor" }
                 );
             }
 
@@ -134,7 +134,7 @@ export const setCustomClaims = onCall(
             // Set custom claims on the target user
             await getAuth().setCustomUserClaims(data.uid, claims);
 
-            return { success: true, message: "Custom claims updated successfully." };
+            return { success: true, message: "Permisos actualizados correctamente." };
         } catch (error) {
             handleError(error);
         }
@@ -160,16 +160,16 @@ export const createUser = onCall(
             if (!data.password || data.password.length < 6) {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "Password must be at least 6 characters.",
-                    { password: "Minimum 6 characters required" }
+                    "La contraseña debe tener al menos 6 caracteres.",
+                    { password: "Mínimo 6 caracteres" }
                 );
             }
 
             if (!data.displayName || data.displayName.trim().length === 0) {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "Display name is required.",
-                    { displayName: "Required field" }
+                    "El nombre para mostrar es requerido.",
+                    { displayName: "Campo requerido" }
                 );
             }
 
@@ -179,8 +179,8 @@ export const createUser = onCall(
             if (data.role === "vendor" && !data.vendorId) {
                 throw new AppError(
                     AppErrorCode.VALIDATION_ERROR,
-                    "Vendor ID is required when role is 'vendor'.",
-                    { vendorId: "Required for vendor role" }
+                    "El identificador del vendedor es requerido cuando el rol es 'vendor'.",
+                    { vendorId: "Requerido para el rol de vendedor" }
                 );
             }
 
@@ -189,7 +189,7 @@ export const createUser = onCall(
                 await getAuth().getUserByEmail(data.email);
                 throw new AppError(
                     AppErrorCode.CONFLICT,
-                    "A user with this email already exists."
+                    "Ya existe un usuario con este correo electrónico."
                 );
             } catch (error) {
                 // If error is our AppError (CONFLICT), re-throw it
@@ -238,7 +238,7 @@ export const createUser = onCall(
             return {
                 success: true,
                 uid: userRecord.uid,
-                message: "User created successfully.",
+                message: "Usuario creado correctamente.",
             };
         } catch (error) {
             handleError(error);

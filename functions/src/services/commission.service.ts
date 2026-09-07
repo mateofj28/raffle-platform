@@ -45,7 +45,7 @@ export const payCommission = onCall(
             if (!commissionSnap.exists) {
                 throw new AppError(
                     AppErrorCode.NOT_FOUND,
-                    "Commission not found."
+                    "Comisión no encontrada."
                 );
             }
 
@@ -54,21 +54,21 @@ export const payCommission = onCall(
             if (commission.status === "reversed") {
                 throw new AppError(
                     AppErrorCode.INVALID_TRANSITION,
-                    "Cannot pay a reversed commission"
+                    "No se puede pagar una comisión revertida."
                 );
             }
 
             if (commission.status === "paid") {
                 throw new AppError(
                     AppErrorCode.INVALID_TRANSITION,
-                    "Commission is already paid"
+                    "La comisión ya está pagada."
                 );
             }
 
             if (commission.status !== "generated") {
                 throw new AppError(
                     AppErrorCode.INVALID_TRANSITION,
-                    "Only generated commissions can be paid."
+                    "Solo se pueden pagar comisiones en estado generado."
                 );
             }
 
