@@ -23,15 +23,16 @@ export default function RafflesPage() {
     const deleteRaffle = useDeleteRaffle();
 
     const [toDelete, setToDelete] = useState<Raffle | null>(null);
+    const isAdmin = user?.role === "admin";
 
     // Si el admin no tiene ninguna rifa, llevarlo directo a crear la primera.
-    // (El cajero no crea rifas, así que a él solo se le muestra el estado vacío.)
+    // (El cajero no crea rifas: a él se le muestra un mensaje para contactar al admin.)
     useEffect(() => {
         if (isLoading) return;
-        if (raffles.length === 0 && user?.role === "admin") {
+        if (raffles.length === 0 && isAdmin) {
             router.replace("/raffles/new");
         }
-    }, [isLoading, raffles.length, user?.role, router]);
+    }, [isLoading, raffles.length, isAdmin, router]);
 
     const handleSelectRaffle = (raffle: Raffle) => {
         setActiveRaffle({
@@ -69,11 +70,13 @@ export default function RafflesPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Link href="/raffles/new">
-                        <Button variant="primary" size="sm">
-                            <Plus className="h-4 w-4" /> Nueva Rifa
-                        </Button>
-                    </Link>
+                    {isAdmin && (
+                        <Link href="/raffles/new">
+                            <Button variant="primary" size="sm">
+                                <Plus className="h-4 w-4" /> Nueva Rifa
+                            </Button>
+                        </Link>
+                    )}
                     <Button variant="ghost" size="sm" onPress={() => logout()} aria-label="Cerrar sesión">
                         <LogOut className="h-4 w-4" />
                     </Button>
@@ -83,16 +86,24 @@ export default function RafflesPage() {
             {isLoading ? (
                 <LoadingSkeleton rows={4} />
             ) : raffles.length === 0 ? (
-                <EmptyState
-                    title="No hay rifas creadas"
-                    description="Crea tu primera rifa para comenzar a vender boletas"
-                    icon={<Ticket className="h-16 w-16" />}
-                    action={
-                        <Link href="/raffles/new">
-                            <Button variant="primary" size="lg">Crear mi primera rifa</Button>
-                        </Link>
-                    }
-                />
+                    isAdmin ? (
+                        <EmptyState
+                            title="No hay rifas creadas"
+                            description="Crea tu primera rifa para comenzar a vender boletas"
+                            icon={<Ticket className="h-16 w-16" />}
+                            action={
+                                <Link href="/raffles/new">
+                                    <Button variant="primary" size="lg">Crear mi primera rifa</Button>
+                                </Link>
+                            }
+                        />
+                    ) : (
+                        <EmptyState
+                            title="No hay ninguna rifa disponible"
+                            description="Por el momento no hay rifas disponibles. Pídele a tu administrador que cree una para poder empezar a trabajar."
+                            icon={<Ticket className="h-16 w-16" />}
+                        />
+                    )
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                             {raffles.map((raffle, index) => {
