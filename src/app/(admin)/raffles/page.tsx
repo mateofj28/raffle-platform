@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, AlertDialog, toast } from "@heroui/react";
@@ -23,6 +23,15 @@ export default function RafflesPage() {
     const deleteRaffle = useDeleteRaffle();
 
     const [toDelete, setToDelete] = useState<Raffle | null>(null);
+
+    // Si el admin no tiene ninguna rifa, llevarlo directo a crear la primera.
+    // (El cajero no crea rifas, así que a él solo se le muestra el estado vacío.)
+    useEffect(() => {
+        if (isLoading) return;
+        if (raffles.length === 0 && user?.role === "admin") {
+            router.replace("/raffles/new");
+        }
+    }, [isLoading, raffles.length, user?.role, router]);
 
     const handleSelectRaffle = (raffle: Raffle) => {
         setActiveRaffle({
