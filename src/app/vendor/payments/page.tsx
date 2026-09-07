@@ -36,6 +36,17 @@ export default function VendorPaymentsPage() {
     const user = useAuthStore((s) => s.user);
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        const check = () => setIsDark(document.documentElement.classList.contains("dark"));
+        check();
+        const observer = new MutationObserver(check);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        return () => observer.disconnect();
+    }, []);
+
+    const grayField = isDark ? undefined : { backgroundColor: "#F3F4F6", borderColor: "#F3F4F6" };
 
     // Filters
     const [searchTicket, setSearchTicket] = useState("");
@@ -92,6 +103,7 @@ export default function VendorPaymentsPage() {
                                 onChange={(e) => setSearchTicket(e.target.value.replace(/\D/g, "").padStart(e.target.value.length, "0"))}
                                 className="w-40"
                                 inputMode="numeric"
+                                style={grayField}
                             />
                             <Select
                                 aria-label="Mes"
@@ -100,7 +112,7 @@ export default function VendorPaymentsPage() {
                                 placeholder="Mes"
                                 className="w-40"
                             >
-                                <SelectTrigger>
+                                <SelectTrigger style={grayField}>
                                     <SelectValue />
                                     <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
                                 </SelectTrigger>
@@ -119,7 +131,7 @@ export default function VendorPaymentsPage() {
                                 placeholder="Tipo"
                                 className="w-36"
                             >
-                                <SelectTrigger>
+                                <SelectTrigger style={grayField}>
                                     <SelectValue />
                                     <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
                                 </SelectTrigger>
@@ -138,7 +150,7 @@ export default function VendorPaymentsPage() {
                                 placeholder="Método"
                                 className="w-44"
                             >
-                                <SelectTrigger>
+                                <SelectTrigger style={grayField}>
                                     <SelectValue />
                                     <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
                                 </SelectTrigger>

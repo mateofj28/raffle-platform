@@ -18,6 +18,17 @@ import type { Ticket as TicketType, Customer } from "@/types/api.types";
 export default function VendorTicketsPage() {
     const user = useAuthStore((s) => s.user);
     const router = useRouter();
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        const check = () => setIsDark(document.documentElement.classList.contains("dark"));
+        check();
+        const observer = new MutationObserver(check);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        return () => observer.disconnect();
+    }, []);
+
+    const grayField = isDark ? undefined : { backgroundColor: "#F3F4F6", borderColor: "#F3F4F6" };
     const [tickets, setTickets] = useState<TicketType[]>([]);
     const [customers, setCustomers] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -134,6 +145,7 @@ export default function VendorTicketsPage() {
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                                 className="w-full sm:w-80"
+                                style={grayField}
                             />
                             <Select
                                 aria-label="Filtrar por estado"
@@ -142,7 +154,7 @@ export default function VendorTicketsPage() {
                                 placeholder="Todos los estados"
                                 className="w-48"
                             >
-                                <SelectTrigger>
+                                <SelectTrigger style={grayField}>
                                     <SelectValue />
                                     <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
                                 </SelectTrigger>
