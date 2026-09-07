@@ -6,6 +6,7 @@ import { DollarSign, TrendingUp, Wallet, Ticket, Zap, Calendar } from "lucide-re
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
@@ -15,6 +16,7 @@ import type { Ticket as TicketType, Payment } from "@/types/api.types";
 export default function VendorDashboardPage() {
     const user = useAuthStore((s) => s.user);
     const [loading, setLoading] = useState(true);
+    const [noRaffle, setNoRaffle] = useState(false);
     const [metrics, setMetrics] = useState({
         assigned: 0,
         sold: 0,
@@ -35,6 +37,7 @@ export default function VendorDashboardPage() {
         if (!user?.tenantId || !user?.vendorId) return;
         const load = async () => {
             setLoading(true);
+            setNoRaffle(false);
             try {
                 // Find active raffle
                 const rafflesCol = tenantCollection(user.tenantId, "raffles");
@@ -42,6 +45,8 @@ export default function VendorDashboardPage() {
                 const rafflesSnap = await getDocs(rafflesQ);
 
                 if (rafflesSnap.empty) {
+                    // No hay rifa activa: avisar al vendedor que contacte al admin.
+                    setNoRaffle(true);
                     setLoading(false);
                     return;
                 }
@@ -112,6 +117,19 @@ export default function VendorDashboardPage() {
     }, [user?.tenantId, user?.vendorId]);
 
     if (loading) return <div><PageHeader title="Mi Panel" /><LoadingSkeleton rows={8} /></div>;
+
+    if (noRaffle) {
+        return (
+            <div className="max-w-4xl mx-auto">
+                <PageHeader title="Mi Panel" description="Resumen de tu actividad" />
+                <EmptyState
+                    title="No hay ninguna rifa activa"
+                    description="En este momento no hay rifas disponibles. Pídele a tu administrador que cree una rifa y te asigne boletas para empezar a vender."
+                    icon={<Ticket className="h-16 w-16" />}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-4xl mx-auto">
