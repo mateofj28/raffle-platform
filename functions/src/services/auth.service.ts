@@ -260,7 +260,26 @@ export const updateUser = onCall(
             const data = request.data as { uid: string; displayName?: string; email?: string; password?: string };
 
             if (!data.uid) {
-                throw new AppError(AppErrorCode.VALIDATION_ERROR, "UID es requerido.");
+                throw new AppError(AppErrorCode.VALIDATION_ERROR, "El identificador del usuario es requerido.");
+            }
+
+            // Verificar que el usuario objetivo pertenezca al MISMO tenant del admin.
+            // Firebase Auth es global (no está segmentado por tenant), así que sin
+            // esta comprobación un admin de un tenant podría modificar credenciales
+            // de un usuario de otro tenant conociendo su UID.
+            let targetUser;
+            try {
+                targetUser = await getAuth().getUser(data.uid);
+            } catch {
+                throw new AppError(AppErrorCode.NOT_FOUND, "El usuario no existe.");
+            }
+
+            const targetTenantId = (targetUser.customClaims as Record<string, unknown> | undefined)?.tenantId;
+            if (targetTenantId !== context.tenantId) {
+                throw new AppError(
+                    AppErrorCode.FORBIDDEN,
+                    "No tienes permiso para modificar este usuario."
+                );
             }
 
             const updates: Record<string, string> = {};
