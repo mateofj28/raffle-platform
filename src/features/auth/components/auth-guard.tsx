@@ -143,26 +143,26 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     // Show loading while checking auth (max 10 seconds)
     if (!authChecked) {
         return (
-            <div className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-[#EFF6FC] dark:bg-[#0A1628]">
+            <div className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-white dark:bg-[#0A1628]">
                 {/* Logo */}
                 <div className="flex flex-col items-center gap-3">
-                    <div className="flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg" style={{ backgroundColor: "#001838" }}>
+                    <div className="flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg" style={{ backgroundColor: "#4A8C82" }}>
                         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="2" y="10" width="28" height="12" rx="3" stroke="white" strokeWidth="2" fill="none" />
-                            <circle cx="2" cy="16" r="3" fill="#001838" stroke="white" strokeWidth="1.5" />
-                            <circle cx="30" cy="16" r="3" fill="#001838" stroke="white" strokeWidth="1.5" />
+                            <circle cx="2" cy="16" r="3" fill="#4A8C82" stroke="white" strokeWidth="1.5" />
+                            <circle cx="30" cy="16" r="3" fill="#4A8C82" stroke="white" strokeWidth="1.5" />
                             <line x1="9" y1="16" x2="23" y2="16" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" />
                         </svg>
                     </div>
-                    <span className="text-xl font-bold tracking-tight text-[#001838] dark:text-white">Raffle Platform</span>
+                    <span className="text-xl font-bold tracking-tight text-[#1F2937] dark:text-white">Raffle Platform</span>
                 </div>
 
                 {/* Animated progress bar */}
-                <div className="w-48 h-1 rounded-full overflow-hidden bg-[#D1DCE8] dark:bg-[#1A2F50]">
+                <div className="w-48 h-1 rounded-full overflow-hidden bg-[#E0E0E0] dark:bg-[#1A2F50]">
                     <div
                         className="h-full rounded-full"
                         style={{
-                            backgroundColor: "#0058CD",
+                            backgroundColor: "#4A8C82",
                             animation: "loading-bar 1.4s ease-in-out infinite",
                             width: "40%",
                         }}
