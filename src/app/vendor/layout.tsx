@@ -7,9 +7,11 @@ import { AuthGuard } from "@/features/auth/components/auth-guard";
 import { ROLES } from "@/constants/roles";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { LayoutDashboard, Ticket, CreditCard, LogOut, UserPlus } from "lucide-react";
-import { Button } from "@heroui/react";
 import { cn } from "@/utils/cn";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { useAuthStore } from "@/store/auth.store";
+import { getDocs, query, where, orderBy } from "firebase/firestore";
+import { tenantCollection } from "@/lib/firebase/firestore";
 
 const VENDOR_NAV = [
     { href: "/vendor/dashboard", label: "Mi Panel", icon: LayoutDashboard },
@@ -21,7 +23,11 @@ const VENDOR_NAV = [
 export default function VendorLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { user, logout } = useAuth();
+    const tenantId = useAuthStore((s) => s.user?.tenantId);
     const [isDark, setIsDark] = useState(true);
+    // hasRaffle: null mientras se comprueba, luego true/false.
+    // Si no hay rifa activa, ocultamos la navegación (no tiene sentido navegar).
+    const [hasRaffle, setHasRaffle] = useState<boolean | null>(null);
 
     useEffect(() => {
         const check = () => setIsDark(document.documentElement.classList.contains("dark"));
@@ -31,13 +37,35 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         return () => observer.disconnect();
     }, []);
 
+    useEffect(() => {
+        if (!tenantId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const q = query(
+                    tenantCollection(tenantId, "raffles"),
+                    where("status", "in", ["active", "draft"]),
+                    orderBy("createdAt", "desc")
+                );
+                const snap = await getDocs(q);
+                if (!cancelled) setHasRaffle(!snap.empty);
+            } catch (e) {
+                console.error("No se pudo verificar la rifa activa", e);
+                if (!cancelled) setHasRaffle(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [tenantId]);
+
+    const showNav = hasRaffle === true;
+
     return (
         <AuthGuard requiredRole={ROLES.VENDOR}>
             <div className="min-h-dvh flex flex-col">
                 <header className="sticky top-0 z-30 flex h-14 items-center px-4 border-b" style={{ backgroundColor: isDark ? "#001838" : "#FFFFFF", borderColor: isDark ? "transparent" : "#E8E8E8" }}>
                     <span className={`font-semibold ${isDark ? "text-white" : "text-[#1F2937]"}`}>Raffle Platform</span>
                     <nav className="flex-1 flex items-center justify-center gap-1">
-                        {VENDOR_NAV.map((item) => {
+                        {showNav && VENDOR_NAV.map((item) => {
                             const Icon = item.icon;
                             const isActive = pathname === item.href;
                             return (
