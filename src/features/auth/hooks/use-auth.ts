@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
+import { useRaffleStore } from "@/store/raffle.store";
 import {
     login,
     logout,
@@ -13,6 +14,7 @@ export function useAuth() {
     const router = useRouter();
     const { user, isLoading, isAuthenticated, setUser, setLoading, reset } =
         useAuthStore();
+    const clearActiveRaffle = useRaffleStore((s) => s.clearActiveRaffle);
 
     const handleLogin = async (email: string, password: string) => {
         setLoading(true);
@@ -20,6 +22,11 @@ export function useAuth() {
             const firebaseUser = await login(email, password);
             const authUser = await getUserWithClaims(firebaseUser);
             setUser(authUser);
+
+            // Al iniciar sesión, limpiar cualquier rifa "activa" que quedara guardada
+            // en este dispositivo de una sesión anterior. Así el usuario SIEMPRE
+            // arranca en la rifa oficial (la actual), no en la que consultó la última vez.
+            clearActiveRaffle();
 
             // Redirect based on role
             if (authUser.role === "admin" || authUser.role === "cashier") {
@@ -36,6 +43,7 @@ export function useAuth() {
     const handleLogout = async () => {
         await logout();
         reset();
+        clearActiveRaffle();
         router.push(ROUTES.LOGIN);
     };
 

@@ -12,7 +12,7 @@ import { z } from "zod";
 import { validateAuth, requireAdmin, requireVendorOwnership, type AuthContext } from "../middleware/auth";
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
-import { getDb } from "../utils/firestore";
+import { getDb, getOfficialRaffleId } from "../utils/firestore";
 import { createAuditEntry } from "./audit.service";
 
 // --- Zod Schemas ---
@@ -52,6 +52,15 @@ export const registerPayment = onCall(
 
             const data = validateData(registerPaymentSchema, request.data);
             const { raffleId, ticketNumber, amount, type, method, observations } = data;
+
+            // Solo se pueden registrar pagos en la rifa oficial (la actual), no en anteriores.
+            const officialId = await getOfficialRaffleId(context.tenantId);
+            if (officialId !== raffleId) {
+                throw new AppError(
+                    AppErrorCode.INVALID_TRANSITION,
+                    "Solo puedes operar en la rifa actual. Esta es una rifa anterior."
+                );
+            }
 
             const db = getDb();
             const ticketDocId = padTicketNumber(ticketNumber);

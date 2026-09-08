@@ -15,8 +15,23 @@ import { z } from "zod";
 import { validateAuth, requireAdmin, requireAdminOrCashier, requireVendorOwnership, type AuthContext } from "../middleware/auth";
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
-import { getDb, BATCH_SIZE } from "../utils/firestore";
+import { getDb, BATCH_SIZE, getOfficialRaffleId } from "../utils/firestore";
 import { createAuditEntry } from "./audit.service";
+
+/**
+ * Valida que el raffleId sea la rifa OFICIAL (la más reciente activa/borrador).
+ * Bloquea operaciones (vender, pagar, asignar) sobre rifas anteriores para
+ * evitar que un admin/cajero opere por error en una rifa que no es la actual.
+ */
+async function assertOfficialRaffle(tenantId: string, raffleId: string): Promise<void> {
+    const officialId = await getOfficialRaffleId(tenantId);
+    if (officialId !== raffleId) {
+        throw new AppError(
+            AppErrorCode.INVALID_TRANSITION,
+            "Solo puedes operar en la rifa actual. Esta es una rifa anterior."
+        );
+    }
+}
 
 // --- Zod Schemas ---
 
@@ -126,6 +141,9 @@ export const assignTickets = onCall(
             const data = validateData(assignTicketsSchema, request.data);
             const { raffleId, vendorId, fromNumber, toNumber, ticketNumbers } = data;
 
+            // Solo se puede asignar en la rifa oficial (la actual), no en anteriores.
+            await assertOfficialRaffle(context.tenantId, raffleId);
+
             const db = getDb();
 
             // Validate raffle exists and is active or draft
@@ -227,6 +245,9 @@ export const sellTicket = onCall(
             const data = validateData(sellTicketSchema, request.data);
             const { raffleId, ticketNumber, customerId } = data;
 
+            // Solo se puede vender en la rifa oficial (la actual), no en anteriores.
+            await assertOfficialRaffle(context.tenantId, raffleId);
+
             const db = getDb();
             const ticketDocId = padTicketNumber(ticketNumber);
             const ticketRef = db.doc(
@@ -309,6 +330,9 @@ export const unassignTickets = onCall(
             const data = validateData(unassignTicketsSchema, request.data);
             const { raffleId, ticketNumbers } = data;
 
+            // Solo se puede desasignar en la rifa oficial (la actual).
+            await assertOfficialRaffle(context.tenantId, raffleId);
+
             const db = getDb();
             const ticketsBasePath = `tenants/${context.tenantId}/raffles/${raffleId}/tickets`;
             let unassigned = 0;
@@ -367,6 +391,9 @@ export const updateTicketClient = onCall(
 
             const data = validateData(schema, request.data);
             const { raffleId, ticketNumber, customerId } = data;
+
+            // Solo se puede modificar el cliente en la rifa oficial (la actual).
+            await assertOfficialRaffle(context.tenantId, raffleId);
 
             const db = getDb();
             const docId = padTicketNumber(ticketNumber);

@@ -13,7 +13,7 @@ import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
-import { getDocs, query, orderBy, where, doc, getDoc } from "firebase/firestore";
+import { getDocs, query, orderBy, where, doc, getDoc, limit } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
 
@@ -44,7 +44,7 @@ interface TodayMetrics {
 
 export default function AdminDashboardPage() {
     const router = useRouter();
-    const { activeRaffle, clearActiveRaffle } = useRaffleStore();
+    const { activeRaffle, setActiveRaffle, clearActiveRaffle } = useRaffleStore();
     const tenantId = useAuthStore((s) => s.user?.tenantId);
     const userRole = useAuthStore((s) => s.user?.role);
     const userUid = useAuthStore((s) => s.user?.uid);
@@ -55,29 +55,50 @@ export default function AdminDashboardPage() {
     const [vendorsMap, setVendorsMap] = useState<Map<string, string>>(new Map());
     const [customersMap, setCustomersMap] = useState<Map<string, string>>(new Map());
 
-    // Si no hay rifa activa en el store, ir a la pantalla de rifas.
-    // Si SÍ hay, validar contra la base de datos que todavía exista: la rifa
-    // activa se guarda en localStorage por dispositivo, así que si se eliminó
-    // desde otro dispositivo, este equipo aún podría tenerla "fantasma".
+    // Lógica de rifa activa para admin/cajero:
+    // - Si NO hay rifa activa (recién inició sesión, que la limpia), fijar
+    //   automáticamente la rifa OFICIAL (la más reciente activa/borrador).
+    //   Si no hay ninguna rifa, ir a /raffles (ahí verá el mensaje según su rol).
+    // - Si SÍ hay una activa, validar contra la base de datos que todavía exista
+    //   (pudo eliminarse desde otro dispositivo → selección "fantasma").
     useEffect(() => {
-        if (!activeRaffle) { router.replace("/raffles"); return; }
         if (!tenantId) return;
         let cancelled = false;
         (async () => {
             try {
+                if (!activeRaffle) {
+                    // Fijar la rifa oficial automáticamente.
+                    const q = query(
+                        tenantCollection(tenantId, "raffles"),
+                        where("status", "in", ["active", "draft"]),
+                        orderBy("createdAt", "desc"),
+                        limit(1)
+                    );
+                    const snap = await getDocs(q);
+                    if (cancelled) return;
+                    if (snap.empty) {
+                        router.replace("/raffles");
+                        return;
+                    }
+                    const r = snap.docs[0];
+                    const d = r.data();
+                    setActiveRaffle({ id: r.id, name: d.name, status: d.status, ticketPrice: d.ticketPrice, totalTickets: d.totalTickets, semester: d.semester });
+                    return;
+                }
+
+                // Validar que la rifa activa todavía exista.
                 const snap = await getDoc(doc(getDb(), "tenants", tenantId, "raffles", activeRaffle.id));
                 if (cancelled) return;
                 if (!snap.exists()) {
-                    // La rifa fue eliminada: limpiar la selección "fantasma" y salir.
                     clearActiveRaffle();
                     router.replace("/raffles");
                 }
             } catch (e) {
-                console.error("No se pudo validar la rifa activa", e);
+                console.error("No se pudo determinar la rifa activa", e);
             }
         })();
         return () => { cancelled = true; };
-    }, [activeRaffle, tenantId, clearActiveRaffle, router]);
+    }, [activeRaffle, tenantId, setActiveRaffle, clearActiveRaffle, router]);
 
     useEffect(() => {
         if (!tenantId || !activeRaffle) return;

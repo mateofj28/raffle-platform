@@ -31,6 +31,9 @@ export default function RaffleDetailPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
     const [ticketsLoading, setTicketsLoading] = useState(true);
+    // ¿La rifa que se está viendo es la OFICIAL (la actual)? Solo en la oficial
+    // se permite operar (asignar/desasignar). En anteriores es solo consulta.
+    const [isOfficial, setIsOfficial] = useState<boolean | null>(null);
 
     // Assignment mode
     const [assignMode, setAssignMode] = useState<"assign" | "unassign" | null>(null);
@@ -61,6 +64,29 @@ export default function RaffleDetailPage() {
         });
         return () => cancelAnimationFrame(id);
     }, [assignMode]);
+
+    // Determinar si esta rifa es la oficial (la más reciente activa/borrador).
+    useEffect(() => {
+        if (!tenantId || !raffleId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const q = query(
+                    tenantCollection(tenantId, "raffles"),
+                    where("status", "in", ["active", "draft"]),
+                    orderBy("createdAt", "desc"),
+                    limit(1)
+                );
+                const snap = await getDocs(q);
+                if (cancelled) return;
+                setIsOfficial(!snap.empty && snap.docs[0].id === raffleId);
+            } catch (e) {
+                console.error("No se pudo determinar la rifa oficial", e);
+                if (!cancelled) setIsOfficial(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [tenantId, raffleId]);
 
     // Load raffle
     useEffect(() => {
@@ -253,12 +279,13 @@ export default function RaffleDetailPage() {
                 actions={
                     <div className="flex gap-2">
                         <Link href="/raffles"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button></Link>
-                        {!assignMode && (
+                        {/* Asignar/Desasignar solo en la rifa oficial (la actual). */}
+                        {!assignMode && isOfficial === true && (
                             <Button variant="primary" size="sm" onPress={() => { if (vendors.length === 0) { setShowNoVendorsModal(true); return; } setAssignMode("assign"); }}>
                                 <UserPlus className="h-4 w-4" /> Asignar
                             </Button>
                         )}
-                        {!assignMode && (
+                        {!assignMode && isOfficial === true && (
                             <Button variant="outline" size="sm" onPress={() => setAssignMode("unassign")}>
                                 <UserMinus className="h-4 w-4" /> Desasignar
                             </Button>
@@ -273,6 +300,14 @@ export default function RaffleDetailPage() {
                     </div>
                 }
             />
+
+            {/* Aviso: rifa anterior (solo consulta) */}
+            {isOfficial === false && (
+                <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+                    <span className="font-semibold">Estás viendo una rifa anterior.</span>{" "}
+                    Esta vista es solo de consulta: no puedes asignar boletas ni registrar operaciones aquí. Las operaciones solo se permiten en la rifa actual.
+                </div>
+            )}
 
             {/* Raffle Info */}
             <Card className="mb-6">
