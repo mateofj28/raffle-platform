@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast, ComboBox, Input as HeroInput } from "@heroui/react";
-import { Ticket, Calendar, Trophy, Hash, DollarSign, ArrowLeft, UserPlus, UserMinus, X, ChevronDown } from "lucide-react";
+import { Ticket, Calendar, Trophy, Hash, DollarSign, UserPlus, UserMinus, X, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -278,7 +278,6 @@ export default function RaffleDetailPage() {
                 description={raffle.description}
                 actions={
                     <div className="flex gap-2">
-                        <Link href="/raffles"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button></Link>
                         {/* Asignar/Desasignar solo en la rifa oficial (la actual). */}
                         {!assignMode && isOfficial === true && (
                             <Button variant="primary" size="sm" onPress={() => { if (vendors.length === 0) { setShowNoVendorsModal(true); return; } setAssignMode("assign"); }}>
