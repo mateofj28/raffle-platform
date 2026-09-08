@@ -195,6 +195,14 @@ textarea {
     background-color: #1E3A5F !important;
     border-color: #1E3A5F !important;
 }
+/* Bordes de tarjetas/cajas que usan las utilidades default en modo oscuro:
+   unificar al azul sutil de la app para que combinen. */
+.dark .border-default-200,
+.dark .border-default-100,
+.dark .divide-default-200> :not([hidden])~ :not([hidden]),
+.dark .divide-default-100> :not([hidden])~ :not([hidden]) {
+    border-color: #1E3A5F !important;
+}
 /* ===== PRINT ===== */
 @media print {
 
