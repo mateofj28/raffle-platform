@@ -275,16 +275,34 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
                 {/* Números por boleta */}
                 <div className="md:col-span-2">
                     <label className="text-sm font-medium mb-2 block">Números por boleta</label>
-                    <div className="flex gap-6">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input {...register("numbersPerTicket", { valueAsNumber: true })} type="radio" value={1} defaultChecked className="accent-primary w-4 h-4" />
-                            <span className="text-sm">1 número</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input {...register("numbersPerTicket", { valueAsNumber: true })} type="radio" value={2} className="accent-primary w-4 h-4" />
-                            <span className="text-sm">2 números</span>
-                        </label>
-                    </div>
+                    <Controller
+                        name="numbersPerTicket"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="flex gap-6">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name={field.name}
+                                        checked={field.value === 1}
+                                        onChange={() => field.onChange(1)}
+                                        className="accent-primary w-4 h-4"
+                                    />
+                                    <span className="text-sm">1 número</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name={field.name}
+                                        checked={field.value === 2}
+                                        onChange={() => field.onChange(2)}
+                                        className="accent-primary w-4 h-4"
+                                    />
+                                    <span className="text-sm">2 números</span>
+                                </label>
+                            </div>
+                        )}
+                    />
                     {errors.numbersPerTicket && <p className="text-sm text-danger mt-1">{errors.numbersPerTicket.message}</p>}
                 </div>
             </div>
