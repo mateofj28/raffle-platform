@@ -95,12 +95,12 @@ export default function ReportsPage() {
             {!selectedReport ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {REPORTS.map(r => (
-                        <button key={r.id} onClick={() => setSelectedReport(r.id)} className="text-left p-5 rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] hover:border-[#4A8C82] hover:bg-[#F0FAF8] transition-all">
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${r.iconBg} ${r.iconColor} mb-3`}>
+                        <button key={r.id} onClick={() => setSelectedReport(r.id)} className="text-left p-5 rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] hover:border-[#4A8C82] hover:bg-[#F0FAF8] dark:border-[#2A4570] dark:bg-[#0F2040] dark:hover:border-[#4A8C82] dark:hover:bg-[#1A2F50] transition-all">
+                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${r.iconBg} ${r.iconColor} dark:bg-white/10 mb-3`}>
                                 <r.icon className="h-5 w-5" />
                             </div>
-                            <p className="font-semibold text-sm text-[#1F2937]">{r.label}</p>
-                            <p className="text-xs text-[#9CA3AF] mt-1">{r.description}</p>
+                            <p className="font-semibold text-sm text-[#1F2937] dark:text-[#E2E8F0]">{r.label}</p>
+                            <p className="text-xs text-[#9CA3AF] dark:text-[#8AA0BC] mt-1">{r.description}</p>
                         </button>
                     ))}
                 </div>
