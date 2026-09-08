@@ -93,7 +93,16 @@ export default function AuditPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [usersMap, setUsersMap] = useState<Map<string, { name: string; role: string }>>(new Map());
     const [page, setPage] = useState(1);
+    const [isDark, setIsDark] = useState(false);
     const PAGE_SIZE = 20;
+
+    useEffect(() => {
+        const check = () => setIsDark(document.documentElement.classList.contains("dark"));
+        check();
+        const observer = new MutationObserver(check);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        return () => observer.disconnect();
+    }, []);
 
     // Load users to resolve names (from users collection + vendors + customers)
     useEffect(() => {
@@ -166,7 +175,8 @@ export default function AuditPage() {
                     placeholder="Buscar en el historial..."
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                    className="max-w-md"
+                    className="w-full sm:max-w-md"
+                    style={isDark ? undefined : { backgroundColor: "#F3F4F6", borderColor: "#F3F4F6" }}
                 />
             </div>
 
