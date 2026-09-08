@@ -186,6 +186,15 @@ textarea {
     background-color: #0F2040 !important;
     border: 1px solid #1E3A5F !important;
 }
+/* Separadores (líneas divisorias) en modo oscuro: tono azul sutil que combine
+   con los bordes de la app, en vez del gris claro por defecto. */
+.dark .separator,
+.dark .separator--default,
+.dark [role="separator"],
+.dark hr {
+    background-color: #1E3A5F !important;
+    border-color: #1E3A5F !important;
+}
 /* ===== PRINT ===== */
 @media print {
 
