@@ -140,7 +140,7 @@ export default function VendorCreateCustomerPage() {
                                 <label className="text-sm font-medium mb-1.5 flex items-center gap-2">
                                     <MapPin className="h-4 w-4 text-default-400" /> Dirección <span className="text-xs text-default-400 font-normal">(opcional)</span>
                                 </label>
-                                <Input placeholder="Calle 123 #45-67, Barrio Centro" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full" />
+                                <Input placeholder="Calle 123 #45-67, Barrio Centro" value={address} onChange={(e) => setAddress(capitalizeWords(e.target.value))} className="w-full" />
                             </div>
                         </div>
                         <div className="mt-6">

@@ -73,3 +73,14 @@ export function formatTicketNumber(num: number, totalDigits = 4): string {
 export function formatPercent(value: number): string {
     return `${(value * 100).toFixed(0)}%`;
 }
+
+/**
+ * Pone en mayúscula la primera letra del texto, respetando el resto tal cual.
+ * Se usa en campos de texto (nombres, descripciones, premios, etc.) para que
+ * la primera letra siempre quede en mayúscula al escribir.
+ * No altera cadenas vacías ni afecta el resto de las letras.
+ */
+export function capitalizeFirst(value: string): string {
+    if (!value) return value;
+    return value.charAt(0).toUpperCase() + value.slice(1);
+}

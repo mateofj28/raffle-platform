@@ -7,6 +7,7 @@ import { Save, User, Phone, Mail } from "lucide-react";
 import { vendorSchema, type VendorFormData } from "../schemas/vendor.schema";
 import { FormField } from "@/components/ui/form-field";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
+import { makeCapitalizedRegister } from "@/utils/capitalize-field";
 
 interface VendorFormProps {
     defaultValues?: Partial<VendorFormData>;
@@ -26,6 +27,7 @@ export function VendorForm({
     const {
         register,
         handleSubmit,
+        setValue,
         formState: { errors, isSubmitting },
     } = useForm<VendorFormData>({
         resolver: zodResolver(vendorSchema),
@@ -38,6 +40,7 @@ export function VendorForm({
       },
   });
 
+    const capRegister = makeCapitalizedRegister(register, setValue);
     const busy = isLoading || isSubmitting;
 
     // Prevents non-numeric input at keystroke level
@@ -62,7 +65,7 @@ export function VendorForm({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
                               label="Nombre completo"
-                              {...register("name")}
+                                {...capRegister("name")}
                               placeholder="Juan Pérez"
                               error={errors.name?.message}
                               disabled={busy}

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DatePicker, DateField, Calendar } from "@heroui/react";
 import { createRaffleSchema, type CreateRaffleFormData } from "../schemas/raffle.schema";
 import { parseDate, today, getLocalTimeZone, type CalendarDate } from "@internationalized/date";
+import { makeCapitalizedRegister } from "@/utils/capitalize-field";
 
 interface RaffleFormProps {
     onSubmit: (data: CreateRaffleFormData) => void;
@@ -37,7 +38,7 @@ function CurrencyInput({ value, onChange, placeholder }: { value: number | undef
 }
 
 export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormProps) {
-    const { register, handleSubmit, control, watch, formState: { errors } } = useForm<CreateRaffleFormData>({
+    const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<CreateRaffleFormData>({
         resolver: zodResolver(createRaffleSchema),
         defaultValues: {
             numbersPerTicket: 1,
@@ -46,6 +47,9 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
             ...defaultValues,
         },
     });
+
+    // register que capitaliza la primera letra (solo campos de texto).
+    const capRegister = makeCapitalizedRegister(register, setValue);
 
     const startDateValue = watch("startDate");
     const endDateValue = watch("endDate");
@@ -61,7 +65,7 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
                 <div className="md:col-span-2">
                     <label className="text-sm font-medium mb-1 block">Nombre</label>
                     <input
-                        {...register("name")}
+                        {...capRegister("name")}
                         placeholder="Nombre de la rifa"
                         className="w-full rounded-lg border border-default-200 bg-default-50 px-3 py-2 text-sm outline-none focus:border-primary"
                     />
@@ -72,7 +76,7 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
                 <div className="md:col-span-2">
                     <label className="text-sm font-medium mb-1 block">Descripción</label>
                     <textarea
-                        {...register("description")}
+                        {...capRegister("description")}
                         placeholder="Descripción de la rifa"
                         className="w-full rounded-lg border border-default-200 bg-default-50 px-3 py-2 text-sm outline-none focus:border-primary"
                         rows={3}
@@ -84,7 +88,7 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
                 <div>
                     <label className="text-sm font-medium mb-1 block">Premio mayor</label>
                     <input
-                        {...register("prize")}
+                        {...capRegister("prize")}
                         placeholder="Ej: Casa, Carro, Moto"
                         className="w-full rounded-lg border border-default-200 bg-default-50 px-3 py-2 text-sm outline-none focus:border-primary"
                     />
@@ -244,7 +248,7 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
                 <div>
                     <label className="text-sm font-medium mb-1 block">Lotería</label>
                     <input
-                        {...register("lottery")}
+                        {...capRegister("lottery")}
                         placeholder="Lotería asociada"
                         className="w-full rounded-lg border border-default-200 bg-default-50 px-3 py-2 text-sm outline-none focus:border-primary"
                     />

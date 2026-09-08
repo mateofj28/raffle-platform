@@ -21,6 +21,7 @@ import { customerSchema, type CustomerFormData } from "../schemas/customer.schem
 import { FormField } from "@/components/ui/form-field";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { DEPARTMENT_LIST, getCitiesByDepartment } from "@/constants/colombia-locations";
+import { makeCapitalizedRegister } from "@/utils/capitalize-field";
 
 interface CustomerFormProps {
   defaultValues?: Partial<CustomerFormData>;
@@ -57,6 +58,7 @@ export function CustomerForm({
   });
 
   const busy = isLoading || isSubmitting;
+  const capRegister = makeCapitalizedRegister(register, setValue);
 
   const selectedDepartment = useWatch({ control, name: "department" });
   const cities = selectedDepartment ? getCitiesByDepartment(selectedDepartment) : [];
@@ -89,7 +91,7 @@ export function CustomerForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Nombre completo"
-                {...register("name")}
+                {...capRegister("name")}
                 placeholder="María García"
                 error={errors.name?.message}
                 disabled={busy}
@@ -227,7 +229,7 @@ export function CustomerForm({
             <div className="mt-4">
               <FormField
                 label="Dirección"
-                {...register("address")}
+                {...capRegister("address")}
                 placeholder="Calle 123 #45-67, Barrio Centro"
                 hint="Opcional"
                 error={errors.address?.message}
