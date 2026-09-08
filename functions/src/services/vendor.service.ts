@@ -59,6 +59,19 @@ export const createVendor = onCall(
                 `tenants/${context.tenantId}/vendors`
             );
 
+            // Validar que la cédula sea única entre vendedores del tenant.
+            const duplicateQuery = await vendorsCol
+                .where("document", "==", data.document)
+                .limit(1)
+                .get();
+
+            if (!duplicateQuery.empty) {
+                throw new AppError(
+                    AppErrorCode.CONFLICT,
+                    "Ya existe un vendedor con este documento."
+                );
+            }
+
             const newVendorRef = vendorsCol.doc();
 
             await newVendorRef.set({
@@ -106,6 +119,28 @@ export const updateVendor = onCall(
                     AppErrorCode.NOT_FOUND,
                     "Vendedor no encontrado."
                 );
+            }
+
+            // Si se cambia la cédula, validar que no exista en otro vendedor.
+            if (updateFields.document !== undefined) {
+                const currentDocument = vendorSnap.data()?.document;
+
+                if (updateFields.document !== currentDocument) {
+                    const vendorsCol = db.collection(
+                        `tenants/${context.tenantId}/vendors`
+                    );
+                    const duplicateQuery = await vendorsCol
+                        .where("document", "==", updateFields.document)
+                        .limit(1)
+                        .get();
+
+                    if (!duplicateQuery.empty) {
+                        throw new AppError(
+                            AppErrorCode.CONFLICT,
+                            "Ya existe un vendedor con este documento."
+                        );
+                    }
+                }
             }
 
             // Build update object with only provided fields
