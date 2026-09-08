@@ -84,3 +84,13 @@ export function capitalizeFirst(value: string): string {
     if (!value) return value;
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
+
+/**
+ * Pone en mayúscula la primera letra de CADA palabra.
+ * Ej: "carlos leder camino" -> "Carlos Leder Camino".
+ * Se usa exclusivamente en el campo "Nombre completo" de clientes y vendedores.
+ */
+export function capitalizeWords(value: string): string {
+    if (!value) return value;
+    return value.replace(/(^|\s)(\p{L})/gu, (_m, sep, char) => sep + char.toUpperCase());
+}

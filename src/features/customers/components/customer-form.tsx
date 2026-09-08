@@ -22,6 +22,7 @@ import { FormField } from "@/components/ui/form-field";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { DEPARTMENT_LIST, getCitiesByDepartment } from "@/constants/colombia-locations";
 import { makeCapitalizedRegister } from "@/utils/capitalize-field";
+import { capitalizeWords } from "@/utils/formatters";
 
 interface CustomerFormProps {
   defaultValues?: Partial<CustomerFormData>;
@@ -91,7 +92,7 @@ export function CustomerForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Nombre completo"
-                {...capRegister("name")}
+                {...capRegister("name", capitalizeWords)}
                 placeholder="María García"
                 error={errors.name?.message}
                 disabled={busy}
