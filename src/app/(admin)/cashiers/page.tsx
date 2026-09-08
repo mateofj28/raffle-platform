@@ -27,6 +27,17 @@ export default function CashiersPage() {
     const tenantId = useAuthStore((s) => s.user?.tenantId);
     const [cashiers, setCashiers] = useState<CashierUser[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        // Nota: se usa window.document porque en este componente hay una variable
+        // local llamada `document` (la cédula) que haría sombra al document global.
+        const check = () => setIsDark(window.document.documentElement.classList.contains("dark"));
+        check();
+        const observer = new MutationObserver(check);
+        observer.observe(window.document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        return () => observer.disconnect();
+    }, []);
 
     // Create form
     const [showForm, setShowForm] = useState(false);
@@ -266,7 +277,8 @@ export default function CashiersPage() {
                                 placeholder="Buscar cajero por nombre o correo..."
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                                className="max-w-md"
+                                className="w-full sm:max-w-md"
+                                style={isDark ? undefined : { backgroundColor: "#F3F4F6", borderColor: "#F3F4F6" }}
                             />
                         </div>
 

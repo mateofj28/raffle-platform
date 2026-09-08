@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@heroui/react";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,15 @@ import { useVendors } from "@/features/vendors/hooks/use-vendors";
 export default function VendorsPage() {
     const { data: vendors = [], isLoading } = useVendors();
     const [search, setSearch] = useState("");
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        const check = () => setIsDark(document.documentElement.classList.contains("dark"));
+        check();
+        const observer = new MutationObserver(check);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        return () => observer.disconnect();
+    }, []);
 
     const filtered = search.length >= 2
         ? vendors.filter(v =>
@@ -56,7 +65,8 @@ export default function VendorsPage() {
                                     placeholder="Buscar por nombre o documento..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="max-w-sm"
+                                    className="w-full sm:max-w-md"
+                                    style={isDark ? undefined : { backgroundColor: "#F3F4F6", borderColor: "#F3F4F6" }}
                                 />
                             </div>
                             {filtered.length === 0 ? (
