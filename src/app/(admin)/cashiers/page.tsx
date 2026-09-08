@@ -277,7 +277,7 @@ export default function CashiersPage() {
                                 placeholder="Buscar cajero por nombre o correo..."
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                                className="w-full sm:max-w-md"
+                                className="w-full max-w-sm"
                                 style={isDark ? undefined : { backgroundColor: "#F3F4F6", borderColor: "#F3F4F6" }}
                             />
                         </div>

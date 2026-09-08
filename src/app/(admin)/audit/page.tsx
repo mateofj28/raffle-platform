@@ -175,7 +175,7 @@ export default function AuditPage() {
                     placeholder="Buscar en el historial..."
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                    className="w-full sm:max-w-md"
+                    className="w-full max-w-xs"
                     style={isDark ? undefined : { backgroundColor: "#F3F4F6", borderColor: "#F3F4F6" }}
                 />
             </div>

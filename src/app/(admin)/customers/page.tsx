@@ -65,7 +65,7 @@ export default function CustomersPage() {
                                     placeholder="Buscar por nombre o documento..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="w-full sm:max-w-md"
+                                    className="w-full max-w-xs"
                                     style={isDark ? undefined : { backgroundColor: "#F3F4F6", borderColor: "#F3F4F6" }}
                                 />
                             </div>
