@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent, AlertDialog } from "@heroui/react";
 import { Input } from "@/components/ui/input";
-import { UserCog, Plus, Trash2, Pencil, Copy } from "lucide-react";
+import { UserCog, Plus, Trash2, Pencil, Copy, Eye, EyeOff } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -369,9 +369,10 @@ export default function CashiersPage() {
                                         <button
                                             type="button"
                                             onClick={() => setShowEditPassword(!showEditPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-default-400 hover:text-foreground"
+                                            aria-label={showEditPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-default-400 hover:text-foreground"
                                         >
-                                            {showEditPassword ? "Ocultar" : "Ver"}
+                                            {showEditPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
                                     {editPassword && editPassword.length < 6 && (

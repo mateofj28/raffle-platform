@@ -177,6 +177,15 @@ textarea {
     background-color: rgba(74, 140, 130, 0.1) !important;
     }
 
+/* Modales / diálogos: usar la paleta azul de la app en modo oscuro
+   (en vez del gris neutro por defecto de HeroUI, que viene de bg-overlay). */
+.dark .alert-dialog__dialog,
+.dark [data-slot="dialog"],
+.dark [role="alertdialog"],
+.dark [role="dialog"] {
+    background-color: #0F2040 !important;
+    border: 1px solid #1E3A5F !important;
+}
 /* ===== PRINT ===== */
 @media print {
 
