@@ -39,6 +39,9 @@ export default function CustomerDetailPage() {
     const [filterTicket, setFilterTicket] = useState("");
     const [filterType, setFilterType] = useState("");
     const [filterMethod, setFilterMethod] = useState("");
+    // Filtro por período: "" (todos), "this" (este mes), "last" (mes anterior),
+    // o una clave "YYYY-M" para un mes específico con pagos.
+    const [filterPeriod, setFilterPeriod] = useState("");
 
     // Filtros de la tabla de boletas compradas
     const [ticketFilterNum, setTicketFilterNum] = useState("");
@@ -101,11 +104,46 @@ export default function CustomerDetailPage() {
         return true;
     });
 
-    // Pagos filtrados por boleta, tipo y método
+    // Convierte el createdAt de un pago (Timestamp de Firestore o string) a Date.
+    const paymentDate = (p: Payment): Date | null => {
+        const c = p.createdAt as unknown;
+        if (!c) return null;
+        if (typeof c === "string") { const d = new Date(c); return isNaN(d.getTime()) ? null : d; }
+        const anyC = c as { toDate?: () => Date; seconds?: number };
+        if (typeof anyC.toDate === "function") return anyC.toDate();
+        if (typeof anyC.seconds === "number") return new Date(anyC.seconds * 1000);
+        return null;
+    };
+
+    // Meses (con pagos) disponibles para el selector de período, más recientes primero.
+    const MONTH_NAMES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const monthOptions = Array.from(
+        new Set(payments.map((p) => { const d = paymentDate(p); return d ? `${d.getFullYear()}-${d.getMonth()}` : null; }).filter(Boolean) as string[])
+    )
+        .sort((a, b) => (a < b ? 1 : -1))
+        .map((key) => { const [y, m] = key.split("-").map(Number); return { key, label: `${MONTH_NAMES[m]} ${y}` }; });
+
+    // ¿El pago cae en el período seleccionado?
+    const matchesPeriod = (p: Payment): boolean => {
+        if (!filterPeriod) return true;
+        const d = paymentDate(p);
+        if (!d) return false;
+        const now = new Date();
+        if (filterPeriod === "this") return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        if (filterPeriod === "last") {
+            const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            return d.getFullYear() === last.getFullYear() && d.getMonth() === last.getMonth();
+        }
+        const [y, m] = filterPeriod.split("-").map(Number);
+        return d.getFullYear() === y && d.getMonth() === m;
+    };
+
+    // Pagos filtrados por boleta, tipo, método y período (fecha)
     const filteredPayments = payments.filter((p) => {
         if (filterTicket && !String(p.ticketId).includes(filterTicket.trim())) return false;
         if (filterType && p.type !== filterType) return false;
         if (filterMethod && p.method !== filterMethod) return false;
+        if (!matchesPeriod(p)) return false;
         return true;
     });
 
@@ -250,6 +288,19 @@ export default function CustomerDetailPage() {
                                         inputMode="numeric"
                                         className="w-full sm:w-56"
                                     />
+                                    <Select aria-label="Período" selectedKey={filterPeriod || null} onSelectionChange={(key) => setFilterPeriod(key ? String(key) : "")} placeholder="Todo el tiempo" className="w-52">
+                                        <SelectTrigger><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                        <SelectPopover>
+                                            <ListBox>
+                                                <ListBoxItem id="" textValue="Todo el tiempo">Todo el tiempo</ListBoxItem>
+                                                <ListBoxItem id="this" textValue="Este mes">Este mes</ListBoxItem>
+                                                <ListBoxItem id="last" textValue="Mes anterior">Mes anterior</ListBoxItem>
+                                                {monthOptions.map((m) => (
+                                                    <ListBoxItem key={m.key} id={m.key} textValue={m.label}>{m.label}</ListBoxItem>
+                                                ))}
+                                            </ListBox>
+                                        </SelectPopover>
+                                    </Select>
                                     <Select aria-label="Tipo de pago" selectedKey={filterType || null} onSelectionChange={(key) => setFilterType(key ? String(key) : "")} placeholder="Todos los tipos" className="w-44">
                                         <SelectTrigger><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
                                         <SelectPopover>
@@ -273,8 +324,8 @@ export default function CustomerDetailPage() {
                                             </ListBox>
                                         </SelectPopover>
                                     </Select>
-                                    {(filterTicket || filterType || filterMethod) && (
-                                        <Button variant="ghost" size="sm" onPress={() => { setFilterTicket(""); setFilterType(""); setFilterMethod(""); }}>✕ Limpiar</Button>
+                                    {(filterTicket || filterType || filterMethod || filterPeriod) && (
+                                        <Button variant="ghost" size="sm" onPress={() => { setFilterTicket(""); setFilterType(""); setFilterMethod(""); setFilterPeriod(""); }}>✕ Limpiar</Button>
                                     )}
                                     <span className="text-xs text-default-500 ml-auto">{filteredPayments.length} pago(s)</span>
                                 </div>
