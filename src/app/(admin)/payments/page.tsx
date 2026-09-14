@@ -35,6 +35,8 @@ export default function PaymentsPage() {
     const [filterType, setFilterType] = useState<string>("");
     const [filterMethod, setFilterMethod] = useState<string>("");
     const [searchTerm, setSearchTerm] = useState("");
+    // "" (todos), "this" (este mes), "last" (mes anterior), o "YYYY-M" para un mes con pagos.
+    const [filterPeriod, setFilterPeriod] = useState("");
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -78,10 +80,43 @@ export default function PaymentsPage() {
         load();
     }, [tenantId, activeRaffle, userRole, userUid]);
 
+    // Fecha de un pago (Timestamp de Firestore o string) a Date.
+    const paymentDate = (p: Payment): Date | null => {
+        const c = p.createdAt as unknown;
+        if (!c) return null;
+        if (typeof c === "string") { const d = new Date(c); return isNaN(d.getTime()) ? null : d; }
+        const anyC = c as { toDate?: () => Date; seconds?: number };
+        if (typeof anyC.toDate === "function") return anyC.toDate();
+        if (typeof anyC.seconds === "number") return new Date(anyC.seconds * 1000);
+        return null;
+    };
+
+    const MONTH_NAMES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const monthOptions = Array.from(
+        new Set(payments.map((p) => { const d = paymentDate(p); return d ? `${d.getFullYear()}-${d.getMonth()}` : null; }).filter(Boolean) as string[])
+    )
+        .sort((a, b) => (a < b ? 1 : -1))
+        .map((key) => { const [y, m] = key.split("-").map(Number); return { key, label: `${MONTH_NAMES[m]} ${y}` }; });
+
+    const matchesPeriod = (p: Payment): boolean => {
+        if (!filterPeriod) return true;
+        const d = paymentDate(p);
+        if (!d) return false;
+        const now = new Date();
+        if (filterPeriod === "this") return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        if (filterPeriod === "last") {
+            const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            return d.getFullYear() === last.getFullYear() && d.getMonth() === last.getMonth();
+        }
+        const [y, m] = filterPeriod.split("-").map(Number);
+        return d.getFullYear() === y && d.getMonth() === m;
+    };
+
     // Apply filters
     const filtered = payments.filter(p => {
         if (filterType && p.type !== filterType) return false;
         if (filterMethod && p.method !== filterMethod) return false;
+        if (!matchesPeriod(p)) return false;
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
             const vendorName = vendors.get(p.vendorId)?.toLowerCase() || "";
@@ -95,9 +130,9 @@ export default function PaymentsPage() {
     const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const totalCollected = filtered.reduce((sum, p) => sum + p.amount, 0);
-    const hasFilters = filterType || filterMethod || searchTerm;
+    const hasFilters = filterType || filterMethod || searchTerm || filterPeriod;
 
-    const clearFilters = () => { setFilterType(""); setFilterMethod(""); setSearchTerm(""); setPage(1); };
+    const clearFilters = () => { setFilterType(""); setFilterMethod(""); setSearchTerm(""); setFilterPeriod(""); setPage(1); };
 
     if (loading) return <div><PageHeader title="Pagos" /><LoadingSkeleton rows={8} /></div>;
 
@@ -127,6 +162,29 @@ export default function PaymentsPage() {
                                   onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                                   className="w-full sm:w-64"
                               />
+
+                                    <Select
+                                        aria-label="Período"
+                                        selectedKey={filterPeriod || null}
+                                        onSelectionChange={(key) => { setFilterPeriod(key ? String(key) : ""); setPage(1); }}
+                                        placeholder="Todo el tiempo"
+                                        className="w-52"
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                            <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
+                                        </SelectTrigger>
+                                        <SelectPopover>
+                                            <ListBox>
+                                                <ListBoxItem id="" textValue="Todo el tiempo">Todo el tiempo</ListBoxItem>
+                                                <ListBoxItem id="this" textValue="Este mes">Este mes</ListBoxItem>
+                                                <ListBoxItem id="last" textValue="Mes anterior">Mes anterior</ListBoxItem>
+                                                {monthOptions.map((m) => (
+                                                    <ListBoxItem key={m.key} id={m.key} textValue={m.label}>{m.label}</ListBoxItem>
+                                                ))}
+                                            </ListBox>
+                                        </SelectPopover>
+                                    </Select>
 
                                     <Select
                                         aria-label="Tipo de pago"
