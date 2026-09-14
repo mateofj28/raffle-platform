@@ -203,6 +203,19 @@ textarea {
 .dark .divide-default-100> :not([hidden])~ :not([hidden]) {
     border-color: #1E3A5F !important;
 }
+/* Ocultar el botón nativo de "revelar contraseña" que agregan Edge/Chrome,
+   ya que la app tiene su propio botón de ojo. Evita ver dos íconos. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important;
+}
+
+input::-webkit-credentials-auto-fill-button,
+input::-webkit-strong-password-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
 /* ===== PRINT ===== */
 @media print {
 
