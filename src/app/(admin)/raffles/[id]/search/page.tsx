@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { doc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
 import { getDb } from "@/lib/firebase/firestore";
@@ -27,6 +27,7 @@ export default function TicketSearchPage() {
     const tenantId = useAuthStore((s) => s.user?.tenantId);
 
     const [searchInput, setSearchInput] = useState("");
+    const [searchedNumber, setSearchedNumber] = useState(0);
     const [searching, setSearching] = useState(false);
     const [result, setResult] = useState<TicketSearchResult | null>(null);
     const [notFound, setNotFound] = useState(false);
@@ -37,21 +38,37 @@ export default function TicketSearchPage() {
         if (Number.isNaN(num) || num < 0 || num > 9999 || !tenantId) return;
 
         setSearching(true);
+        setSearchedNumber(num);
         setResult(null);
         setNotFound(false);
         setSearched(true);
 
         try {
             const db = getDb();
-            const ticketDocId = String(num).padStart(4, "0");
-            const ticketRef = doc(db, "tenants", tenantId, "raffles", raffleId, "tickets", ticketDocId);
-            const ticketSnap = await getDoc(ticketRef);
 
-            if (!ticketSnap.exists()) {
+            // El usuario ingresa un NÚMERO de lotería (0000..9999), no un número de
+            // boleta. Buscamos la boleta que CONTIENE ese número en su array `numbers`.
+            // Esto funciona tanto para rifas de 1 número (boleta=número) como de 2
+            // números (cada boleta cubre 2 números consecutivos).
+            const ticketsRef = collection(db, "tenants", tenantId, "raffles", raffleId, "tickets");
+            const ticketsQuery = query(ticketsRef, where("numbers", "array-contains", num));
+            const ticketsQuerySnap = await getDocs(ticketsQuery);
+
+            let ticketSnap = ticketsQuerySnap.docs[0];
+
+            // Respaldo para rifas antiguas sin el campo `numbers`: buscar por docId.
+            if (!ticketSnap) {
+                const fallbackId = String(num).padStart(4, "0");
+                const fallbackSnap = await getDoc(doc(ticketsRef, fallbackId));
+                if (fallbackSnap.exists()) ticketSnap = fallbackSnap as typeof ticketSnap;
+            }
+
+            if (!ticketSnap || !ticketSnap.exists()) {
                 setNotFound(true);
                 return;
             }
 
+            const ticketDocId = ticketSnap.id;
             const ticket = ticketSnap.data() as Ticket;
 
             // Fetch customer if exists
@@ -100,7 +117,7 @@ export default function TicketSearchPage() {
         <div>
             <PageHeader
                 title="Buscar Boleta"
-                description="Ingresa el número de boleta para consultar su estado"
+                description="Ingresa un número (0000–9999) para ver a qué boleta pertenece y su estado"
                 actions={
                     <Link href={`/raffles/${raffleId}`}>
                         <Button variant="ghost" size="sm">
@@ -115,11 +132,12 @@ export default function TicketSearchPage() {
                 <CardContent className="p-6">
                     <div className="flex items-end gap-3">
                         <div className="flex-1 max-w-xs">
-                            <label className="text-sm font-medium mb-1 block">Número de boleta</label>
+                            <label className="text-sm font-medium mb-1 block">Número (0000–9999)</label>
                             <Input
-                                placeholder="Ej: 55"
+                                placeholder="Ej: 0055"
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                onBlur={() => { if (searchInput) setSearchInput(String(parseInt(searchInput)).padStart(4, "0")); }}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                         e.preventDefault();
@@ -127,7 +145,7 @@ export default function TicketSearchPage() {
                                     }
                                 }}
                                 inputMode="numeric"
-                                maxLength={5}
+                                maxLength={4}
                             />
                         </div>
                         <Button
@@ -151,12 +169,12 @@ export default function TicketSearchPage() {
                                 <Hash className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-lg">Boleta #{result.ticket.number}</h3>
+                                <h3 className="font-semibold text-lg font-mono">Número {formatTicketNumber(searchedNumber)}</h3>
                                 <StatusBadge status={result.ticket.status} />
                             </div>
                         </div>
                         <p className="text-default-500">
-                            Esta boleta está <span className="font-semibold text-emerald-600">disponible</span> y puede ser asignada a un vendedor.
+                            Este número está <span className="font-semibold text-emerald-600">disponible</span> y puede ser asignado a un vendedor.
                         </p>
                     </CardContent>
                 </Card>
@@ -172,7 +190,7 @@ export default function TicketSearchPage() {
                                 <Hash className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-lg">Boleta #{result.ticket.number}</h3>
+                                <h3 className="font-semibold text-lg font-mono">Número {formatTicketNumber(searchedNumber)}</h3>
                                 <StatusBadge status={result.ticket.status} />
                             </div>
                         </div>
@@ -238,7 +256,7 @@ export default function TicketSearchPage() {
                 <Card className="border-2 border-red-500/20">
                     <CardContent className="p-6 text-center">
                         <p className="text-default-500">
-                            No se encontró la boleta <span className="font-semibold">#{searchInput}</span> en esta rifa.
+                            No se encontró el número <span className="font-semibold font-mono">{formatTicketNumber(parseInt(searchInput || "0"))}</span> en esta rifa.
                         </p>
                     </CardContent>
                 </Card>
