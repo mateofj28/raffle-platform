@@ -160,6 +160,15 @@ export default function VendorDetailPage() {
         payTicketInputRef.current?.focus();
     };
 
+    // Permite agregar el pago presionando Enter desde los campos Boleta o Monto,
+    // sin tener que tabular hasta el botón "Agregar".
+    const handlePayFieldEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const canAdd = payTicketInput && payAmountInput && parseInt(payAmountInput || "0", 10) >= 5000;
+        if (canAdd) handleAddPayment();
+    };
+
     const handleRemovePayment = (index: number) => setPaymentList(prev => prev.filter((_, i) => i !== index));
 
     const handleConfirmPayments = async () => {
@@ -249,11 +258,11 @@ export default function VendorDetailPage() {
                         <div className="flex items-end gap-3 flex-wrap mb-3">
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Boleta</label>
-                                <Input ref={payTicketInputRef} placeholder="Ej: 55" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 4))} inputMode="numeric" className="w-24" maxLength={4} />
+                                <Input ref={payTicketInputRef} placeholder="Ej: 55" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 4))} onKeyDown={handlePayFieldEnter} inputMode="numeric" className="w-24" maxLength={4} />
                             </div>
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Monto</label>
-                                <Input placeholder="Ej: 30.000" value={payAmountInput ? parseInt(payAmountInput).toLocaleString("es-CO") : ""} onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); const num = parseInt(raw || "0"); if (num <= (activeRaffle?.ticketPrice || 999999)) setPayAmountInput(raw); }} inputMode="numeric" className="w-32" />
+                                <Input placeholder="Ej: 30.000" value={payAmountInput ? parseInt(payAmountInput).toLocaleString("es-CO") : ""} onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); const num = parseInt(raw || "0"); if (num <= (activeRaffle?.ticketPrice || 999999)) setPayAmountInput(raw); }} onKeyDown={handlePayFieldEnter} inputMode="numeric" className="w-32" />
                             </div>
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Método</label>
