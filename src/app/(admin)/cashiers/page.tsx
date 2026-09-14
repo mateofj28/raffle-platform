@@ -298,7 +298,7 @@ export default function CashiersPage() {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-sm">{cashier.displayName}</p>
-                                            <p className="text-xs text-default-500">{cashier.email}</p>
+                                                            <p className="text-xs text-default-500">Usuario: <span className="font-mono font-medium text-foreground">{(cashier.email || "").split("@")[0]}</span></p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
