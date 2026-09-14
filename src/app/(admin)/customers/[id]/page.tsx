@@ -40,6 +40,10 @@ export default function CustomerDetailPage() {
     const [filterType, setFilterType] = useState("");
     const [filterMethod, setFilterMethod] = useState("");
 
+    // Filtros de la tabla de boletas compradas
+    const [ticketFilterNum, setTicketFilterNum] = useState("");
+    const [ticketFilterStatus, setTicketFilterStatus] = useState("");
+
     // Load customer
     useEffect(() => {
         if (!tenantId || !customerId) return;
@@ -89,6 +93,13 @@ export default function CustomerDetailPage() {
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const totalPending = tickets.reduce((sum, t) => sum + t.pendingBalance, 0);
+
+    // Boletas filtradas por número y estado
+    const filteredTickets = tickets.filter((t) => {
+        if (ticketFilterNum && !formatTicketNumber(t.number).includes(ticketFilterNum.trim()) && !String(t.number).includes(ticketFilterNum.trim())) return false;
+        if (ticketFilterStatus && t.status !== ticketFilterStatus) return false;
+        return true;
+    });
 
     // Pagos filtrados por boleta, tipo y método
     const filteredPayments = payments.filter((p) => {
@@ -160,6 +171,33 @@ export default function CustomerDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este cliente no ha comprado boletas" icon={<Ticket className="h-10 w-10" />} />
                   ) : (
+                            <>
+                                {/* Filtros de boletas */}
+                                <div className="flex flex-wrap items-center gap-3 mb-4">
+                                    <Input
+                                        placeholder="Buscar por # boleta..."
+                                        value={ticketFilterNum}
+                                        onChange={(e) => setTicketFilterNum(e.target.value.replace(/\D/g, ""))}
+                                        inputMode="numeric"
+                                        className="w-full sm:w-56"
+                                    />
+                                    <Select aria-label="Estado" selectedKey={ticketFilterStatus || null} onSelectionChange={(key) => setTicketFilterStatus(key ? String(key) : "")} placeholder="Todos los estados" className="w-48">
+                                        <SelectTrigger><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                        <SelectPopover>
+                                            <ListBox>
+                                                <ListBoxItem id="" textValue="Todos los estados">Todos los estados</ListBoxItem>
+                                                <ListBoxItem id="sold" textValue="Vendida">Vendida</ListBoxItem>
+                                                <ListBoxItem id="installment" textValue="Abonada">Abonada</ListBoxItem>
+                                                <ListBoxItem id="paid" textValue="Pagada">Pagada</ListBoxItem>
+                                            </ListBox>
+                                        </SelectPopover>
+                                    </Select>
+                                    {(ticketFilterNum || ticketFilterStatus) && (
+                                        <Button variant="ghost" size="sm" onPress={() => { setTicketFilterNum(""); setTicketFilterStatus(""); }}>✕ Limpiar</Button>
+                                    )}
+                                    <span className="text-xs text-default-500 ml-auto">{filteredTickets.length} boleta(s)</span>
+                                </div>
+
                       <div className="overflow-x-auto rounded-lg border border-default-200 mb-8">
                           <table className="w-full text-sm">
                               <thead className="bg-default-100">
@@ -171,7 +209,9 @@ export default function CustomerDetailPage() {
                                   </tr>
                               </thead>
                               <tbody className="divide-y divide-default-200">
-                                  {tickets.map((ticket, i) => (
+                                            {filteredTickets.length === 0 ? (
+                                                <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-default-500">Sin resultados</td></tr>
+                                            ) : filteredTickets.map((ticket, i) => (
                                       <tr key={`${ticket.number}-${i}`} className="hover:bg-default-50">
                                           <td className="px-4 py-3 font-mono font-bold">{formatTicketNumber(ticket.number)}</td>
                                           <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
@@ -189,6 +229,7 @@ export default function CustomerDetailPage() {
                               </tbody>
                           </table>
                       </div>
+                            </>
                   )}
 
                   {/* Payments */}
