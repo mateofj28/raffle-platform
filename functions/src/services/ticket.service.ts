@@ -350,11 +350,25 @@ export const unassignTickets = onCall(
                     if (!ticketSnap.exists) { skipped++; continue; }
 
                     const ticket = ticketSnap.data()!;
-                    if (ticket.status !== "assigned") { skipped++; continue; }
+
+                    // Se permite desasignar una boleta cuando:
+                    //  - está "assigned" (asignada, sin vender), o
+                    //  - no tiene cliente y no tiene ningún abono (abonado en $0),
+                    //    sin importar el estado. Una boleta sin dueño ni dinero no
+                    //    pierde información al liberarse.
+                    const amountPaid = (ticket.value ?? 0) - (ticket.pendingBalance ?? 0);
+                    const canUnassign =
+                        ticket.status === "assigned" ||
+                        (!ticket.customerId && amountPaid === 0);
+
+                    if (!canUnassign) { skipped++; continue; }
 
                     batch.update(ticketRef, {
                         status: "available",
                         vendorId: null,
+                        customerId: null,
+                        pendingBalance: ticket.value ?? 0,
+                        saleDate: null,
                         updatedAt: FieldValue.serverTimestamp(),
                     });
                     unassigned++;

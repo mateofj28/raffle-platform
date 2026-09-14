@@ -523,7 +523,9 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex items-center justify-center gap-1">
-                                            {ticket.status === "assigned" && (
+                                            {/* Se puede desasignar si la boleta no tiene cliente y no tiene ningún
+                                                abono (abonado en $0), sin importar el estado. */}
+                                            {!ticket.customerName && amountPaid === 0 && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
                                                         <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
