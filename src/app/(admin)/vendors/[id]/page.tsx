@@ -49,6 +49,7 @@ export default function VendorDetailPage() {
     const [processing, setProcessing] = useState(false);
     const [editingPayIndex, setEditingPayIndex] = useState<number | null>(null);
     const [editingPayValue, setEditingPayValue] = useState("");
+    const [editingPayMethod, setEditingPayMethod] = useState("cash");
 
     // Ref al panel de registrar pago para hacer scroll automático al abrirlo
     const paymentPanelRef = useRef<HTMLDivElement>(null);
@@ -287,19 +288,30 @@ export default function VendorDetailPage() {
                             <div className="mt-4 space-y-2">
                                 {paymentList.map((p, i) => (
                                     <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-default-200 bg-white dark:bg-[#1A2F50]">
-                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/30">
-                                            <span className="text-xs font-bold text-teal-600 dark:text-teal-400">{p.ticketNumber}</span>
+                                        <div className="flex items-center justify-center min-w-12 h-8 px-3 rounded-full bg-teal-100 dark:bg-teal-900/30 shrink-0">
+                                            <span className="text-xs font-bold font-mono text-teal-600 dark:text-teal-400">{p.ticketNumber}</span>
                                         </div>
                                         <div className="flex-1">
                                             {editingPayIndex === i ? (
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     <Input
                                                         value={editingPayValue ? parseInt(editingPayValue).toLocaleString("es-CO") : ""}
                                                         onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); if (parseInt(raw || "0") <= (activeRaffle?.ticketPrice || 999999)) setEditingPayValue(raw); }}
                                                         inputMode="numeric"
                                                         className="w-28"
                                                     />
-                                                    <button onClick={() => { if (editingPayValue && parseInt(editingPayValue) >= 5000) { setPaymentList(prev => prev.map((item, idx) => idx === i ? { ...item, amount: parseInt(editingPayValue) } : item)); setEditingPayIndex(null); } }} className="text-xs text-emerald-600 font-medium hover:underline">Guardar</button>
+                                                    <Select aria-label="Método" selectedKey={editingPayMethod} onSelectionChange={(key) => setEditingPayMethod(String(key ?? "cash"))} className="w-36">
+                                                        <SelectTrigger className="w-full"><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                                        <SelectPopover>
+                                                            <ListBox>
+                                                                <ListBoxItem id="cash" textValue="Efectivo">Efectivo</ListBoxItem>
+                                                                <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
+                                                                <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
+                                                                <ListBoxItem id="transfer" textValue="Bancolombia">Bancolombia</ListBoxItem>
+                                                            </ListBox>
+                                                        </SelectPopover>
+                                                    </Select>
+                                                    <button onClick={() => { if (editingPayValue && parseInt(editingPayValue) >= 5000) { setPaymentList(prev => prev.map((item, idx) => idx === i ? { ...item, amount: parseInt(editingPayValue), method: editingPayMethod } : item)); setEditingPayIndex(null); } }} className="text-xs text-emerald-600 font-medium hover:underline">Guardar</button>
                                                     <button onClick={() => setEditingPayIndex(null)} className="text-xs text-default-400 hover:text-default-600">Cancelar</button>
                                                 </div>
                                             ) : (
@@ -311,7 +323,7 @@ export default function VendorDetailPage() {
                                         </div>
                                         {editingPayIndex !== i && (
                                             <div className="flex items-center gap-1">
-                                                <button onClick={() => { setEditingPayIndex(i); setEditingPayValue(String(p.amount)); }} className="p-1.5 rounded-md hover:bg-default-100 text-default-400 hover:text-amber-500 transition-colors">
+                                                <button onClick={() => { setEditingPayIndex(i); setEditingPayValue(String(p.amount)); setEditingPayMethod(p.method); }} className="p-1.5 rounded-md hover:bg-default-100 text-default-400 hover:text-amber-500 transition-colors">
                                                     <Pencil className="h-3.5 w-3.5" />
                                                 </button>
                                                 <button onClick={() => handleRemovePayment(i)} className="p-1.5 rounded-md hover:bg-default-100 text-default-400 hover:text-red-500 transition-colors">
