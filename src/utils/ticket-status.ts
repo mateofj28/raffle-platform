@@ -27,13 +27,14 @@ export function deriveTicketStatus(ticket: TicketLike): DerivedTicketStatus {
     const paid = value - pending; // cuánto se ha abonado
     const hasClient = !!ticket.customerId;
 
-    // Pago completo → Vendida
-    if (value > 0 && paid >= value) return "sold";
-    // Abono parcial → Abonada (con o sin cliente)
+    // Vendida: SOLO si tiene cliente Y está pagada por completo.
+    if (hasClient && value > 0 && paid >= value) return "sold";
+    // Abonada: si hay cualquier abono (parcial o completo) pero aún no califica
+    // como vendida (p. ej. pagó todo pero todavía no tiene cliente asignado).
     if (paid > 0) return "installment";
-    // Sin abono, con cliente → Asignada
+    // Sin abono, con cliente → Asignada.
     if (hasClient) return "assigned";
-    // Sin cliente y sin abono → Disponible
+    // Sin cliente y sin abono → Disponible.
     return "available";
 }
 
