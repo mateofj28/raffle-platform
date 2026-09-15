@@ -21,7 +21,7 @@ export const VALID_RAFFLE_TRANSITIONS: Record<RaffleStatus, RaffleStatus[]> = {
 export const TICKET_STATUSES: Record<TicketStatus, { label: string; color: string }> = {
     available: { label: "Disponible", color: "default" },
     assigned: { label: "Asignada", color: "warning" },
-    sold: { label: "Vendida", color: "primary" },
+    sold: { label: "Vendida", color: "success" },
     paid: { label: "Pagada", color: "success" },
     installment: { label: "Abonada", color: "danger" },
     winner: { label: "Ganadora", color: "success" },
