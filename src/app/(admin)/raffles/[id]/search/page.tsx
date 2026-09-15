@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
+import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { doc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
 import { getDb } from "@/lib/firebase/firestore";
@@ -170,7 +171,7 @@ export default function TicketSearchPage() {
                             </div>
                             <div>
                                 <h3 className="font-semibold text-lg font-mono">Número {formatTicketNumber(searchedNumber)}</h3>
-                                <StatusBadge status={result.ticket.status} />
+                                <StatusBadge status={deriveTicketStatus(result.ticket)} />
                             </div>
                         </div>
                         <p className="text-default-500">
@@ -191,7 +192,7 @@ export default function TicketSearchPage() {
                             </div>
                             <div>
                                 <h3 className="font-semibold text-lg font-mono">Número {formatTicketNumber(searchedNumber)}</h3>
-                                <StatusBadge status={result.ticket.status} />
+                                <StatusBadge status={deriveTicketStatus(result.ticket)} />
                             </div>
                         </div>
 

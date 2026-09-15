@@ -11,6 +11,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, orderBy, where, doc, getDoc, limit } from "firebase/firestore";
@@ -127,11 +128,11 @@ export default function AdminDashboardPage() {
 
                 ticketsSnap.docs.forEach(d => {
                     const t = d.data();
-                    switch (t.status) {
+                    // Estado derivado (Disponible/Asignada/Abonada/Vendida) según cliente + abono.
+                    switch (deriveTicketStatus(t as { customerId?: string | null; value?: number; pendingBalance?: number })) {
                         case "available": available++; break;
                         case "assigned": assigned++; break;
                         case "sold": sold++; break;
-                        case "paid": paid++; break;
                         case "installment": installment++; break;
                     }
                     if (t.vendorId) vendorIds.add(t.vendorId);
@@ -230,7 +231,7 @@ export default function AdminDashboardPage() {
 
     if (!activeRaffle) return null;
 
-    const soldTotal = metrics ? metrics.sold + metrics.paid + metrics.installment : 0;
+    const soldTotal = metrics ? metrics.sold + metrics.installment : 0;
     const progressPercent = metrics ? Math.round((soldTotal / metrics.totalTickets) * 100) : 0;
 
     return (
@@ -356,12 +357,11 @@ export default function AdminDashboardPage() {
                                 </div>
 
                                 {/* Ticket status grid */}
-                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                                     <MiniStat label="Disponibles" value={metrics.available} color="text-zinc-400" />
                                     <MiniStat label="Asignadas" value={metrics.assigned} color="text-amber-400" />
-                                    <MiniStat label="Vendidas" value={metrics.sold} color="text-blue-400" />
-                                    <MiniStat label="Pagadas" value={metrics.paid} color="text-emerald-400" />
                                     <MiniStat label="Abonadas" value={metrics.installment} color="text-purple-400" />
+                                    <MiniStat label="Vendidas" value={metrics.sold} color="text-emerald-400" />
                                 </div>
 
                                 {/* Progress bar */}

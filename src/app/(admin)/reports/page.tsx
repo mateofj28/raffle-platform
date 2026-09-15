@@ -8,6 +8,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
+import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
@@ -223,7 +224,7 @@ function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; ven
                             <tr key={t.number}>
                                     <td className="px-3 py-2 font-mono">{formatTicketNumber(t.number)}</td>
                                 <td className="px-3 py-2">{t.customerId ? customers.get(t.customerId)?.name || "—" : "—"}</td>
-                                    <td className="px-3 py-2"><StatusBadge status={t.status} /></td>
+                                    <td className="px-3 py-2"><StatusBadge status={deriveTicketStatus(t)} /></td>
                                     <td className="px-3 py-2 text-right text-success font-medium">{formatCurrency(t.value - t.pendingBalance)}</td>
                                     <td className={`px-3 py-2 text-right font-medium ${t.pendingBalance > 0 ? "text-red-400" : ""}`}>{formatCurrency(t.pendingBalance)}</td>
                             </tr>

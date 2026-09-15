@@ -8,6 +8,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency } from "@/utils/formatters";
+import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
@@ -64,10 +65,9 @@ export default function VendorDashboardPage() {
                 let totalCollected = 0;
 
                 tickets.forEach(t => {
-                    switch (t.status) {
+                    switch (deriveTicketStatus(t)) {
                         case "assigned": assigned++; break;
                         case "sold": sold++; break;
-                        case "paid": paid++; break;
                         case "installment": installment++; break;
                     }
                     totalCollected += (t.value - t.pendingBalance);
@@ -158,11 +158,10 @@ export default function VendorDashboardPage() {
                     </h2>
 
                     {/* Ticket counts */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                    <div className="grid grid-cols-3 gap-3 mb-4">
                         <MiniStat label="Asignadas" value={metrics.assigned} color="text-amber-400" />
-                        <MiniStat label="Vendidas" value={metrics.sold} color="text-blue-400" />
-                        <MiniStat label="Pagadas" value={metrics.paid} color="text-emerald-400" />
                         <MiniStat label="Abonadas" value={metrics.installment} color="text-purple-400" />
+                        <MiniStat label="Vendidas" value={metrics.sold} color="text-emerald-400" />
                     </div>
 
                     {/* Financial */}

@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
+import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
@@ -112,14 +113,13 @@ export default function VendorDetailPage() {
     if (loading) return <div><PageHeader title="Vendedor" /><LoadingSkeleton rows={6} /></div>;
     if (!vendor) return <div><PageHeader title="Vendedor no encontrado" /></div>;
 
-    const assigned = tickets.filter(t => t.status === "assigned").length;
-    const sold = tickets.filter(t => t.status === "sold").length;
-    const paid = tickets.filter(t => t.status === "paid").length;
-    const installment = tickets.filter(t => t.status === "installment").length;
+    const assigned = tickets.filter(t => deriveTicketStatus(t) === "assigned").length;
+    const sold = tickets.filter(t => deriveTicketStatus(t) === "sold").length;
+    const installment = tickets.filter(t => deriveTicketStatus(t) === "installment").length;
 
     // Financial metrics
-    const paidTickets = tickets.filter(t => t.status === "paid");
-    const installmentTickets = tickets.filter(t => t.status === "installment");
+    const paidTickets = tickets.filter(t => deriveTicketStatus(t) === "sold");
+    const installmentTickets = tickets.filter(t => deriveTicketStatus(t) === "installment");
 
     const totalAbonado = tickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
     const recaudadoPagadas = paidTickets.reduce((sum, t) => sum + t.value, 0);
@@ -358,9 +358,8 @@ export default function VendorDetailPage() {
                   <div className="flex gap-2 flex-wrap mb-4">
                         <Chip size="sm" variant="soft" className="px-3 py-1">Total: {tickets.length}</Chip>
                         <Chip size="sm" variant="soft" color="warning" className="px-3 py-1">Asignadas: {assigned}</Chip>
-                        <Chip size="sm" variant="soft" color="accent" className="px-3 py-1">Vendidas: {sold}</Chip>
-                        <Chip size="sm" variant="soft" color="success" className="px-3 py-1">Pagadas: {paid}</Chip>
                         <Chip size="sm" variant="soft" color="danger" className="px-3 py-1">Abonadas: {installment}</Chip>
+                        <Chip size="sm" variant="soft" color="success" className="px-3 py-1">Vendidas: {sold}</Chip>
                     </div>
 
                     {/* Financial metrics */}
@@ -407,7 +406,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
 
     // Filter tickets
     const filtered = tickets.filter(t => {
-        if (statusFilter && t.status !== statusFilter) return false;
+        if (statusFilter && deriveTicketStatus(t) !== statusFilter) return false;
         if (search) {
             const term = search.toLowerCase();
             const matchesNumber = String(t.number).includes(term) || formatTicketNumber(t.number).includes(term);
@@ -456,9 +455,8 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                         <ListBox>
                             <ListBoxItem id="" textValue="Todos los estados">Todos los estados</ListBoxItem>
                             <ListBoxItem id="assigned" textValue="Asignada">Asignada</ListBoxItem>
-                            <ListBoxItem id="sold" textValue="Vendida">Vendida</ListBoxItem>
-                            <ListBoxItem id="paid" textValue="Pagada">Pagada</ListBoxItem>
                             <ListBoxItem id="installment" textValue="Abonada">Abonada</ListBoxItem>
+                            <ListBoxItem id="sold" textValue="Vendida">Vendida</ListBoxItem>
                         </ListBox>
                     </SelectPopover>
                 </Select>
@@ -499,7 +497,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                             return (
               <tr key={ticket.number} className="hover:bg-default-50">
                                     <td className="px-4 py-3 font-mono font-bold">{formatTicketNumber(ticket.number)}</td>
-                    <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
+                                    <td className="px-4 py-3"><StatusBadge status={deriveTicketStatus(ticket)} /></td>
                     <td className="px-4 py-3">
                         {ticket.customerName ? (
                             <span className={ticket.pendingBalance === 0 ? "text-success font-medium" : ""}>

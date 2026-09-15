@@ -12,6 +12,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency, formatDate } from "@/utils/formatters";
+import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, orderBy, doc, getDoc, where, limit } from "firebase/firestore";
@@ -269,7 +270,7 @@ export default function RaffleDetailPage() {
     if (loading) return <div><PageHeader title="Detalle de Rifa" /><LoadingSkeleton rows={6} /></div>;
     if (!raffle) return <div><PageHeader title="Rifa no encontrada" /><p className="text-default-500">No se encontró la rifa.</p></div>;
 
-    const statusCounts = tickets.reduce((acc, t) => { acc[t.status] = (acc[t.status] || 0) + 1; return acc; }, {} as Record<string, number>);
+    const statusCounts = tickets.reduce((acc, t) => { const s = deriveTicketStatus(t); acc[s] = (acc[s] || 0) + 1; return acc; }, {} as Record<string, number>);
 
     return (
         <div>
@@ -338,26 +339,22 @@ export default function RaffleDetailPage() {
             </Card>
 
             {/* Status summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                 <div className="p-3 rounded-lg border border-default-200 text-center">
                     <p className="text-xl font-bold text-zinc-500">{statusCounts["available"] || 0}</p>
-                    <p className="text-xs text-default-500">Disponible</p>
+                    <p className="text-xs text-default-500">Disponibles</p>
                 </div>
                 <div className="p-3 rounded-lg border border-default-200 text-center">
                     <p className="text-xl font-bold text-amber-500">{statusCounts["assigned"] || 0}</p>
-                    <p className="text-xs text-default-500">Asignada</p>
-                </div>
-                <div className="p-3 rounded-lg border border-default-200 text-center">
-                    <p className="text-xl font-bold text-blue-500">{statusCounts["sold"] || 0}</p>
-                    <p className="text-xs text-default-500">Vendida</p>
-                </div>
-                <div className="p-3 rounded-lg border border-default-200 text-center">
-                    <p className="text-xl font-bold text-emerald-500">{statusCounts["paid"] || 0}</p>
-                    <p className="text-xs text-default-500">Pagada</p>
+                    <p className="text-xs text-default-500">Asignadas</p>
                 </div>
                 <div className="p-3 rounded-lg border border-default-200 text-center">
                     <p className="text-xl font-bold text-purple-500">{statusCounts["installment"] || 0}</p>
-                    <p className="text-xs text-default-500">Abonada</p>
+                    <p className="text-xs text-default-500">Abonadas</p>
+                </div>
+                <div className="p-3 rounded-lg border border-default-200 text-center">
+                    <p className="text-xl font-bold text-emerald-500">{statusCounts["sold"] || 0}</p>
+                    <p className="text-xs text-default-500">Vendidas</p>
                 </div>
             </div>
 
