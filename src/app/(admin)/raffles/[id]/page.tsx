@@ -168,8 +168,16 @@ export default function RaffleDetailPage() {
 
                 if (cancelled) return;
 
+                // Números que el vendedor tuvo en la rifa anterior, EXCLUYENDO los que
+                // ya tiene asignados a él en la rifa actual (para no volver a ofrecer
+                // boletas que ya reasignó anteriormente).
                 const nums = prevTicketsSnap.docs
                     .map((d) => d.data().number as number)
+                    .filter((num) => {
+                        const current = tickets.find((tk) => tk.number === num);
+                        // Si en la rifa actual esa boleta ya es de este vendedor, se omite.
+                        return !(current && current.vendorId === selectedVendor);
+                    })
                     .sort((a, b) => a - b);
 
                 if (nums.length > 0) {
@@ -184,7 +192,7 @@ export default function RaffleDetailPage() {
         };
         load();
         return () => { cancelled = true; };
-    }, [assignMode, selectedVendor, tenantId, raffle]);
+    }, [assignMode, selectedVendor, tenantId, raffle, tickets]);
 
     // Precarga en la lista de asignación las boletas de la rifa anterior que
     // sigan DISPONIBLES en la rifa actual. Informa cuántas se omiten.
