@@ -5,7 +5,6 @@ import { Button, Card, CardContent, Separator, toast } from "@heroui/react";
 import { User, Mail, Shield, Trophy, DollarSign, Hash, Calendar, Ticket, Palette, LogOut, Pencil, X, Eye, EyeOff } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { Input } from "@/components/ui/input";
@@ -251,10 +250,7 @@ export default function SettingsPage() {
                                 </div>
                         ) : (
                             <>
-                                <div className="flex items-center justify-between mb-4">
-                                    <p className="text-lg font-bold">{raffle.name}</p>
-                                    <StatusBadge status={raffle.status} />
-                                </div>
+                                            <p className="text-lg font-bold mb-4">{raffle.name}</p>
                                 {raffle.description && <p className="text-sm text-default-500 mb-4">{raffle.description}</p>}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                                     <InfoItem icon={<Trophy className="h-5 w-5 text-purple-500" />} label="Premio" value={raffle.prize || "—"} />
