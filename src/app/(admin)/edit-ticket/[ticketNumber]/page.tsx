@@ -88,6 +88,26 @@ export default function EditTicketPage() {
     }
   };
 
+  // Quitar el cliente de la boleta (dejarla sin cliente), sin importar el estado.
+  const handleRemoveClient = async () => {
+    if (!activeRaffle) return;
+    setProcessing(true);
+    setError(null);
+    try {
+      await callFunction("updateTicketClient", {
+        raffleId: activeRaffle.id,
+        ticketNumber,
+        customerId: null,
+      });
+      toast.success("Cliente quitado de la boleta");
+      setTimeout(() => router.back(), 1200);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al quitar el cliente");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   // Global Enter key handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -178,7 +198,13 @@ export default function EditTicketPage() {
               )}
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              {/* Quitar cliente: disponible cuando la boleta ya tiene un cliente. */}
+              {ticket?.customerId && (
+                <Button variant="danger" isDisabled={processing} onPress={handleRemoveClient} className="mr-auto">
+                  {processing ? "..." : "Quitar cliente"}
+                </Button>
+              )}
               <Button variant="ghost" onPress={() => router.back()}>Cancelar</Button>
               <Button variant="primary" isDisabled={!selectedCustomerId || processing} onPress={handleChangeClient}>
                 {processing ? "Guardando..." : "Guardar cliente"}

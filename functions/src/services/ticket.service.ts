@@ -400,11 +400,13 @@ export const updateTicketClient = onCall(
             const schema = z.object({
                 raffleId: z.string().min(1),
                 ticketNumber: z.number().int().min(0).max(9999),
-                customerId: z.string().min(1),
+                // customerId vacío/null = quitar el cliente (dejar la boleta sin cliente).
+                customerId: z.string().nullable().optional(),
             });
 
             const data = validateData(schema, request.data);
-            const { raffleId, ticketNumber, customerId } = data;
+            const { raffleId, ticketNumber } = data;
+            const customerId = data.customerId && data.customerId.length > 0 ? data.customerId : null;
 
             // Solo se puede modificar el cliente en la rifa oficial (la actual).
             await assertOfficialRaffle(context.tenantId, raffleId);
@@ -430,9 +432,17 @@ export const updateTicketClient = onCall(
                 updatedAt: FieldValue.serverTimestamp(),
             };
 
-            if (ticket.status === "assigned") {
+            // Si se ASIGNA un cliente a una boleta "assigned", pasa a "sold".
+            if (customerId && ticket.status === "assigned") {
                 updates.status = "sold";
                 updates.saleDate = FieldValue.serverTimestamp();
+            }
+            // Si se QUITA el cliente de una boleta que estaba "sold" (vendida sin abono),
+            // regresa a "assigned" (queda sin cliente). Si tiene abonos, se conserva el
+            // estado para no perder el rastro del dinero; el estado visible se recalcula.
+            if (!customerId && ticket.status === "sold") {
+                updates.status = "assigned";
+                updates.saleDate = null;
             }
 
             await ticketRef.update(updates);
