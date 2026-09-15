@@ -7,7 +7,6 @@ export interface CreateRaffleInput {
     prizeValue: number;
     startDate: string;
     endDate: string;
-    drawDate: string;
     lottery: string;
     ticketPrice: number;
     numbersPerTicket: number;

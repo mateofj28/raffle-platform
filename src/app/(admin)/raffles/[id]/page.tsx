@@ -326,7 +326,7 @@ export default function RaffleDetailPage() {
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30"><Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
-                            <div><p className="text-xs text-default-500">Sorteo</p><p className="font-semibold text-sm">{formatDate(raffle.drawDate)}</p></div>
+                            <div><p className="text-xs text-default-500">Sorteo (fin)</p><p className="font-semibold text-sm">{formatDate(raffle.endDate)}</p></div>
                         </div>
                     </div>
                     <Separator className="my-4" />

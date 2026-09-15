@@ -7,7 +7,6 @@ export const createRaffleSchema = z.object({
     prizeValue: z.number().int().nonnegative("Debe ser mayor o igual a 0"),
     startDate: z.string().min(1, "Fecha inicio es requerida"),
     endDate: z.string().min(1, "Fecha fin es requerida"),
-    drawDate: z.string().min(1, "Fecha sorteo es requerida"),
     lottery: z.string().min(1, "Lotería es requerida"),
     ticketPrice: z.number().int().positive("Debe ser mayor a 0"),
     numbersPerTicket: z.number().int().min(1, "Mínimo 1 número").max(2, "Máximo 2 números"),

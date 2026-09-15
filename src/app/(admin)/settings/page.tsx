@@ -36,6 +36,64 @@ export default function SettingsPage() {
     const [raffle, setRaffle] = useState<Raffle | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // --- Editar rifa (admin) ---
+    const [editingRaffle, setEditingRaffle] = useState(false);
+    const [savingRaffle, setSavingRaffle] = useState(false);
+    const [raffleError, setRaffleError] = useState<string | null>(null);
+    const [rf, setRf] = useState({
+        name: "", description: "", prize: "", prizeValue: 0, ticketPrice: 0, startDate: "", endDate: "", lottery: "",
+    });
+
+    const openEditRaffle = () => {
+        if (!raffle) return;
+        setRf({
+            name: raffle.name || "",
+            description: raffle.description || "",
+            prize: raffle.prize || "",
+            prizeValue: raffle.prizeValue || 0,
+            ticketPrice: raffle.ticketPrice || 0,
+            startDate: raffle.startDate || "",
+            endDate: raffle.endDate || "",
+            lottery: raffle.lottery || "",
+        });
+        setRaffleError(null);
+        setEditingRaffle(true);
+    };
+
+    const handleSaveRaffle = async () => {
+        if (!raffle) return;
+        setRaffleError(null);
+        if (!rf.name.trim()) { setRaffleError("El nombre es obligatorio."); return; }
+        if (!rf.description.trim()) { setRaffleError("La descripción es obligatoria."); return; }
+        if (!rf.prize.trim()) { setRaffleError("El premio es obligatorio."); return; }
+        if (rf.ticketPrice <= 0) { setRaffleError("El precio de la boleta debe ser mayor a 0."); return; }
+        if (!rf.startDate || !rf.endDate) { setRaffleError("Las fechas de inicio y fin son obligatorias."); return; }
+        if (rf.endDate < rf.startDate) { setRaffleError("La fecha fin no puede ser anterior a la de inicio."); return; }
+
+        setSavingRaffle(true);
+        try {
+            const { raffleService } = await import("@/features/raffles/services/raffle.service");
+            await raffleService.update(raffle.id, {
+                name: rf.name.trim(),
+                description: rf.description.trim(),
+                prize: rf.prize.trim(),
+                prizeValue: rf.prizeValue,
+                ticketPrice: rf.ticketPrice,
+                startDate: rf.startDate,
+                endDate: rf.endDate,
+                lottery: rf.lottery.trim(),
+            });
+            // Refrescar la rifa mostrada
+            setRaffle({ ...raffle, ...rf, drawDate: rf.endDate });
+            toast.success("Rifa actualizada");
+            setEditingRaffle(false);
+        } catch (e) {
+            setRaffleError(e instanceof Error ? e.message : "No se pudo actualizar la rifa");
+        } finally {
+            setSavingRaffle(false);
+        }
+    };
+
     // --- Editar perfil ---
     const [editing, setEditing] = useState(false);
     const [editName, setEditName] = useState("");
@@ -131,14 +189,66 @@ export default function SettingsPage() {
                 {/* Rifa seleccionada */}
                 <Card>
                     <CardContent className="p-6">
-                        <h3 className="text-sm font-semibold uppercase tracking-wide mb-4 flex items-center gap-2">
-                            <Ticket className="h-4 w-4 text-primary" /> Rifa seleccionada
-                        </h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                                <Ticket className="h-4 w-4 text-primary" /> Rifa seleccionada
+                            </h3>
+                            {/* Solo el admin puede editar la rifa. */}
+                            {!editingRaffle && raffle && user?.role === "admin" && (
+                                <Button variant="outline" size="sm" onPress={openEditRaffle}>
+                                    <Pencil className="h-4 w-4" /> Editar rifa
+                                </Button>
+                            )}
+                        </div>
 
                         {loading ? (
                             <LoadingSkeleton rows={3} />
                         ) : !raffle ? (
                             <EmptyState title="Sin rifa seleccionada" description="Selecciona una rifa para ver su información" icon={<Ticket className="h-10 w-10" />} />
+                            ) : editingRaffle ? (
+                                <div className="space-y-4">
+                                    <FormErrorBanner message={raffleError} />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="sm:col-span-2">
+                                            <label className="text-sm font-medium mb-1 block">Nombre</label>
+                                            <Input value={rf.name} onChange={(e) => setRf({ ...rf, name: e.target.value })} className="w-full" />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <label className="text-sm font-medium mb-1 block">Descripción</label>
+                                            <Input value={rf.description} onChange={(e) => setRf({ ...rf, description: e.target.value })} className="w-full" />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium mb-1 block">Premio</label>
+                                            <Input value={rf.prize} onChange={(e) => setRf({ ...rf, prize: e.target.value })} className="w-full" />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium mb-1 block">Valor del premio</label>
+                                            <Input value={rf.prizeValue ? rf.prizeValue.toLocaleString("es-CO") : ""} onChange={(e) => setRf({ ...rf, prizeValue: parseInt(e.target.value.replace(/\D/g, "") || "0") })} inputMode="numeric" className="w-full" />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium mb-1 block">Precio boleta</label>
+                                            <Input value={rf.ticketPrice ? rf.ticketPrice.toLocaleString("es-CO") : ""} onChange={(e) => setRf({ ...rf, ticketPrice: parseInt(e.target.value.replace(/\D/g, "") || "0") })} inputMode="numeric" className="w-full" />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium mb-1 block">Lotería</label>
+                                            <Input value={rf.lottery} onChange={(e) => setRf({ ...rf, lottery: e.target.value })} className="w-full" />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium mb-1 block">Fecha inicio</label>
+                                            <Input type="date" value={rf.startDate} onChange={(e) => setRf({ ...rf, startDate: e.target.value })} className="w-full" />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium mb-1 block">Fecha fin (día del sorteo)</label>
+                                            <Input type="date" value={rf.endDate} onChange={(e) => setRf({ ...rf, endDate: e.target.value })} className="w-full" />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 pt-2">
+                                        <Button variant="primary" isDisabled={savingRaffle} onPress={handleSaveRaffle}>
+                                            {savingRaffle ? "Guardando..." : "Guardar cambios"}
+                                        </Button>
+                                        <Button variant="ghost" isDisabled={savingRaffle} onPress={() => setEditingRaffle(false)}>Cancelar</Button>
+                                    </div>
+                                </div>
                         ) : (
                             <>
                                 <div className="flex items-center justify-between mb-4">
@@ -154,8 +264,7 @@ export default function SettingsPage() {
                                     <InfoItem icon={<Hash className="h-5 w-5 text-amber-500" />} label="Números por boleta" value={String(raffle.numbersPerTicket)} />
                                     <InfoItem icon={<Trophy className="h-5 w-5 text-blue-500" />} label="Lotería" value={raffle.lottery || "—"} />
                                     <InfoItem icon={<Calendar className="h-5 w-5 text-blue-500" />} label="Inicio" value={raffle.startDate ? formatDate(raffle.startDate) : "—"} />
-                                    <InfoItem icon={<Calendar className="h-5 w-5 text-blue-500" />} label="Fin" value={raffle.endDate ? formatDate(raffle.endDate) : "—"} />
-                                    <InfoItem icon={<Calendar className="h-5 w-5 text-blue-500" />} label="Sorteo" value={raffle.drawDate ? formatDate(raffle.drawDate) : "—"} />
+                                                <InfoItem icon={<Calendar className="h-5 w-5 text-blue-500" />} label="Fin (día del sorteo)" value={raffle.endDate ? formatDate(raffle.endDate) : "—"} />
                                     <InfoItem icon={<Hash className="h-5 w-5 text-amber-500" />} label="Número ganador" value={raffle.winningNumber != null ? String(raffle.winningNumber) : "Sin definir"} />
                                 </div>
                             </>

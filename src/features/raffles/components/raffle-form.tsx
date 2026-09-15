@@ -52,11 +52,9 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
     const capRegister = makeCapitalizedRegister(register, setValue);
 
     const startDateValue = watch("startDate");
-    const endDateValue = watch("endDate");
 
     const todayDate = today(getLocalTimeZone());
     const minEndDate = startDateValue ? parseDate(startDateValue).add({ days: 1 }) : todayDate.add({ days: 1 });
-    const minDrawDate = endDateValue ? parseDate(endDateValue) : minEndDate;
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-2xl">
@@ -198,50 +196,6 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
                         )}
                     />
                     {errors.endDate && <p className="text-sm text-danger mt-1">{errors.endDate.message}</p>}
-                </div>
-
-                {/* Fecha sorteo */}
-                <div>
-                    <label className="text-sm font-medium mb-1 block">Fecha sorteo</label>
-                    <Controller
-                        name="drawDate"
-                        control={control}
-                        render={({ field }) => (
-                            <DatePicker
-                                value={field.value ? parseDate(field.value) : null}
-                                onChange={(date: CalendarDate | null) => field.onChange(date ? date.toString() : "")}
-                                minValue={minDrawDate}
-                                isDateUnavailable={(date) => date.compare(minDrawDate) < 0}
-                            >
-                                <DateField.Group>
-                                    <DateField.Input>
-                                        {(segment) => <DateField.Segment segment={segment} />}
-                                    </DateField.Input>
-                                    <DatePicker.Trigger>
-                                        <DatePicker.TriggerIndicator />
-                                    </DatePicker.Trigger>
-                                </DateField.Group>
-                                <DatePicker.Popover>
-                                    <Calendar minValue={minDrawDate}>
-                                        <Calendar.Header>
-                                            <Calendar.NavButton slot="previous" />
-                                            <Calendar.Heading />
-                                            <Calendar.NavButton slot="next" />
-                                        </Calendar.Header>
-                                        <Calendar.Grid>
-                                            <Calendar.GridHeader>
-                                                {(day) => <Calendar.HeaderCell />}
-                                            </Calendar.GridHeader>
-                                            <Calendar.GridBody>
-                                                {(date) => <Calendar.Cell date={date} />}
-                                            </Calendar.GridBody>
-                                        </Calendar.Grid>
-                                    </Calendar>
-                                </DatePicker.Popover>
-                            </DatePicker>
-                        )}
-                    />
-                    {errors.drawDate && <p className="text-sm text-danger mt-1">{errors.drawDate.message}</p>}
                 </div>
 
                 {/* Lotería */}

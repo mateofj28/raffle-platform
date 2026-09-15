@@ -153,7 +153,7 @@ export default function RafflesPage() {
                                         </div>
                                         <div className="flex items-center gap-2 text-default-600">
                                             <Calendar className="h-4 w-4 text-blue-500 shrink-0" />
-                                            <span>Sorteo: {raffle.drawDate ? formatDate(raffle.drawDate) : "—"}</span>
+                                                    <span>Sorteo: {raffle.endDate ? formatDate(raffle.endDate) : "—"}</span>
                                         </div>
                                         <div className="flex items-center gap-2 text-default-600">
                                             <Ticket className="h-4 w-4 text-emerald-500 shrink-0" />

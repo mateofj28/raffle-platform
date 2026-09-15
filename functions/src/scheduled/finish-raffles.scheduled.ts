@@ -48,12 +48,15 @@ export const finishExpiredRaffles = onSchedule(
 
                 for (const raffle of activeRaffles.docs) {
                     try {
-                        const drawDate: string | undefined = raffle.data().drawDate;
-                        if (!drawDate) continue;
+                        // El sorteo es el día de la fecha fin (endDate). Para rifas
+                        // antiguas que aún tuvieran drawDate, se usa como respaldo.
+                        const data = raffle.data();
+                        const endDate: string | undefined = data.endDate || data.drawDate;
+                        if (!endDate) continue;
 
                         // Corte al final del día del sorteo: finaliza solo cuando HOY
-                        // es estrictamente posterior a la fecha de sorteo.
-                        if (today > drawDate) {
+                        // es estrictamente posterior a la fecha fin.
+                        if (today > endDate) {
                             await raffle.ref.update({
                                 status: "finished",
                                 updatedAt: FieldValue.serverTimestamp(),

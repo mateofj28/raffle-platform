@@ -27,7 +27,6 @@ const createRaffleSchema = z.object({
     prizeValue: z.number().int().nonnegative(),
     startDate: z.string().min(1),
     endDate: z.string().min(1),
-    drawDate: z.string().min(1),
     lottery: z.string().min(1),
     ticketPrice: z.number().int().positive(),
     numbersPerTicket: z.number().int().min(1).max(2).default(1),
@@ -41,7 +40,6 @@ const updateRaffleSchema = z.object({
     prizeValue: z.number().int().nonnegative().optional(),
     startDate: z.string().min(1).optional(),
     endDate: z.string().min(1).optional(),
-    drawDate: z.string().min(1).optional(),
     lottery: z.string().min(1).optional(),
     ticketPrice: z.number().int().positive().optional(),
     numbersPerTicket: z.number().int().min(1).max(2).optional(),
@@ -113,7 +111,9 @@ export const createRaffle = onCall(
                 prizeValue: data.prizeValue,
                 startDate: data.startDate,
                 endDate: data.endDate,
-                drawDate: data.drawDate,
+                // El sorteo es el mismo día de la fecha fin. Se guarda drawDate = endDate
+                // por retrocompatibilidad con lecturas antiguas.
+                drawDate: data.endDate,
                 lottery: data.lottery,
                 ticketPrice: data.ticketPrice,
                 totalTickets,
@@ -185,6 +185,11 @@ export const updateRaffle = onCall(
                 if (value !== undefined) {
                     updateData[key] = value;
                 }
+            }
+
+            // El sorteo es el día de la fecha fin: si cambia endDate, alinear drawDate.
+            if (updateFields.endDate !== undefined) {
+                updateData.drawDate = updateFields.endDate;
             }
 
             await raffleRef.update(updateData);
