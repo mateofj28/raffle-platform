@@ -80,12 +80,13 @@ export const registerPayment = onCall(
 
                 const ticket = ticketSnap.data()!;
 
-                // Validate ticket status can accept payment
-                const acceptableStatuses = ["assigned", "sold", "installment"];
-                if (!acceptableStatuses.includes(ticket.status)) {
+                // Una boleta no puede recibir pagos si está disponible (sin dueño) o
+                // cancelada. Lo demás depende del SALDO, no del status guardado (que
+                // puede quedar desactualizado tras un cambio de precio).
+                if (ticket.status === "available" || ticket.status === "cancelled") {
                     throw new AppError(
                         AppErrorCode.INVALID_TRANSITION,
-                        "La boleta debe estar asignada, vendida o en abonos para aceptar pagos."
+                        "La boleta debe estar asignada para aceptar pagos."
                     );
                 }
 
@@ -96,7 +97,8 @@ export const registerPayment = onCall(
 
                 const pendingBalance: number = ticket.pendingBalance;
 
-                // Validate ticket is not already fully paid
+                // Validate ticket is not already fully paid — si tiene saldo pendiente,
+                // acepta el pago aunque su status guardado diga "paid" (desactualizado).
                 if (pendingBalance <= 0) {
                     throw new AppError(
                         AppErrorCode.VALIDATION_ERROR,

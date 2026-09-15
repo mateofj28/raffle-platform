@@ -219,11 +219,23 @@ export const updateRaffle = onCall(
                         const oldPending = (t.pendingBalance as number) ?? oldValue;
                         const paid = oldValue - oldPending; // lo ya abonado (se respeta)
                         const newPending = Math.max(0, newPrice - paid);
-                        batch.update(doc.ref, {
+
+                        // Recalcular el status guardado para que no quede desactualizado
+                        // tras el cambio de precio (p. ej. una "paid" que ahora debe cobrar más).
+                        const update: Record<string, unknown> = {
                             value: newPrice,
                             pendingBalance: newPending,
                             updatedAt: FieldValue.serverTimestamp(),
-                        });
+                        };
+                        // Solo se ajusta el status de boletas que tienen algún compromiso
+                        // (vendedor, cliente o abono). Las disponibles se dejan como están.
+                        if (t.vendorId || t.customerId || paid > 0) {
+                            if (newPending <= 0 && paid > 0) update.status = "paid";
+                            else if (paid > 0) update.status = "installment";
+                            else if (t.customerId) update.status = "sold";
+                            else update.status = "assigned";
+                        }
+                        batch.update(doc.ref, update);
                     }
                     await batch.commit();
 
