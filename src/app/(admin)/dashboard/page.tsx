@@ -54,6 +54,7 @@ export default function AdminDashboardPage() {
     const [methodTotals, setMethodTotals] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [vendorsMap, setVendorsMap] = useState<Map<string, string>>(new Map());
+    const [topVendors, setTopVendors] = useState<{ name: string; document: string; collected: number }[]>([]);
     const [customersMap, setCustomersMap] = useState<Map<string, string>>(new Map());
 
     // Lógica de rifa activa para admin/cajero:
@@ -109,7 +110,11 @@ export default function AdminDashboardPage() {
                 // Load vendors and customers for name resolution
                 const vendorsSnap = await getDocs(tenantCollection(tenantId, "vendors"));
                 const vMap = new Map<string, string>();
-                vendorsSnap.docs.forEach(d => vMap.set(d.id, d.data().name));
+                const vendorInfo = new Map<string, { name: string; document: string }>();
+                vendorsSnap.docs.forEach(d => {
+                    vMap.set(d.id, d.data().name);
+                    vendorInfo.set(d.id, { name: d.data().name || "—", document: d.data().document || "" });
+                });
                 setVendorsMap(vMap);
 
                 const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
@@ -125,6 +130,8 @@ export default function AdminDashboardPage() {
                 let totalCollected = 0, totalPending = 0;
                 const vendorIds = new Set<string>();
                 const customerIds = new Set<string>();
+                // Recaudado por vendedor (para el Top 3 vendedores).
+                const collectedByVendor = new Map<string, number>();
 
                 ticketsSnap.docs.forEach(d => {
                     const t = d.data();
@@ -137,9 +144,24 @@ export default function AdminDashboardPage() {
                     }
                     if (t.vendorId) vendorIds.add(t.vendorId);
                     if (t.customerId) customerIds.add(t.customerId);
-                    totalCollected += (t.value - t.pendingBalance);
+                    const collected = t.value - t.pendingBalance;
+                    totalCollected += collected;
                     totalPending += t.pendingBalance;
+                    if (t.vendorId && collected > 0) {
+                        collectedByVendor.set(t.vendorId, (collectedByVendor.get(t.vendorId) || 0) + collected);
+                    }
                 });
+
+                // Top 3 vendedores por recaudado.
+                const top = Array.from(collectedByVendor.entries())
+                    .map(([id, collected]) => ({
+                        name: vendorInfo.get(id)?.name || "—",
+                        document: vendorInfo.get(id)?.document || "",
+                        collected,
+                    }))
+                    .sort((a, b) => b.collected - a.collected)
+                    .slice(0, 3);
+                setTopVendors(top);
 
                 const totalPotential = activeRaffle.totalTickets * activeRaffle.ticketPrice;
 
@@ -333,6 +355,31 @@ export default function AdminDashboardPage() {
                                 <StatCard title="Ganancia empresa" value={formatCurrency(metrics.companyProfit)} icon={<TrendingUp className="h-5 w-5" />} />
                                 <StatCard title="Comisión vendedores" value={formatCurrency(metrics.commissionGenerated)} icon={<Percent className="h-5 w-5" />} />
                             </div>
+
+                                {/* Top 3 vendedores por recaudado (solo admin; es info global) */}
+                                {userRole !== "cashier" && topVendors.length > 0 && (
+                                    <div className="mt-6">
+                                        <h3 className="text-sm font-semibold mb-3">Top vendedores</h3>
+                                        <Card>
+                                            <CardContent className="p-4">
+                                                <div className="space-y-2">
+                                                    {topVendors.map((v, i) => (
+                                                        <div key={i} className="flex items-center justify-between gap-3 py-2 border-b border-default-100 last:border-0">
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${i === 0 ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" : i === 1 ? "bg-default-100 text-default-500" : "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"}`}>{i + 1}</span>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-sm font-medium truncate">{v.name}</p>
+                                                                    <p className="text-xs text-default-500 font-mono">{v.document || "—"}</p>
+                                                                </div>
+                                                            </div>
+                                                            <span className="text-sm font-bold text-emerald-500 shrink-0">{formatCurrency(v.collected)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                )}
 
                                 {/* Revenue by payment method */}
                                 <h3 className="text-sm font-semibold mb-3 mt-6">Recaudado por medio de pago</h3>
