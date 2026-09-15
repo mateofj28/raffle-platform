@@ -160,9 +160,14 @@ export default function CorrectPaymentPage() {
       const payment = payments.find(p => p.id === paymentId)!;
       await callFunction("reversePayment", { paymentId, amount: payment.amount, reason: "Eliminación por admin" });
       // Optimistic update: remove from local state immediately
-      setPayments(prev => prev.filter(p => p.id !== paymentId));
+      const remaining = payments.filter(p => p.id !== paymentId);
+      setPayments(remaining);
       toast.success("Abono eliminado");
       setDeleteConfirm(null);
+      // Si era el último pago, salir de esta pantalla (ya no hay nada que gestionar).
+      if (remaining.length === 0) {
+        setTimeout(() => router.back(), 800);
+      }
     } catch (e) { setError(e instanceof Error ? e.message : "Error al eliminar"); }
     finally { setProcessing(false); }
   };
@@ -177,6 +182,8 @@ export default function CorrectPaymentPage() {
       setPayments([]);
       toast.success("Todos los abonos eliminados");
       setDeleteAllConfirm(false);
+      // Ya no quedan pagos: salir de esta pantalla.
+      setTimeout(() => router.back(), 800);
     } catch (e) { setError(e instanceof Error ? e.message : "Error"); }
     finally { setProcessing(false); }
   };
