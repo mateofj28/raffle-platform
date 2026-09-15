@@ -162,7 +162,7 @@ export default function TicketSearchPage() {
             </Card>
 
             {/* Result: Available */}
-            {searched && result && result.ticket.status === "available" && (
+            {searched && result && deriveTicketStatus(result.ticket) === "available" && (
                 <Card className="border-2 border-emerald-500/30">
                     <CardContent className="p-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -182,7 +182,7 @@ export default function TicketSearchPage() {
             )}
 
             {/* Result: Assigned/Sold/Paid/Installment */}
-            {searched && result && result.ticket.status !== "available" && (
+            {searched && result && deriveTicketStatus(result.ticket) !== "available" && (
                 <Card>
                     <CardContent className="p-6">
                         {/* Header */}

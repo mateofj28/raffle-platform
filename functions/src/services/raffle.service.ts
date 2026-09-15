@@ -148,7 +148,7 @@ export const createRaffle = onCall(
  * Admin-only. Blocked if raffle is in "finished" or "cancelled" state.
  */
 export const updateRaffle = onCall(
-    { region: "us-central1", timeoutSeconds: 120 },
+    { region: "us-central1", timeoutSeconds: 300 },
     async (request: CallableRequest) => {
         try {
             const context: AuthContext = validateAuth(request);
@@ -193,6 +193,44 @@ export const updateRaffle = onCall(
             }
 
             await raffleRef.update(updateData);
+
+            // Si cambió el precio de la boleta, PROPAGARLO a todas las boletas de la rifa.
+            // Cada boleta guarda su propio `value` y `pendingBalance`; sin esto, el
+            // nuevo precio no se reflejaría en saldos, cuentas ni comisiones.
+            // Se respeta lo ya abonado: nuevo pendingBalance = nuevoPrecio - abonado.
+            if (updateFields.ticketPrice !== undefined) {
+                const newPrice = updateFields.ticketPrice as number;
+                const db = getDb();
+                const ticketsCol = raffleRef.collection("tickets");
+
+                let lastDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+                // Recorre las boletas por páginas y actualiza value/pendingBalance por lotes.
+                // eslint-disable-next-line no-constant-condition
+                while (true) {
+                    let pageQuery = ticketsCol.orderBy("number").limit(BATCH_SIZE);
+                    if (lastDoc) pageQuery = pageQuery.startAfter(lastDoc);
+                    const snap = await pageQuery.get();
+                    if (snap.empty) break;
+
+                    const batch = db.batch();
+                    for (const doc of snap.docs) {
+                        const t = doc.data();
+                        const oldValue = (t.value as number) ?? newPrice;
+                        const oldPending = (t.pendingBalance as number) ?? oldValue;
+                        const paid = oldValue - oldPending; // lo ya abonado (se respeta)
+                        const newPending = Math.max(0, newPrice - paid);
+                        batch.update(doc.ref, {
+                            value: newPrice,
+                            pendingBalance: newPending,
+                            updatedAt: FieldValue.serverTimestamp(),
+                        });
+                    }
+                    await batch.commit();
+
+                    lastDoc = snap.docs[snap.docs.length - 1];
+                    if (snap.size < BATCH_SIZE) break;
+                }
+            }
 
             return { success: true };
         } catch (error) {

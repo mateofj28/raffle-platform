@@ -230,15 +230,18 @@ export default function RaffleDetailPage() {
         const ticket = tickets.find(t => t.number === num);
         if (!ticket) { setAssignError(`Boleta #${num} no existe`); return; }
 
+        const derived = deriveTicketStatus(ticket);
         if (assignMode === "assign") {
-            if (ticket.status !== "available") {
+            // Disponible según la definición unificada: sin cliente y sin abono.
+            if (derived !== "available") {
                 const vendorName = ticket.vendorId ? vendors.find(v => v.id === ticket.vendorId)?.name || "otro vendedor" : "";
                 setAssignError(`Boleta #${num} no está disponible${vendorName ? ` — asignada a ${vendorName}` : ""}`);
                 return;
             }
         } else {
-            if (ticket.status !== "assigned") {
-                setAssignError(`Boleta #${num} no está asignada (estado: ${ticket.status})`);
+            // Para desasignar: debe estar asignada a un vendedor y sin dinero/cliente.
+            if (derived !== "assigned" && !(ticket.vendorId && derived === "available")) {
+                setAssignError(`Boleta #${num} no se puede desasignar (estado: ${derived})`);
                 return;
             }
         }

@@ -209,7 +209,16 @@ export const assignTickets = onCall(
 
                     const ticket = ticketSnap.data()!;
 
-                    if (ticket.status !== "available") {
+                    // Una boleta se puede (re)asignar si NO tiene cliente y NO tiene
+                    // abono, sin importar su status guardado. Esto unifica la definición
+                    // de "disponible" con el estado derivado que ve el usuario y evita
+                    // el caso "assigned sin cliente ni dinero" que quedaba bloqueado.
+                    const value = (ticket.value as number) ?? 0;
+                    const pending = (ticket.pendingBalance as number) ?? value;
+                    const paid = value - pending;
+                    const canAssign = !ticket.customerId && paid <= 0;
+
+                    if (!canAssign) {
                         skipped++;
                         continue;
                     }
