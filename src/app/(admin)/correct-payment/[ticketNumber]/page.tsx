@@ -37,8 +37,10 @@ export default function CorrectPaymentPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
   const [customerName, setCustomerName] = useState<string>("");
+  // Valor real de ESTA boleta (no el de la rifa, que puede diferir tras cambios de precio).
+  const [ticketValue, setTicketValue] = useState<number | null>(null);
 
-  const ticketPrice = activeRaffle?.ticketPrice || 60000;
+  const ticketPrice = ticketValue ?? activeRaffle?.ticketPrice ?? 0;
 
   useEffect(() => {
     if (!activeRaffle) router.push("/raffles");
@@ -55,11 +57,15 @@ export default function CorrectPaymentPage() {
     const padded = String(ticketNumber).padStart(4, "0");
     const ticketRef = doc(getDb(), "tenants", tenantId, "raffles", activeRaffle.id, "tickets", padded);
     getDoc(ticketRef).then((snap) => {
-      if (snap.exists() && snap.data().customerId) {
-        const customerRef = doc(getDb(), "tenants", tenantId, "customers", snap.data().customerId);
-        getDoc(customerRef).then((cSnap) => {
-          if (cSnap.exists()) setCustomerName(cSnap.data().name);
-        });
+      if (snap.exists()) {
+        // Valor real de la boleta (fuente de verdad para las cuentas de esta pantalla).
+        if (typeof snap.data().value === "number") setTicketValue(snap.data().value);
+        if (snap.data().customerId) {
+          const customerRef = doc(getDb(), "tenants", tenantId, "customers", snap.data().customerId);
+          getDoc(customerRef).then((cSnap) => {
+            if (cSnap.exists()) setCustomerName(cSnap.data().name);
+          });
+        }
       }
     });
   }, [tenantId, activeRaffle, ticketNumber]);
@@ -80,7 +86,7 @@ export default function CorrectPaymentPage() {
   }, [tenantId, activeRaffle, ticketNumber]);
 
   const totalAbonado = payments.reduce((sum, p) => sum + p.amount, 0);
-  const pendiente = ticketPrice - totalAbonado;
+  const pendiente = Math.max(0, ticketPrice - totalAbonado);
 
   const printReceipt = (payment: Payment) => {
     const methodLabels: Record<string, string> = { cash: "Efectivo", nequi: "Nequi", daviplata: "Daviplata", card: "Tarjeta", transfer: "Transferencia", other: "Otro" };
@@ -232,7 +238,7 @@ export default function CorrectPaymentPage() {
                     style={{ width: `${Math.min((totalAbonado / ticketPrice) * 100, 100)}%` }}
                   />
                 </div>
-                <p className="text-xs text-default-500 mt-1 text-right">{Math.round((totalAbonado / ticketPrice) * 100)}% pagado</p>
+                <p className="text-xs text-default-500 mt-1 text-right">{Math.min(100, Math.round((totalAbonado / (ticketPrice || 1)) * 100))}% pagado</p>
               </div>
             </CardContent>
           </Card>
