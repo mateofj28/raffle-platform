@@ -158,7 +158,7 @@ function ReportContent({ type, tickets, payments, vendors, customers, ticketPric
 function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; vendors: Map<string, Vendor>; customers: Map<string, Customer> }) {
     const [selectedVendorId, setSelectedVendorId] = useState<string>("");
 
-    const soldTickets = tickets.filter(t => ["sold", "paid", "installment"].includes(t.status));
+    const soldTickets = tickets.filter(t => deriveTicketStatus(t) !== "available");
     const byVendor = new Map<string, Ticket[]>();
     soldTickets.forEach(t => {
         if (!t.vendorId) return;
@@ -237,7 +237,7 @@ function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; ven
 }
 
 function UnsoldTickets({ tickets, vendors }: { tickets: Ticket[]; vendors: Map<string, Vendor> }) {
-    const unsold = tickets.filter(t => t.status === "assigned");
+    const unsold = tickets.filter(t => deriveTicketStatus(t) === "assigned");
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Boletas sin vender</h2>
@@ -285,7 +285,7 @@ function RevenueByMethod({ payments }: { payments: Payment[] }) {
 function PendingBalance({ tickets, customers, vendors, ticketPrice }: { tickets: Ticket[]; customers: Map<string, Customer>; vendors: Map<string, Vendor>; ticketPrice: number }) {
     const [selectedVendorId, setSelectedVendorId] = useState<string>("");
 
-    const pending = tickets.filter(t => t.pendingBalance > 0 && ["sold", "installment"].includes(t.status));
+    const pending = tickets.filter(t => t.pendingBalance > 0 && deriveTicketStatus(t) !== "available");
 
     // Group by vendor
     const byVendor = new Map<string, { tickets: Ticket[]; totalPending: number }>();
@@ -398,7 +398,7 @@ function Morosos({ tickets, customers, ticketPrice }: { tickets: Ticket[]; custo
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
 
     // Tickets with partial payment (installment) that still owe
-    const morosos = tickets.filter(t => t.status === "installment" && t.pendingBalance > 0 && t.customerId);
+    const morosos = tickets.filter(t => deriveTicketStatus(t) === "installment" && t.pendingBalance > 0 && t.customerId);
     const byCustomer = new Map<string, { name: string; phone: string; tickets: Ticket[]; totalPending: number }>();
     morosos.forEach(t => {
         const customer = customers.get(t.customerId!);
@@ -478,11 +478,10 @@ function Morosos({ tickets, customers, ticketPrice }: { tickets: Ticket[]; custo
 
 function RaffleStatus({ tickets, ticketPrice }: { tickets: Ticket[]; ticketPrice: number }) {
     const statuses = {
-        available: tickets.filter(t => t.status === "available").length,
-        assigned: tickets.filter(t => t.status === "assigned").length,
-        sold: tickets.filter(t => t.status === "sold").length,
-        installment: tickets.filter(t => t.status === "installment").length,
-        paid: tickets.filter(t => t.status === "paid").length,
+        available: tickets.filter(t => deriveTicketStatus(t) === "available").length,
+        assigned: tickets.filter(t => deriveTicketStatus(t) === "assigned").length,
+        sold: tickets.filter(t => deriveTicketStatus(t) === "sold").length,
+        installment: tickets.filter(t => deriveTicketStatus(t) === "installment").length,
     };
     const totalCollected = tickets.reduce((s, t) => s + (t.value - t.pendingBalance), 0);
     const totalPotential = tickets.length * ticketPrice;
@@ -490,12 +489,11 @@ function RaffleStatus({ tickets, ticketPrice }: { tickets: Ticket[]; ticketPrice
     return (
         <div>
             <h2 className="text-lg font-bold mb-4">Estado general de la rifa</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                 <StatBox label="Disponibles" value={statuses.available} color="text-default-600" />
                 <StatBox label="Asignadas" value={statuses.assigned} color="text-amber-500" />
-                <StatBox label="Vendidas" value={statuses.sold} color="text-blue-500" />
-                <StatBox label="En abonos" value={statuses.installment} color="text-purple-500" />
-                <StatBox label="Pagadas" value={statuses.paid} color="text-success" />
+                <StatBox label="Abonadas" value={statuses.installment} color="text-purple-500" />
+                <StatBox label="Vendidas" value={statuses.sold} color="text-success" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-4 rounded-lg border border-default-200">
@@ -516,15 +514,15 @@ function RaffleStatus({ tickets, ticketPrice }: { tickets: Ticket[]; ticketPrice
 }
 
 function VendorLiquidation({ tickets, vendors, ticketPrice }: { tickets: Ticket[]; vendors: Map<string, Vendor>; ticketPrice: number }) {
-    const byVendor = new Map<string, { assigned: number; sold: number; paid: number; installment: number; collected: number; commission: number }>();
+    const byVendor = new Map<string, { assigned: number; sold: number; installment: number; collected: number; commission: number }>();
 
     tickets.forEach(t => {
         if (!t.vendorId) return;
-        const current = byVendor.get(t.vendorId) || { assigned: 0, sold: 0, paid: 0, installment: 0, collected: 0, commission: 0 };
-        if (t.status === "assigned") current.assigned++;
-        if (t.status === "sold") current.sold++;
-        if (t.status === "paid") current.paid++;
-        if (t.status === "installment") current.installment++;
+        const current = byVendor.get(t.vendorId) || { assigned: 0, sold: 0, installment: 0, collected: 0, commission: 0 };
+        const st = deriveTicketStatus(t);
+        if (st === "assigned") current.assigned++;
+        if (st === "sold") current.sold++;
+        if (st === "installment") current.installment++;
         const collected = t.value - t.pendingBalance;
         current.collected += collected;
         current.commission += Math.floor(collected * 0.30);
@@ -534,14 +532,13 @@ function VendorLiquidation({ tickets, vendors, ticketPrice }: { tickets: Ticket[
     return (
         <div>
             <h2 className="text-lg font-bold mb-4">Liquidación por vendedor</h2>
-            <Table headers={["Vendedor", "Asignadas", "Vendidas", "Pagadas", "Abonadas", "Recaudado", "Comisión", "Entrega"]}>
+            <Table headers={["Vendedor", "Asignadas", "Abonadas", "Vendidas", "Recaudado", "Comisión", "Entrega"]}>
                 {Array.from(byVendor.entries()).map(([vendorId, data]) => (
                     <tr key={vendorId}>
                         <td className="px-3 py-2 font-medium">{vendors.get(vendorId)?.name || vendorId}</td>
                         <td className="px-3 py-2 text-center">{data.assigned}</td>
-                        <td className="px-3 py-2 text-center">{data.sold}</td>
-                        <td className="px-3 py-2 text-center">{data.paid}</td>
                         <td className="px-3 py-2 text-center">{data.installment}</td>
+                        <td className="px-3 py-2 text-center">{data.sold}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(data.collected)}</td>
                         <td className="px-3 py-2 text-right text-amber-500">{formatCurrency(data.commission)}</td>
                         <td className="px-3 py-2 text-right text-success font-semibold">{formatCurrency(data.collected - data.commission)}</td>
