@@ -13,6 +13,7 @@ import { validateAuth, requireAdmin, requireVendorOwnership, type AuthContext } 
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb, getOfficialRaffleId } from "../utils/firestore";
+import { computeTicketStatus } from "../utils/ticket-status";
 import { createAuditEntry } from "./audit.service";
 
 // --- Zod Schemas ---
@@ -114,18 +115,12 @@ export const registerPayment = onCall(
                     );
                 }
 
-                // Calculate new pending balance and status
+                // Nuevo saldo y status recalculado (fuente única de verdad).
                 const newPendingBalance = pendingBalance - amount;
-                let ticketStatus: string;
-
-                if (newPendingBalance === 0) {
-                    ticketStatus = "paid";
-                } else if (newPendingBalance > 0) {
-                    // Any partial payment moves to installment (whether from assigned, sold, or already installment)
-                    ticketStatus = "installment";
-                } else {
-                    ticketStatus = ticket.status;
-                }
+                const ticketStatus = computeTicketStatus({
+                    ...ticket,
+                    pendingBalance: newPendingBalance,
+                });
 
                 // Create payment document
                 transaction.set(paymentRef, {
@@ -229,11 +224,8 @@ export const reversePayment = onCall(
                 if (effectiveAmount > 0) {
                     const newPendingBalance = ticket.pendingBalance + effectiveAmount;
 
-                    // Determine new status
-                    let ticketStatus = ticket.status;
-                    if (newPendingBalance > 0 && ticket.status === "paid") {
-                        ticketStatus = "installment";
-                    }
+                    // Status recalculado (fuente única de verdad) con el nuevo saldo.
+                    const ticketStatus = computeTicketStatus({ ...ticket, pendingBalance: newPendingBalance });
 
                     // Create adjustment document
                     transaction.set(adjustmentRef, {
@@ -260,7 +252,7 @@ export const reversePayment = onCall(
                 const finalBalance = effectiveAmount > 0
                     ? ticket.pendingBalance + effectiveAmount
                     : ticket.pendingBalance;
-                const finalStatus = finalBalance > 0 ? "installment" : ticket.status;
+                const finalStatus = computeTicketStatus({ ...ticket, pendingBalance: finalBalance });
 
                 return { newPendingBalance: finalBalance, ticketStatus: finalStatus };
             });
@@ -340,8 +332,8 @@ export const correctPayment = onCall(
                     correctedBy: context.uid,
                 });
 
-                // Update ticket balance
-                const newStatus = newBalance === 0 ? "paid" : "installment";
+                // Update ticket balance — status recalculado (fuente única de verdad).
+                const newStatus = computeTicketStatus({ ...ticket, pendingBalance: newBalance });
                 transaction.update(ticketRef, {
                     pendingBalance: newBalance,
                     status: newStatus,

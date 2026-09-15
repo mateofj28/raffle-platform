@@ -16,6 +16,7 @@ import { validateAuth, requireAdmin, requireAdminOrCashier, requireVendorOwnersh
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb, BATCH_SIZE, getOfficialRaffleId } from "../utils/firestore";
+import { computeTicketStatus } from "../utils/ticket-status";
 import { createAuditEntry } from "./audit.service";
 
 /**
@@ -223,8 +224,10 @@ export const assignTickets = onCall(
                         continue;
                     }
 
+                    // Recalcular el status con el nuevo vendedor (fuente única de verdad).
+                    const newStatus = computeTicketStatus({ ...ticket, vendorId });
                     batch.update(ticketRef, {
-                        status: "assigned",
+                        status: newStatus,
                         vendorId,
                         updatedAt: FieldValue.serverTimestamp(),
                     });
@@ -304,9 +307,10 @@ export const sellTicket = onCall(
                     );
                 }
 
-                // Update ticket
+                // Recalcular el status con el nuevo cliente (fuente única de verdad).
+                const newStatus = computeTicketStatus({ ...ticket, customerId });
                 transaction.update(ticketRef, {
-                    status: "sold",
+                    status: newStatus,
                     customerId,
                     saleDate: FieldValue.serverTimestamp(),
                     updatedAt: FieldValue.serverTimestamp(),
@@ -372,8 +376,9 @@ export const unassignTickets = onCall(
 
                     if (!canUnassign) { skipped++; continue; }
 
+                    // Boleta liberada: sin dueño, sin cliente y saldo completo → available.
                     batch.update(ticketRef, {
-                        status: "available",
+                        status: computeTicketStatus({ value: ticket.value ?? 0, pendingBalance: ticket.value ?? 0, vendorId: null, customerId: null }),
                         vendorId: null,
                         customerId: null,
                         pendingBalance: ticket.value ?? 0,
@@ -429,30 +434,23 @@ export const updateTicketClient = onCall(
                 throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
             }
 
-            // Update client — if ticket is "assigned", also move to "sold"
             const ticket = ticketSnap.data()!;
 
             // If vendor role, validate ownership — a vendor can only touch their own tickets
             if (context.role === "vendor") {
                 requireVendorOwnership(context, ticket.vendorId);
             }
+
+            // Recalcular el status con el nuevo cliente (fuente única de verdad).
+            const newStatus = computeTicketStatus({ ...ticket, customerId });
             const updates: Record<string, unknown> = {
                 customerId,
+                status: newStatus,
                 updatedAt: FieldValue.serverTimestamp(),
             };
-
-            // Si se ASIGNA un cliente a una boleta "assigned", pasa a "sold".
-            if (customerId && ticket.status === "assigned") {
-                updates.status = "sold";
-                updates.saleDate = FieldValue.serverTimestamp();
-            }
-            // Si se QUITA el cliente de una boleta que estaba "sold" (vendida sin abono),
-            // regresa a "assigned" (queda sin cliente). Si tiene abonos, se conserva el
-            // estado para no perder el rastro del dinero; el estado visible se recalcula.
-            if (!customerId && ticket.status === "sold") {
-                updates.status = "assigned";
-                updates.saleDate = null;
-            }
+            // saleDate: se pone al ganar cliente pagado; se limpia al quedar sin cliente.
+            if (!customerId) updates.saleDate = null;
+            else if (!ticket.saleDate) updates.saleDate = FieldValue.serverTimestamp();
 
             await ticketRef.update(updates);
 
