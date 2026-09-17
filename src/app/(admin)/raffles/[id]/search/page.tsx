@@ -161,8 +161,8 @@ export default function TicketSearchPage() {
                 </CardContent>
             </Card>
 
-            {/* Result: Available */}
-            {searched && result && deriveTicketStatus(result.ticket) === "available" && (
+            {/* Result: LIBRE — sin vendedor, sin cliente y sin abono (nadie la tiene). */}
+            {searched && result && !result.vendor && !result.customer && result.totalCollected === 0 && (
                 <Card className="border-2 border-emerald-500/30">
                     <CardContent className="p-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -178,14 +178,14 @@ export default function TicketSearchPage() {
                             </div>
                         </div>
                         <p className="text-default-500">
-                            Este número está <span className="font-semibold text-emerald-600">disponible</span> y puede ser asignado a un vendedor.
+                            Esta boleta está <span className="font-semibold text-emerald-600">disponible para cualquier vendedor</span>. Nadie la tiene todavía.
                         </p>
                     </CardContent>
                 </Card>
             )}
 
-            {/* Result: Assigned/Sold/Paid/Installment */}
-            {searched && result && deriveTicketStatus(result.ticket) !== "available" && (
+            {/* Result: OCUPADA — ya tiene vendedor y/o cliente y/o abono. */}
+            {searched && result && (result.vendor || result.customer || result.totalCollected > 0) && (
                 <Card>
                     <CardContent className="p-6">
                         {/* Header */}
@@ -198,9 +198,22 @@ export default function TicketSearchPage() {
                                 {(result.ticket.numbers?.length ?? 0) > 1 && (
                                     <p className="text-xs text-default-500 font-mono">Boleta (pareja): {formatTicketNumbers(result.ticket.numbers, result.ticket.number)}</p>
                                 )}
-                                <StatusBadge status={deriveTicketStatus(result.ticket)} />
+                                <div className="flex items-center gap-2 mt-1">
+                                    {/* "Ocupada": ya la tiene alguien, aunque el estado (Definición A)
+                                        sea "Disponible" por no tener cliente todavía. */}
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400">Ocupada</span>
+                                    <StatusBadge status={deriveTicketStatus(result.ticket)} />
+                                </div>
                             </div>
                         </div>
+
+                        {/* Mensaje según lo que tenga la boleta */}
+                        <p className="text-sm text-default-600 mb-5">
+                            {result.customer
+                                ? <>Esta boleta la tiene <span className="font-semibold">{result.vendor?.name ?? "un vendedor"}</span> y está a nombre del cliente <span className="font-semibold">{result.customer.name}</span>.</>
+                                : <>Esta boleta ya la tiene el vendedor <span className="font-semibold">{result.vendor?.name ?? "—"}</span>{result.totalCollected > 0 ? " y tiene abonos registrados" : ", aún sin cliente"}.</>
+                            }
+                        </p>
 
                         {/* Info Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
