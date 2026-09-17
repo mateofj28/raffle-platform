@@ -83,8 +83,13 @@ export const savePairings = onCall(
                 );
             }
 
+            // Firestore NO permite arrays anidados (array de tuplas). Se guarda
+            // cada pareja como objeto { a, b }. La interfaz pública sigue usando
+            // tuplas [a, b]; la conversión es interna (aquí y en readPairings).
+            const storedPairs = pairs.map(([a, b]) => ({ a, b }));
+
             await pairingsRef(context.tenantId).set({
-                pairs,
+                pairs: storedPairs,
                 updatedAt: FieldValue.serverTimestamp(),
                 updatedBy: context.uid,
             });
@@ -108,16 +113,30 @@ export const getPairings = onCall(
             // Cualquier usuario autenticado del tenant puede leerlas.
             const snap = await pairingsRef(context.tenantId).get();
             if (!snap.exists) return { pairs: null };
-            return { pairs: (snap.data()?.pairs ?? null) as [number, number][] | null };
+            return { pairs: decodePairs(snap.data()?.pairs) };
         } catch (error) {
             handleError(error);
         }
     }
 );
 
+/**
+ * Convierte las parejas almacenadas a tuplas [a, b].
+ * Soporta el formato actual (objetos { a, b }) y, por retrocompatibilidad, el
+ * formato antiguo de tuplas [a, b] por si quedara algún dato anterior.
+ */
+function decodePairs(raw: unknown): [number, number][] | null {
+    if (!Array.isArray(raw) || raw.length === 0) return null;
+    return raw.map((item) => {
+        if (Array.isArray(item)) return [item[0], item[1]] as [number, number];
+        const obj = item as { a: number; b: number };
+        return [obj.a, obj.b] as [number, number];
+    });
+}
+
 /** Helper interno: devuelve las parejas del tenant o null. */
 export async function readPairings(tenantId: string): Promise<[number, number][] | null> {
     const snap = await pairingsRef(tenantId).get();
     if (!snap.exists) return null;
-    return (snap.data()?.pairs ?? null) as [number, number][] | null;
+    return decodePairs(snap.data()?.pairs);
 }
