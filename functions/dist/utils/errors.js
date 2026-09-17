@@ -52,6 +52,6 @@ function handleError(error) {
         throw error;
     }
     console.error("Unexpected error:", error);
-    throw new https_1.HttpsError("internal", "An unexpected error occurred.");
+    throw new https_1.HttpsError("internal", "Ocurrió un error inesperado.");
 }
 //# sourceMappingURL=errors.js.map

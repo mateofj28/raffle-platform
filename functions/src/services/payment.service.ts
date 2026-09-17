@@ -14,6 +14,7 @@ import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb, getOfficialRaffleId } from "../utils/firestore";
 import { computeTicketStatus } from "../utils/ticket-status";
+import { resolveTicketRef } from "../utils/ticket-resolve";
 import { createAuditEntry } from "./audit.service";
 
 // --- Zod Schemas ---
@@ -32,12 +33,6 @@ const reversePaymentSchema = z.object({
     amount: z.number().int().min(1),
     reason: z.string().min(10).max(500),
 });
-
-// --- Helpers ---
-
-function padTicketNumber(num: number): string {
-    return String(num).padStart(4, "0");
-}
 
 // --- Callable Functions ---
 
@@ -64,10 +59,13 @@ export const registerPayment = onCall(
             }
 
             const db = getDb();
-            const ticketDocId = padTicketNumber(ticketNumber);
-            const ticketRef = db.doc(
-                `tenants/${context.tenantId}/raffles/${raffleId}/tickets/${ticketDocId}`
-            );
+            // Resolver el número (cualquiera de la pareja) a su boleta real.
+            // Abonar por cualquiera de los dos números abona la boleta completa.
+            const ticketRef = await resolveTicketRef(context.tenantId, raffleId, ticketNumber);
+            if (!ticketRef) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
+            }
+            const ticketDocId = ticketRef.id;
             const paymentsCol = db.collection(`tenants/${context.tenantId}/payments`);
             const paymentRef = paymentsCol.doc();
 

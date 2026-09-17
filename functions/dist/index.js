@@ -5,7 +5,7 @@
  * Uses lazy exports to avoid initialization timeout on Node 24.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.sellTicket = exports.assignTickets = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
+exports.finishExpiredRaffles = exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.getPairings = exports.savePairings = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.sellTicket = exports.assignTickets = exports.deleteRaffle = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
 // Initialize Firebase Admin immediately (lightweight)
 const firestore_1 = require("./utils/firestore");
 (0, firestore_1.initAdmin)();
@@ -23,6 +23,7 @@ Object.defineProperty(exports, "createRaffle", { enumerable: true, get: function
 Object.defineProperty(exports, "updateRaffle", { enumerable: true, get: function () { return raffle_service_1.updateRaffle; } });
 Object.defineProperty(exports, "transitionRaffleState", { enumerable: true, get: function () { return raffle_service_1.transitionRaffleState; } });
 Object.defineProperty(exports, "setWinningNumber", { enumerable: true, get: function () { return raffle_service_1.setWinningNumber; } });
+Object.defineProperty(exports, "deleteRaffle", { enumerable: true, get: function () { return raffle_service_1.deleteRaffle; } });
 // Ticket service
 var ticket_service_1 = require("./services/ticket.service");
 Object.defineProperty(exports, "assignTickets", { enumerable: true, get: function () { return ticket_service_1.assignTickets; } });
@@ -56,6 +57,10 @@ Object.defineProperty(exports, "exportData", { enumerable: true, get: function (
 // Commission
 var commission_service_1 = require("./services/commission.service");
 Object.defineProperty(exports, "payCommission", { enumerable: true, get: function () { return commission_service_1.payCommission; } });
+// Pairings (parejas de números para rifas de 2 números)
+var pairing_service_1 = require("./services/pairing.service");
+Object.defineProperty(exports, "savePairings", { enumerable: true, get: function () { return pairing_service_1.savePairings; } });
+Object.defineProperty(exports, "getPairings", { enumerable: true, get: function () { return pairing_service_1.getPairings; } });
 // Triggers
 var payment_triggers_1 = require("./triggers/payment.triggers");
 Object.defineProperty(exports, "onPaymentCreated", { enumerable: true, get: function () { return payment_triggers_1.onPaymentCreated; } });
@@ -67,4 +72,6 @@ var metrics_scheduled_1 = require("./scheduled/metrics.scheduled");
 Object.defineProperty(exports, "aggregateMetrics", { enumerable: true, get: function () { return metrics_scheduled_1.aggregateMetrics; } });
 var cleanup_scheduled_1 = require("./scheduled/cleanup.scheduled");
 Object.defineProperty(exports, "cleanupExports", { enumerable: true, get: function () { return cleanup_scheduled_1.cleanupExports; } });
+var finish_raffles_scheduled_1 = require("./scheduled/finish-raffles.scheduled");
+Object.defineProperty(exports, "finishExpiredRaffles", { enumerable: true, get: function () { return finish_raffles_scheduled_1.finishExpiredRaffles; } });
 //# sourceMappingURL=index.js.map

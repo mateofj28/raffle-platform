@@ -14,7 +14,7 @@ function validateData(schema, data) {
             const path = issue.path.join(".");
             fields[path] = issue.message;
         }
-        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Validation failed.", fields);
+        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Error de validación de los datos.", fields);
     }
     return result.data;
 }

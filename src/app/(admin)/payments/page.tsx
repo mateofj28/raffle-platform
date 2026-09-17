@@ -8,9 +8,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumbers } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
+import { pairingService } from "@/features/raffles/services/pairing.service";
 import { getDocs, query, orderBy, where, limit, startAfter, type QueryDocumentSnapshot } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
@@ -26,6 +27,8 @@ export default function PaymentsPage() {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [vendors, setVendors] = useState<Map<string, string>>(new Map());
     const [customers, setCustomers] = useState<Map<string, string>>(new Map());
+    // Mapa número base (min de la pareja) → [a, b], para mostrar la pareja en la tabla.
+    const [pairsByBase, setPairsByBase] = useState<Map<number, number[]>>(new Map());
     const [loading, setLoading] = useState(true);
     const [hasMorePayments, setHasMorePayments] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -74,11 +77,30 @@ export default function PaymentsPage() {
                 const cMap = new Map<string, string>();
                 customersSnap.docs.forEach(d => cMap.set(d.id, d.data().name));
                 setCustomers(cMap);
+
+                // Parejas del tenant (rifas de 2 números): mapa base→[a,b] para
+                // mostrar los dos números de la boleta en la tabla de pagos.
+                try {
+                    const res = await pairingService.get();
+                    if (res.pairs && res.pairs.length > 0) {
+                        const pMap = new Map<number, number[]>();
+                        res.pairs.forEach(([a, b]) => { pMap.set(Math.min(a, b), [Math.min(a, b), Math.max(a, b)]); });
+                        setPairsByBase(pMap);
+                    }
+                } catch { /* rifas de 1 número: no hay parejas, se ignora */ }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
         };
         load();
     }, [tenantId, activeRaffle, userRole, userUid]);
+
+    // Etiqueta de la boleta de un pago: muestra la pareja "0000 · 1111" si existe,
+    // o el número base. `ticketId` es el docId (min de la pareja).
+    const ticketLabel = (ticketId: string): string => {
+        const base = parseInt(ticketId, 10);
+        const nums = pairsByBase.get(base);
+        return formatTicketNumbers(nums, base);
+    };
 
     // Fecha de un pago (Timestamp de Firestore o string) a Date.
     const paymentDate = (p: Payment): Date | null => {
@@ -121,7 +143,8 @@ export default function PaymentsPage() {
             const term = searchTerm.toLowerCase();
             const vendorName = vendors.get(p.vendorId)?.toLowerCase() || "";
             const customerName = customers.get(p.customerId)?.toLowerCase() || "";
-            if (!vendorName.includes(term) && !customerName.includes(term) && !p.ticketId.includes(term)) return false;
+            const pairLabel = ticketLabel(p.ticketId).toLowerCase();
+            if (!vendorName.includes(term) && !customerName.includes(term) && !p.ticketId.includes(term) && !pairLabel.includes(term)) return false;
         }
         return true;
     });
@@ -263,7 +286,7 @@ export default function PaymentsPage() {
                                       <td className="px-4 py-3 text-xs text-default-500">
                                           {payment.createdAt ? formatDateTime(payment.createdAt) : "—"}
                                       </td>
-                                      <td className="px-4 py-3 font-mono font-bold">{payment.ticketId}</td>
+                                                <td className="px-4 py-3 font-mono font-bold">{ticketLabel(payment.ticketId)}</td>
                                       <td className="px-4 py-3">{customers.get(payment.customerId) || "—"}</td>
                                       <td className="px-4 py-3 text-default-600">{vendors.get(payment.vendorId) || "—"}</td>
                                       <td className="px-4 py-3">

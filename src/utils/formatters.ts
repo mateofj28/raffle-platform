@@ -68,6 +68,17 @@ export function formatTicketNumber(num: number, totalDigits = 4): string {
 }
 
 /**
+ * Formatea los números que juega una boleta.
+ * - Rifa de 1 número: "0055".
+ * - Rifa de 2 números (pareja): "0000 · 1111".
+ * Acepta el array `numbers` de la boleta; si viene vacío, usa `fallback`.
+ */
+export function formatTicketNumbers(numbers?: number[] | null, fallback?: number): string {
+    const nums = numbers && numbers.length > 0 ? numbers : (fallback !== undefined ? [fallback] : []);
+    return nums.map((n) => formatTicketNumber(n)).join(" · ");
+}
+
+/**
  * Formats a percentage.
  */
 export function formatPercent(value: number): string {

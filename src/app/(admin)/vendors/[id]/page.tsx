@@ -10,7 +10,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -133,26 +133,33 @@ export default function VendorDetailPage() {
         if (Number.isNaN(num) || num < 0 || num > 9999) { setPayError("Ingresa un número de boleta válido"); return; }
         if (amount < 5000) { setPayError("El monto mínimo es $5.000"); return; }
 
-        const ticket = tickets.find(t => t.number === num);
-        if (!ticket) { setPayError(`Boleta #${num} no pertenece a este vendedor`); return; }
-        if (ticket.pendingBalance <= 0) { setPayError(`Boleta #${num} ya está completamente pagada`); return; }
+        // Buscar la boleta que CONTIENE ese número (en rifas de 2 números la
+        // boleta juega una pareja; cualquiera de los dos números la identifica).
+        const ticket = tickets.find(t => (t.numbers ?? [t.number]).includes(num));
+        if (!ticket) { setPayError(`El número ${formatTicketNumber(num)} no pertenece a este vendedor`); return; }
+        const pairLabel = formatTicketNumbers(ticket.numbers, ticket.number);
+        if (ticket.pendingBalance <= 0) { setPayError(`La boleta ${pairLabel} ya está completamente pagada`); return; }
+
+        // La boleta se identifica por su número base (min de la pareja): abonar por
+        // cualquiera de sus dos números abona la MISMA boleta. Se consolida por ahí.
+        const baseNumber = ticket.number;
 
         // Considerar lo ya agregado en la lista para esta misma boleta al validar el saldo
         const alreadyForTicket = paymentList
-            .filter(p => p.ticketNumber === num)
+            .filter(p => p.ticketNumber === baseNumber)
             .reduce((sum, p) => sum + p.amount, 0);
         if (alreadyForTicket + amount > ticket.pendingBalance) {
-            setPayError(`Máximo para boleta #${num}: ${formatCurrency(ticket.pendingBalance - alreadyForTicket)}`);
+            setPayError(`Máximo para la boleta ${pairLabel}: ${formatCurrency(ticket.pendingBalance - alreadyForTicket)}`);
             return;
         }
 
         // Consolidar: si ya hay una entrada con la misma boleta Y el mismo método, sumar el monto
         setPaymentList(prev => {
-            const idx = prev.findIndex(p => p.ticketNumber === num && p.method === payMethodInput);
+            const idx = prev.findIndex(p => p.ticketNumber === baseNumber && p.method === payMethodInput);
             if (idx !== -1) {
                 return prev.map((p, i) => i === idx ? { ...p, amount: p.amount + amount } : p);
             }
-            return [...prev, { ticketNumber: num, amount, method: payMethodInput }];
+            return [...prev, { ticketNumber: baseNumber, amount, method: payMethodInput }];
         });
         setPayTicketInput("");
         setPayAmountInput("");
@@ -189,7 +196,8 @@ export default function VendorDetailPage() {
                     });
                 } catch (e) {
                     const msg = e instanceof Error ? e.message : String(e);
-                    setPayError(`Error en boleta #${p.ticketNumber}: ${msg}`);
+                    const t = tickets.find(tt => tt.number === p.ticketNumber);
+                    setPayError(`Error en la boleta ${formatTicketNumbers(t?.numbers, p.ticketNumber)}: ${msg}`);
                     setProcessing(false);
                     return;
                 }
@@ -258,9 +266,26 @@ export default function VendorDetailPage() {
 
                         <div className="flex items-end gap-3 flex-wrap mb-3">
                             <div>
-                                <label className="text-xs font-medium mb-1 block">Boleta</label>
-                                <Input ref={payTicketInputRef} placeholder="Ej: 55" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 4))} onKeyDown={handlePayFieldEnter} inputMode="numeric" className="w-24" maxLength={4} />
+                                <label className="text-xs font-medium mb-1 block">Número</label>
+                                <Input ref={payTicketInputRef} placeholder="Ej: 0055" value={payTicketInput} onChange={(e) => setPayTicketInput(e.target.value.replace(/\D/g, "").slice(0, 4))} onKeyDown={handlePayFieldEnter} inputMode="numeric" className="w-24" maxLength={4} />
                             </div>
+                            {/* Pareja: al escribir un número muestra su compañero (rifas de 2 números). */}
+                            {(() => {
+                                if (!payTicketInput) return null;
+                                const n = parseInt(payTicketInput);
+                                if (Number.isNaN(n)) return null;
+                                const t = tickets.find(tt => (tt.numbers ?? [tt.number]).includes(n));
+                                // Solo tiene sentido mostrar "pareja" si la boleta juega 2+ números.
+                                if (!t || (t.numbers?.length ?? 1) < 2) return null;
+                                return (
+                                    <div>
+                                        <label className="text-xs font-medium mb-1 block">Pareja</label>
+                                        <div className="h-10 px-3 flex items-center rounded-lg border border-teal-500/40 bg-teal-500/5 text-sm font-semibold font-mono">
+                                            {formatTicketNumbers(t.numbers, t.number)}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                             <div>
                                 <label className="text-xs font-medium mb-1 block">Monto</label>
                                 <Input placeholder="Ej: 30.000" value={payAmountInput ? parseInt(payAmountInput).toLocaleString("es-CO") : ""} onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); const num = parseInt(raw || "0"); if (num <= (activeRaffle?.ticketPrice || 999999)) setPayAmountInput(raw); }} onKeyDown={handlePayFieldEnter} inputMode="numeric" className="w-32" />
@@ -289,7 +314,7 @@ export default function VendorDetailPage() {
                                 {paymentList.map((p, i) => (
                                     <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-default-200 bg-white dark:bg-[#1A2F50]">
                                         <div className="flex items-center justify-center min-w-12 h-8 px-3 rounded-full bg-teal-100 dark:bg-teal-900/30 shrink-0">
-                                            <span className="text-xs font-bold font-mono text-teal-600 dark:text-teal-400">{p.ticketNumber}</span>
+                                            <span className="text-xs font-bold font-mono text-teal-600 dark:text-teal-400">{formatTicketNumbers(tickets.find(t => t.number === p.ticketNumber)?.numbers, p.ticketNumber)}</span>
                                         </div>
                                         <div className="flex-1">
                                             {editingPayIndex === i ? (
@@ -409,7 +434,9 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
         if (statusFilter && deriveTicketStatus(t) !== statusFilter) return false;
         if (search) {
             const term = search.toLowerCase();
-            const matchesNumber = String(t.number).includes(term) || formatTicketNumber(t.number).includes(term);
+            // Coincide por CUALQUIERA de los números de la boleta (pareja incluida).
+            const nums = t.numbers ?? [t.number];
+            const matchesNumber = nums.some(n => String(n).includes(term) || formatTicketNumber(n).includes(term));
             const matchesName = t.customerName?.toLowerCase().includes(term);
             if (!matchesNumber && !matchesName) return false;
         }
@@ -482,7 +509,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
               <table className="w-full text-sm">
                   <thead className="bg-default-100">
                       <tr>
-                          <th className="px-4 py-3 text-left font-medium">#</th>
+                                        <th className="px-4 py-3 text-left font-medium">Números</th>
                           <th className="px-4 py-3 text-left font-medium">Estado</th>
                           <th className="px-4 py-3 text-left font-medium">Cliente</th>
                             <th className="px-4 py-3 text-right font-medium">Abonado</th>
@@ -496,7 +523,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                             const canPay = (ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment") && ticket.pendingBalance > 0;
                             return (
               <tr key={ticket.number} className="hover:bg-default-50">
-                                    <td className="px-4 py-3 font-mono font-bold">{formatTicketNumber(ticket.number)}</td>
+                                    <td className="px-4 py-3 font-mono font-bold">{formatTicketNumbers(ticket.numbers, ticket.number)}</td>
                                     <td className="px-4 py-3"><StatusBadge status={deriveTicketStatus(ticket)} /></td>
                     <td className="px-4 py-3">
                         {ticket.customerName ? (
@@ -589,7 +616,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                       <AlertDialog.CloseTrigger />
                       <AlertDialog.Header>
                           <AlertDialog.Icon status="warning" />
-                          <AlertDialog.Heading>¿Desasignar boleta #{confirmTicket}?</AlertDialog.Heading>
+                            <AlertDialog.Heading>¿Desasignar la boleta {confirmTicket !== null ? formatTicketNumbers(tickets.find(t => t.number === confirmTicket)?.numbers, confirmTicket) : ""}?</AlertDialog.Heading>
                       </AlertDialog.Header>
                       <AlertDialog.Body>
                           <p>La boleta volverá a estar <strong>disponible</strong> y se quitará de este vendedor.</p>

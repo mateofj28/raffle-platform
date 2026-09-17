@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { doc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
@@ -171,6 +171,9 @@ export default function TicketSearchPage() {
                             </div>
                             <div>
                                 <h3 className="font-semibold text-lg font-mono">Número {formatTicketNumber(searchedNumber)}</h3>
+                                {(result.ticket.numbers?.length ?? 0) > 1 && (
+                                    <p className="text-xs text-default-500 font-mono">Boleta (pareja): {formatTicketNumbers(result.ticket.numbers, result.ticket.number)}</p>
+                                )}
                                 <StatusBadge status={deriveTicketStatus(result.ticket)} />
                             </div>
                         </div>
@@ -192,6 +195,9 @@ export default function TicketSearchPage() {
                             </div>
                             <div>
                                 <h3 className="font-semibold text-lg font-mono">Número {formatTicketNumber(searchedNumber)}</h3>
+                                {(result.ticket.numbers?.length ?? 0) > 1 && (
+                                    <p className="text-xs text-default-500 font-mono">Boleta (pareja): {formatTicketNumbers(result.ticket.numbers, result.ticket.number)}</p>
+                                )}
                                 <StatusBadge status={deriveTicketStatus(result.ticket)} />
                             </div>
                         </div>

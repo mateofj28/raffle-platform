@@ -223,7 +223,10 @@ async function searchTickets(
         .doc(raffleId)
         .collection("tickets");
 
-    let ticketQuery = ticketsRef.where("number", "==", ticketNumber);
+    // Buscar por CUALQUIERA de los números de la boleta. En rifas de 2 números
+    // una boleta juega una pareja [a, b]; buscar a o b debe devolver la misma
+    // boleta. `array-contains` cubre ambos casos (1 número → [n], 2 → [a,b]).
+    let ticketQuery = ticketsRef.where("numbers", "array-contains", ticketNumber);
 
     if (filters?.status) {
         ticketQuery = ticketQuery.where("status", "==", filters.status);
@@ -239,10 +242,14 @@ async function searchTickets(
 
     return snap.docs.map((doc) => {
         const d = doc.data();
+        const numbers: number[] = Array.isArray(d.numbers) ? d.numbers : [d.number];
+        const pad = (n: number) => String(n).padStart(4, "0");
+        // Muestra los números de la boleta (uno o la pareja), no un "# de boleta".
+        const label = numbers.map(pad).join(" · ");
         return {
             id: doc.id,
             type: "ticket",
-            primaryText: `Boleta #${d.number}`,
+            primaryText: numbers.length > 1 ? `Números ${label}` : `Número ${label}`,
             secondaryText: `Rifa: ${raffleId}`,
             status: d.status ?? "available",
         };

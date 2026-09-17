@@ -19,6 +19,48 @@
             "queryScope": "COLLECTION",
             "fields": [
                 {
+                    "fieldPath": "numbers",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "numbers",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "vendorId",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "numbers",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "customerId",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
                     "fieldPath": "vendorId",
                     "order": "ASCENDING"
                 },

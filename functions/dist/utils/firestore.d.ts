@@ -18,3 +18,9 @@ export declare function tenantCollection(tenantId: string, collectionName: strin
  * BATCH_SIZE constant for Firestore batch operations.
  */
 export declare const BATCH_SIZE = 500;
+/**
+ * Devuelve el id de la rifa OFICIAL del tenant: la más reciente por createdAt
+ * entre las que están "active" o "draft". Es la única rifa en la que se pueden
+ * realizar operaciones (vender, pagar, asignar). Retorna null si no hay ninguna.
+ */
+export declare function getOfficialRaffleId(tenantId: string): Promise<string | null>;

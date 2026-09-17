@@ -12,14 +12,14 @@ const errors_1 = require("../utils/errors");
 function validateAuth(request) {
     const auth = request.auth;
     if (!auth) {
-        throw new errors_1.AppError(errors_1.AppErrorCode.UNAUTHORIZED, "Authentication is required.");
+        throw new errors_1.AppError(errors_1.AppErrorCode.UNAUTHORIZED, "Se requiere autenticación.");
     }
     const { tenantId, role, vendorId } = auth.token;
     if (!tenantId || typeof tenantId !== "string") {
-        throw new errors_1.AppError(errors_1.AppErrorCode.UNAUTHORIZED, "Missing or malformed tenant identifier.");
+        throw new errors_1.AppError(errors_1.AppErrorCode.UNAUTHORIZED, "Identificador de organización ausente o inválido.");
     }
     if (role !== "admin" && role !== "cashier" && role !== "vendor") {
-        throw new errors_1.AppError(errors_1.AppErrorCode.UNAUTHORIZED, "Invalid user role.");
+        throw new errors_1.AppError(errors_1.AppErrorCode.UNAUTHORIZED, "Rol de usuario inválido.");
     }
     return {
         uid: auth.uid,
@@ -33,7 +33,7 @@ function validateAuth(request) {
  */
 function requireAdmin(context) {
     if (context.role !== "admin") {
-        throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "Insufficient permissions. Administrator role required.");
+        throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "Permisos insuficientes. Se requiere rol de administrador.");
     }
 }
 /**
@@ -41,7 +41,7 @@ function requireAdmin(context) {
  */
 function requireAdminOrCashier(context) {
     if (context.role !== "admin" && context.role !== "cashier") {
-        throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "Insufficient permissions. Admin or cashier role required.");
+        throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "Permisos insuficientes. Se requiere rol de administrador o cajero.");
     }
 }
 /**
@@ -51,7 +51,7 @@ function requireVendorOwnership(context, resourceVendorId) {
     if (context.role === "admin")
         return;
     if (context.vendorId !== resourceVendorId) {
-        throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "You are not authorized to access this resource.");
+        throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "No tienes autorización para acceder a este recurso.");
     }
 }
 //# sourceMappingURL=auth.js.map

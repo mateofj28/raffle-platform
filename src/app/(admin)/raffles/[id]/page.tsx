@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
-import { formatCurrency, formatDate } from "@/utils/formatters";
+import { formatCurrency, formatDate, formatTicketNumber } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -225,33 +225,56 @@ export default function RaffleDetailPage() {
     const handleAddTicket = () => {
         const num = parseInt(ticketInput);
         if (Number.isNaN(num) || num < 0 || num > 9999) { setAssignError("Ingresa un número entre 0 y 9999"); return; }
-        if (assignList.includes(num)) { setAssignError(`Boleta #${num} ya está en la lista`); return; }
 
-        const ticket = tickets.find(t => t.number === num);
-        if (!ticket) { setAssignError(`Boleta #${num} no existe`); return; }
+        // Buscar la boleta que CONTIENE ese número (en rifas de 2 números la
+        // boleta juega una pareja [a, b]; cualquiera de los dos la identifica).
+        const ticket = tickets.find(t => (t.numbers ?? [t.number]).includes(num));
+        if (!ticket) { setAssignError(`El número ${formatTicketNumber(num)} no existe`); return; }
+
+        // La boleta se identifica por su número base (min de la pareja). Si el
+        // usuario escribe cualquiera de los dos números, es la misma boleta.
+        if (assignList.includes(ticket.number)) { setAssignError(`Esa boleta ya está en la lista`); return; }
 
         const derived = deriveTicketStatus(ticket);
+        const pairLabel = (ticket.numbers ?? [ticket.number]).map(formatTicketNumber).join(" · ");
         if (assignMode === "assign") {
             // Disponible según la definición unificada: sin cliente y sin abono.
             if (derived !== "available") {
                 const vendorName = ticket.vendorId ? vendors.find(v => v.id === ticket.vendorId)?.name || "otro vendedor" : "";
-                setAssignError(`Boleta #${num} no está disponible${vendorName ? ` — asignada a ${vendorName}` : ""}`);
+                setAssignError(`La boleta ${pairLabel} no está disponible${vendorName ? ` — asignada a ${vendorName}` : ""}`);
                 return;
             }
         } else {
             // Para desasignar: debe estar asignada a un vendedor y sin dinero/cliente.
             if (derived !== "assigned" && !(ticket.vendorId && derived === "available")) {
-                setAssignError(`Boleta #${num} no se puede desasignar (estado: ${derived})`);
+                setAssignError(`La boleta ${pairLabel} no se puede desasignar (estado: ${derived})`);
                 return;
             }
         }
 
-        setAssignList(prev => [...prev, num]);
+        setAssignList(prev => [...prev, ticket.number]);
         setTicketInput("");
         setAssignError(null);
     };
 
     const handleRemoveFromList = (num: number) => setAssignList(prev => prev.filter(n => n !== num));
+
+    // Etiqueta de una boleta a partir de su número base (min de la pareja):
+    // muestra la pareja "0000 · 1111" en rifas de 2 números, o el único número.
+    const ticketLabel = (baseNumber: number): string => {
+        const t = tickets.find(tt => tt.number === baseNumber);
+        const nums = t?.numbers ?? [baseNumber];
+        return nums.map(formatTicketNumber).join(" · ");
+    };
+
+    // Vista previa de la pareja mientras el usuario escribe un número (feedback):
+    // al escribir un número, muestra "al lado" el número compañero de la pareja.
+    const previewTicket = (() => {
+        if (!ticketInput) return null;
+        const n = parseInt(ticketInput);
+        if (Number.isNaN(n)) return null;
+        return tickets.find(t => (t.numbers ?? [t.number]).includes(n)) ?? null;
+    })();
 
     // Confirm
     const handleConfirmAssign = async () => {
@@ -395,9 +418,18 @@ export default function RaffleDetailPage() {
                                 </div>
                             )}
                             <div>
-                                <label className="text-xs font-medium mb-1 block">Boleta</label>
-                                <Input placeholder="Ej: 55" value={ticketInput} onChange={(e) => setTicketInput(e.target.value.replace(/\D/g, "").slice(0, 4))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTicket(); } }} inputMode="numeric" className="w-24" maxLength={4} />
+                                <label className="text-xs font-medium mb-1 block">Número</label>
+                                <Input placeholder="Ej: 0055" value={ticketInput} onChange={(e) => setTicketInput(e.target.value.replace(/\D/g, "").slice(0, 4))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTicket(); } }} inputMode="numeric" className="w-24" maxLength={4} />
                             </div>
+                            {/* Pareja: al escribir un número muestra su compañero. */}
+                            {raffle.numbersPerTicket === 2 && previewTicket && (
+                                <div>
+                                    <label className="text-xs font-medium mb-1 block">Pareja</label>
+                                    <div className="h-10 px-3 flex items-center rounded-lg border border-teal-500/40 bg-teal-500/5 text-sm font-semibold font-mono">
+                                        {(previewTicket.numbers ?? [previewTicket.number]).map(formatTicketNumber).join(" · ")}
+                                    </div>
+                                </div>
+                            )}
                             <Button variant="outline" size="sm" onPress={handleAddTicket} isDisabled={!ticketInput || (assignMode === "assign" && !selectedVendor)}>Agregar</Button>
                         </div>
 
@@ -413,7 +445,7 @@ export default function RaffleDetailPage() {
                                 </p>
                                 <div className="flex flex-wrap gap-1.5 mb-3 max-h-24 overflow-y-auto">
                                     {previousTickets.map((num) => (
-                                        <span key={num} className="text-xs font-semibold px-2 py-0.5 rounded-md border border-default-200">{num}</span>
+                                        <span key={num} className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md border border-default-200">{ticketLabel(num)}</span>
                                     ))}
                                 </div>
                                 <div className="flex gap-2">
@@ -429,9 +461,9 @@ export default function RaffleDetailPage() {
                             <div className="mt-4">
                                 <p className="text-xs text-default-500 mb-3">{assignList.length} boleta(s) seleccionadas</p>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {assignList.sort((a, b) => a - b).map(num => (
+                                    {[...assignList].sort((a, b) => a - b).map(num => (
                                         <div key={num} className="group flex items-center gap-1.5 px-2 py-1 rounded-md border border-default-200 bg-white dark:bg-[#1A2F50] hover:border-red-300 transition-colors">
-                                            <span className="text-xs font-semibold">{num}</span>
+                                            <span className="text-xs font-semibold font-mono">{ticketLabel(num)}</span>
                                             <button onClick={() => handleRemoveFromList(num)} className="text-default-300 group-hover:text-red-500 transition-colors">
                                                 <X className="h-3 w-3" />
                                             </button>

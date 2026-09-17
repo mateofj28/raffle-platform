@@ -8,10 +8,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumbers } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
+import { pairingService } from "@/features/raffles/services/pairing.service";
 import type { Payment } from "@/types/api.types";
 
 const TYPE_LABELS: Record<string, string> = { payment: "Pago", installment: "Abono" };
@@ -37,6 +38,7 @@ export default function VendorPaymentsPage() {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDark, setIsDark] = useState(false);
+    const [pairsByBase, setPairsByBase] = useState<Map<number, number[]>>(new Map());
 
     useEffect(() => {
         const check = () => setIsDark(document.documentElement.classList.contains("dark"));
@@ -63,15 +65,31 @@ export default function VendorPaymentsPage() {
                 const q = query(col, where("vendorId", "==", user.vendorId), orderBy("createdAt", "desc"));
                 const snap = await getDocs(q);
                 setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
+
+                // Parejas del tenant para mostrar los dos números de la boleta.
+                try {
+                    const res = await pairingService.get();
+                    if (res.pairs && res.pairs.length > 0) {
+                        const pMap = new Map<number, number[]>();
+                        res.pairs.forEach(([a, b]) => { pMap.set(Math.min(a, b), [Math.min(a, b), Math.max(a, b)]); });
+                        setPairsByBase(pMap);
+                    }
+                } catch { /* rifas de 1 número: sin parejas */ }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
         };
         load();
     }, [user?.tenantId, user?.vendorId]);
 
+    // Etiqueta de la boleta de un pago: pareja "0000 · 1111" o número base.
+    const ticketLabel = (ticketId: string): string => {
+        const base = parseInt(ticketId, 10);
+        return formatTicketNumbers(pairsByBase.get(base), base);
+    };
+
     // Apply filters
     const filtered = payments.filter(p => {
-        if (searchTicket && !p.ticketId.includes(searchTicket)) return false;
+        if (searchTicket && !p.ticketId.includes(searchTicket) && !ticketLabel(p.ticketId).toLowerCase().includes(searchTicket.toLowerCase())) return false;
         if (filterType && p.type !== filterType) return false;
         if (filterMethod && p.method !== filterMethod) return false;
         if (filterMonth) {
@@ -196,7 +214,7 @@ export default function VendorPaymentsPage() {
                                             <td className="px-4 py-3 text-xs text-default-500">
                                                 {payment.createdAt ? formatDateTime(payment.createdAt) : "—"}
                                             </td>
-                                            <td className="px-4 py-3 font-mono font-bold">{payment.ticketId}</td>
+                                                    <td className="px-4 py-3 font-mono font-bold">{ticketLabel(payment.ticketId)}</td>
                                             <td className="px-4 py-3">
                                                 <span className={payment.type === "payment" ? "text-emerald-500 font-medium" : "text-amber-400 font-medium"}>
                                                     {TYPE_LABELS[payment.type] || payment.type}

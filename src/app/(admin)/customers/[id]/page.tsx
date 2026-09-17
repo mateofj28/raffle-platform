@@ -11,7 +11,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -100,7 +100,12 @@ export default function CustomerDetailPage() {
 
     // Boletas filtradas por número y estado
     const filteredTickets = tickets.filter((t) => {
-        if (ticketFilterNum && !formatTicketNumber(t.number).includes(ticketFilterNum.trim()) && !String(t.number).includes(ticketFilterNum.trim())) return false;
+        if (ticketFilterNum) {
+            const term = ticketFilterNum.trim();
+            const nums = t.numbers ?? [t.number];
+            const matches = nums.some(n => formatTicketNumber(n).includes(term) || String(n).includes(term));
+            if (!matches) return false;
+        }
         if (ticketFilterStatus && t.status !== ticketFilterStatus) return false;
         return true;
     });
@@ -141,7 +146,15 @@ export default function CustomerDetailPage() {
 
     // Pagos filtrados por boleta, tipo, método y período (fecha)
     const filteredPayments = payments.filter((p) => {
-        if (filterTicket && !String(p.ticketId).includes(filterTicket.trim())) return false;
+        if (filterTicket) {
+            const term = filterTicket.trim();
+            // p.ticketId es el docId (min de la pareja). Resolver la boleta para
+            // permitir buscar por cualquiera de sus dos números.
+            const t = tickets.find(tt => tt.number === parseInt(String(p.ticketId), 10));
+            const nums = t?.numbers ?? [parseInt(String(p.ticketId), 10)];
+            const matches = nums.some(n => formatTicketNumber(n).includes(term) || String(n).includes(term)) || String(p.ticketId).includes(term);
+            if (!matches) return false;
+        }
         if (filterType && p.type !== filterType) return false;
         if (filterMethod && p.method !== filterMethod) return false;
         if (!matchesPeriod(p)) return false;
@@ -241,7 +254,7 @@ export default function CustomerDetailPage() {
                           <table className="w-full text-sm">
                               <thead className="bg-default-100">
                                   <tr>
-                                            <th className="px-4 py-3 text-left font-medium">#</th>
+                                                <th className="px-4 py-3 text-left font-medium">Números</th>
                                       <th className="px-4 py-3 text-left font-medium">Estado</th>
                                             <th className="px-4 py-3 text-right font-medium">Pagado</th>
                                             <th className="px-4 py-3 text-right font-medium">Pendiente</th>
@@ -252,7 +265,7 @@ export default function CustomerDetailPage() {
                                                 <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-default-500">Sin resultados</td></tr>
                                             ) : filteredTickets.map((ticket, i) => (
                                       <tr key={`${ticket.number}-${i}`} className="hover:bg-default-50">
-                                          <td className="px-4 py-3 font-mono font-bold">{formatTicketNumber(ticket.number)}</td>
+                                                    <td className="px-4 py-3 font-mono font-bold">{formatTicketNumbers(ticket.numbers, ticket.number)}</td>
                                                     <td className="px-4 py-3"><StatusBadge status={deriveTicketStatus(ticket)} /></td>
                                           <td className="px-4 py-3 text-right">
                                               <span className="text-success font-medium">{formatCurrency(ticket.value - ticket.pendingBalance)}</span>
@@ -348,7 +361,7 @@ export default function CustomerDetailPage() {
                                             ) : filteredPayments.map((payment) => (
                                                 <tr key={payment.id} className="hover:bg-default-50">
                                                     <td className="px-4 py-3 text-xs text-default-500">{payment.createdAt ? formatDateTime(payment.createdAt) : "—"}</td>
-                                                    <td className="px-4 py-3 font-mono font-bold">{payment.ticketId}</td>
+                                                    <td className="px-4 py-3 font-mono font-bold">{formatTicketNumbers(tickets.find(t => t.number === parseInt(String(payment.ticketId), 10))?.numbers, parseInt(String(payment.ticketId), 10))}</td>
                                                     <td className="px-4 py-3">
                                                         <span className={payment.type === "payment" ? "text-success font-medium" : "text-amber-400"}>
                                                             {payment.type === "payment" ? "Pago completo" : "Abono"}

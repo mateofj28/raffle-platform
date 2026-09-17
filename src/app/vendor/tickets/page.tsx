@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
@@ -79,7 +79,8 @@ export default function VendorTicketsPage() {
         if (statusFilter && deriveTicketStatus(t) !== statusFilter) return false;
         if (search) {
             const term = search.toLowerCase();
-            const matchesNumber = String(t.number).includes(term) || formatTicketNumber(t.number).includes(term);
+            const nums = t.numbers ?? [t.number];
+            const matchesNumber = nums.some(n => String(n).includes(term) || formatTicketNumber(n).includes(term));
             const customerName = t.customerId ? customers.get(t.customerId)?.toLowerCase() || "" : "";
             if (!matchesNumber && !customerName.includes(term)) return false;
         }
@@ -140,7 +141,7 @@ export default function VendorTicketsPage() {
                         {/* Filters */}
                         <div className="flex flex-wrap items-center gap-3 mb-4">
                             <Input
-                                placeholder="Buscar por # boleta o cliente..."
+                                placeholder="Buscar por número o cliente..."
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                                 className="w-full sm:w-80"
@@ -186,7 +187,7 @@ export default function VendorTicketsPage() {
                                     <table className="w-full text-sm">
                                         <thead className="bg-default-100">
                                             <tr>
-                                                <th className="px-4 py-3 text-left font-medium">#</th>
+                                                <th className="px-4 py-3 text-left font-medium">Números</th>
                                                 <th className="px-4 py-3 text-left font-medium">Estado</th>
                                                 <th className="px-4 py-3 text-left font-medium">Cliente</th>
                                                 <th className="px-4 py-3 text-right font-medium">Abonado</th>
@@ -200,7 +201,7 @@ export default function VendorTicketsPage() {
                                                 const customerName = ticket.customerId ? customers.get(ticket.customerId) || "—" : "—";
                                                 return (
                                                     <tr key={ticket.number} className="hover:bg-default-50">
-                                                        <td className="px-4 py-3 font-mono font-bold">{formatTicketNumber(ticket.number)}</td>
+                                                        <td className="px-4 py-3 font-mono font-bold">{formatTicketNumbers(ticket.numbers, ticket.number)}</td>
                                                         <td className="px-4 py-3"><StatusBadge status={deriveTicketStatus(ticket)} /></td>
                                                         <td className="px-4 py-3">{customerName}</td>
                                                         <td className="px-4 py-3 text-right">

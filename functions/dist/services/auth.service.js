@@ -23,12 +23,12 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
-        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "A valid email address is required.", { email: "Invalid email format" });
+        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Se requiere un correo electrónico válido.", { email: "Formato de correo inválido" });
     }
 }
 function validateRole(role) {
     if (role !== "admin" && role !== "cashier" && role !== "vendor") {
-        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Role must be 'admin', 'cashier', or 'vendor'.", { role: "Invalid role value" });
+        throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "El rol debe ser 'admin', 'cashier' o 'vendor'.", { role: "Valor de rol inválido" });
     }
 }
 function getLoginAttemptsRef(tenantId, email) {
@@ -46,19 +46,19 @@ exports.setCustomClaims = (0, https_1.onCall)({ region: "us-central1", timeoutSe
         const data = request.data;
         // Validate required fields
         if (!data.uid || typeof data.uid !== "string") {
-            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Target user UID is required.", { uid: "Required field" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "El identificador del usuario objetivo es requerido.", { uid: "Campo requerido" });
         }
         if (!data.tenantId || typeof data.tenantId !== "string") {
-            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Tenant ID is required.", { tenantId: "Required field" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "El identificador de la organización es requerido.", { tenantId: "Campo requerido" });
         }
         validateRole(data.role);
         // Admins can only set claims for their own tenant
         if (data.tenantId !== context.tenantId) {
-            throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "Cannot set claims for a different tenant.");
+            throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "No se pueden asignar permisos a una organización diferente.");
         }
         // If role is vendor, vendorId is required
         if (data.role === "vendor" && !data.vendorId) {
-            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Vendor ID is required when role is 'vendor'.", { vendorId: "Required for vendor role" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "El identificador del vendedor es requerido cuando el rol es 'vendor'.", { vendorId: "Requerido para el rol de vendedor" });
         }
         // Build claims object
         const claims = {
@@ -70,7 +70,7 @@ exports.setCustomClaims = (0, https_1.onCall)({ region: "us-central1", timeoutSe
         }
         // Set custom claims on the target user
         await (0, auth_1.getAuth)().setCustomUserClaims(data.uid, claims);
-        return { success: true, message: "Custom claims updated successfully." };
+        return { success: true, message: "Permisos actualizados correctamente." };
     }
     catch (error) {
         (0, errors_1.handleError)(error);
@@ -88,20 +88,20 @@ exports.createUser = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds
         // Validate required fields
         validateEmail(data.email);
         if (!data.password || data.password.length < 6) {
-            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Password must be at least 6 characters.", { password: "Minimum 6 characters required" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "La contraseña debe tener al menos 6 caracteres.", { password: "Mínimo 6 caracteres" });
         }
         if (!data.displayName || data.displayName.trim().length === 0) {
-            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Display name is required.", { displayName: "Required field" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "El nombre para mostrar es requerido.", { displayName: "Campo requerido" });
         }
         validateRole(data.role);
         // If role is vendor, vendorId is required
         if (data.role === "vendor" && !data.vendorId) {
-            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "Vendor ID is required when role is 'vendor'.", { vendorId: "Required for vendor role" });
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "El identificador del vendedor es requerido cuando el rol es 'vendor'.", { vendorId: "Requerido para el rol de vendedor" });
         }
         // Check if user already exists with this email
         try {
             await (0, auth_1.getAuth)().getUserByEmail(data.email);
-            throw new errors_1.AppError(errors_1.AppErrorCode.CONFLICT, "A user with this email already exists.");
+            throw new errors_1.AppError(errors_1.AppErrorCode.CONFLICT, "Ya existe un usuario con este correo electrónico.");
         }
         catch (error) {
             // If error is our AppError (CONFLICT), re-throw it
@@ -144,7 +144,7 @@ exports.createUser = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds
         return {
             success: true,
             uid: userRecord.uid,
-            message: "User created successfully.",
+            message: "Usuario creado correctamente.",
         };
     }
     catch (error) {
@@ -161,7 +161,22 @@ exports.updateUser = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds
         (0, auth_2.requireAdmin)(context);
         const data = request.data;
         if (!data.uid) {
-            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "UID es requerido.");
+            throw new errors_1.AppError(errors_1.AppErrorCode.VALIDATION_ERROR, "El identificador del usuario es requerido.");
+        }
+        // Verificar que el usuario objetivo pertenezca al MISMO tenant del admin.
+        // Firebase Auth es global (no está segmentado por tenant), así que sin
+        // esta comprobación un admin de un tenant podría modificar credenciales
+        // de un usuario de otro tenant conociendo su UID.
+        let targetUser;
+        try {
+            targetUser = await (0, auth_1.getAuth)().getUser(data.uid);
+        }
+        catch {
+            throw new errors_1.AppError(errors_1.AppErrorCode.NOT_FOUND, "El usuario no existe.");
+        }
+        const targetTenantId = targetUser.customClaims?.tenantId;
+        if (targetTenantId !== context.tenantId) {
+            throw new errors_1.AppError(errors_1.AppErrorCode.FORBIDDEN, "No tienes permiso para modificar este usuario.");
         }
         const updates = {};
         const authUpdates = {};

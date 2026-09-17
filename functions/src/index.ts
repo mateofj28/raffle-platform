@@ -39,6 +39,9 @@ export { exportData } from "./services/export.service";
 // Commission
 export { payCommission } from "./services/commission.service";
 
+// Pairings (parejas de números para rifas de 2 números)
+export { savePairings, getPairings } from "./services/pairing.service";
+
 // Triggers
 export { onPaymentCreated, onAdjustmentCreated } from "./triggers/payment.triggers";
 export { onTicketStatusChanged } from "./triggers/ticket.triggers";

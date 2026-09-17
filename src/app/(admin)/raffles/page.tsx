@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, AlertDialog, toast } from "@heroui/react";
-import { Plus, Ticket, ArrowRight, LogOut, Trophy, Calendar, Trash2, CheckCircle2 } from "lucide-react";
+import { Plus, Ticket, ArrowRight, LogOut, Trophy, Calendar, Trash2, CheckCircle2, Hash } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -71,11 +71,18 @@ export default function RafflesPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     {isAdmin && (
-                        <Link href="/raffles/new">
-                            <Button variant="primary" size="sm">
-                                <Plus className="h-4 w-4" /> Nueva Rifa
-                            </Button>
-                        </Link>
+                        <>
+                            <Link href="/raffles/pairings">
+                                <Button variant="outline" size="sm">
+                                    <Hash className="h-4 w-4" /> Parejas de números
+                                </Button>
+                            </Link>
+                            <Link href="/raffles/new">
+                                <Button variant="primary" size="sm">
+                                    <Plus className="h-4 w-4" /> Nueva Rifa
+                                </Button>
+                            </Link>
+                        </>
                     )}
                     <Button variant="ghost" size="sm" onPress={() => logout()} aria-label="Cerrar sesión">
                         <LogOut className="h-4 w-4" />

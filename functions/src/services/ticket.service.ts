@@ -17,6 +17,7 @@ import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb, BATCH_SIZE, getOfficialRaffleId } from "../utils/firestore";
 import { computeTicketStatus } from "../utils/ticket-status";
+import { resolveTicketRef, resolveTicketRefs } from "../utils/ticket-resolve";
 import { createAuditEntry } from "./audit.service";
 
 /**
@@ -66,50 +67,60 @@ function padTicketNumber(num: number): string {
 // --- Internal Function (non-callable) ---
 
 /**
- * Batch generates tickets for a raffle.
- * Called internally by raffle service during raffle creation.
+ * Genera las boletas de una rifa.
+ * Llamada internamente por el servicio de rifas al crearla.
  *
- * Lo fijo son los `totalNumbers` (10.000: números 0000..9999). Cada boleta
- * cubre `numbersPerTicket` números consecutivos, así que la cantidad de
- * boletas es totalNumbers / numbersPerTicket:
- *  - numbersPerTicket = 1 → 10.000 boletas; boleta N juega [N].
- *  - numbersPerTicket = 2 → 5.000 boletas; boleta N juega [N*2, N*2+1]
- *    (boleta 0 → [0,1], ... boleta 4999 → [9998,9999]).
- * El ganador acierta si cualquiera de los números de su boleta es sorteado.
+ * Modelo:
+ *  - Rifa de 1 número: 10.000 boletas; cada una juega [N] con N=0000..9999.
+ *    El docId es el número con 4 dígitos.
+ *  - Rifa de 2 números: 5.000 boletas; cada una juega una PAREJA arbitraria
+ *    [a, b] definida por el tenant (no son consecutivos). El docId es el menor
+ *    de los dos números (identificador estable de la boleta). El saldo es de la
+ *    boleta completa: abonar por cualquiera de sus dos números cubre la boleta.
+ *
+ * `pairs` es obligatorio para rifas de 2 números (las parejas del tenant).
  */
 export async function generateTickets(
     tenantId: string,
     raffleId: string,
     totalNumbers: number,
     ticketPrice: number,
-    numbersPerTicket: number = 1
+    numbersPerTicket: number = 1,
+    pairs?: [number, number][]
 ): Promise<void> {
     const db = getDb();
     const ticketsBasePath = `tenants/${tenantId}/raffles/${raffleId}/tickets`;
 
-    const totalTickets = Math.floor(totalNumbers / numbersPerTicket);
+    // Construir la lista de boletas (cada una: docId + números que juega).
+    const ticketsToCreate: { docId: string; number: number; numbers: number[] }[] = [];
 
-    for (let i = 0; i < totalTickets; i += BATCH_SIZE) {
+    if (numbersPerTicket === 2) {
+        if (!pairs || pairs.length === 0) {
+            throw new AppError(
+                AppErrorCode.VALIDATION_ERROR,
+                "No hay parejas definidas para la rifa de 2 números."
+            );
+        }
+        for (const [a, b] of pairs) {
+            const lo = Math.min(a, b);
+            const hi = Math.max(a, b);
+            ticketsToCreate.push({ docId: padTicketNumber(lo), number: lo, numbers: [lo, hi] });
+        }
+    } else {
+        for (let n = 0; n < totalNumbers; n++) {
+            ticketsToCreate.push({ docId: padTicketNumber(n), number: n, numbers: [n] });
+        }
+    }
+
+    for (let i = 0; i < ticketsToCreate.length; i += BATCH_SIZE) {
         const batch = db.batch();
-        const end = Math.min(i + BATCH_SIZE, totalTickets);
+        const chunk = ticketsToCreate.slice(i, i + BATCH_SIZE);
 
-        for (let ticketIndex = i; ticketIndex < end; ticketIndex++) {
-            const ticketNum = ticketIndex; // 0-based ticket number
-            const docId = padTicketNumber(ticketNum);
-            const ticketRef = db.collection(ticketsBasePath).doc(docId);
-
-            // Números que cubre esta boleta, todos dentro de 0000..9999
-            let numbers: number[];
-            if (numbersPerTicket === 2) {
-                const firstNum = ticketNum * 2; // boleta 0 → [0,1], boleta 4999 → [9998,9999]
-                numbers = [firstNum, firstNum + 1];
-            } else {
-                numbers = [ticketNum];
-            }
-
+        for (const t of chunk) {
+            const ticketRef = db.collection(ticketsBasePath).doc(t.docId);
             batch.set(ticketRef, {
-                number: ticketNum,
-                numbers, // array of lottery numbers this ticket plays with
+                number: t.number,
+                numbers: t.numbers, // números de lotería que juega esta boleta
                 numbersPerTicket,
                 status: "available",
                 customerId: null,
@@ -189,18 +200,23 @@ export const assignTickets = onCall(
                 );
             }
 
-            // Batch assign tickets
-            const ticketsBasePath = `tenants/${context.tenantId}/raffles/${raffleId}/tickets`;
+            // Resolver cada número a su boleta real (docId = min de la pareja en
+            // rifas de 2 números). Dos números de la misma pareja resuelven al
+            // MISMO documento, así que se deduplica para no procesarlo dos veces.
+            const { refs: refsToAssign } = await resolveTicketRefs(
+                context.tenantId,
+                raffleId,
+                numbersToAssign
+            );
+
             let assigned = 0;
             let skipped = 0;
 
-            for (let i = 0; i < numbersToAssign.length; i += BATCH_SIZE) {
+            for (let i = 0; i < refsToAssign.length; i += BATCH_SIZE) {
                 const batch = db.batch();
-                const chunk = numbersToAssign.slice(i, i + BATCH_SIZE);
+                const chunk = refsToAssign.slice(i, i + BATCH_SIZE);
 
-                for (const num of chunk) {
-                    const docId = padTicketNumber(num);
-                    const ticketRef = db.collection(ticketsBasePath).doc(docId);
+                for (const ticketRef of chunk) {
                     const ticketSnap = await ticketRef.get();
 
                     if (!ticketSnap.exists) {
@@ -261,10 +277,12 @@ export const sellTicket = onCall(
             await assertOfficialRaffle(context.tenantId, raffleId);
 
             const db = getDb();
-            const ticketDocId = padTicketNumber(ticketNumber);
-            const ticketRef = db.doc(
-                `tenants/${context.tenantId}/raffles/${raffleId}/tickets/${ticketDocId}`
-            );
+            // Resolver el número (cualquiera de la pareja) a su boleta real.
+            const ticketRef = await resolveTicketRef(context.tenantId, raffleId, ticketNumber);
+            if (!ticketRef) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
+            }
+            const ticketDocId = ticketRef.id;
             const raffleRef = db.doc(
                 `tenants/${context.tenantId}/raffles/${raffleId}`
             );
@@ -347,17 +365,20 @@ export const unassignTickets = onCall(
             await assertOfficialRaffle(context.tenantId, raffleId);
 
             const db = getDb();
-            const ticketsBasePath = `tenants/${context.tenantId}/raffles/${raffleId}/tickets`;
+            // Resolver los números a boletas reales (deduplicando parejas).
+            const { refs: refsToUnassign } = await resolveTicketRefs(
+                context.tenantId,
+                raffleId,
+                ticketNumbers
+            );
             let unassigned = 0;
             let skipped = 0;
 
-            for (let i = 0; i < ticketNumbers.length; i += BATCH_SIZE) {
+            for (let i = 0; i < refsToUnassign.length; i += BATCH_SIZE) {
                 const batch = db.batch();
-                const chunk = ticketNumbers.slice(i, i + BATCH_SIZE);
+                const chunk = refsToUnassign.slice(i, i + BATCH_SIZE);
 
-                for (const num of chunk) {
-                    const docId = padTicketNumber(num);
-                    const ticketRef = db.collection(ticketsBasePath).doc(docId);
+                for (const ticketRef of chunk) {
                     const ticketSnap = await ticketRef.get();
 
                     if (!ticketSnap.exists) { skipped++; continue; }
@@ -425,9 +446,11 @@ export const updateTicketClient = onCall(
             // Solo se puede modificar el cliente en la rifa oficial (la actual).
             await assertOfficialRaffle(context.tenantId, raffleId);
 
-            const db = getDb();
-            const docId = padTicketNumber(ticketNumber);
-            const ticketRef = db.doc(`tenants/${context.tenantId}/raffles/${raffleId}/tickets/${docId}`);
+            // Resolver el número (cualquiera de la pareja) a su boleta real.
+            const ticketRef = await resolveTicketRef(context.tenantId, raffleId, ticketNumber);
+            if (!ticketRef) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
+            }
 
             const ticketSnap = await ticketRef.get();
             if (!ticketSnap.exists) {

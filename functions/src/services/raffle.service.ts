@@ -95,14 +95,31 @@ export const createRaffle = onCall(
 
             const data = validateData(createRaffleSchema, request.data);
 
-            const rafflesRef = tenantCollection(context.tenantId, "raffles");
-            const newRaffleRef = rafflesRef.doc();
-            const raffleId = newRaffleRef.id;
-
             // Los números siempre son 10.000 (0000..9999). La cantidad de boletas
             // depende de cuántos números tenga cada una: 1 → 10.000 boletas, 2 → 5.000.
             const TOTAL_NUMBERS = 10000;
-            const totalTickets = Math.floor(TOTAL_NUMBERS / data.numbersPerTicket);
+
+            // Rifa de 2 números: requiere las parejas definidas a nivel del tenant.
+            let pairs: [number, number][] | undefined;
+            if (data.numbersPerTicket === 2) {
+                const { readPairings } = await import("./pairing.service");
+                const saved = await readPairings(context.tenantId);
+                if (!saved || saved.length === 0) {
+                    throw new AppError(
+                        AppErrorCode.VALIDATION_ERROR,
+                        "Antes de crear una rifa de 2 números debes definir las parejas de números."
+                    );
+                }
+                pairs = saved;
+            }
+
+            const totalTickets = data.numbersPerTicket === 2
+                ? (pairs?.length ?? 0)
+                : TOTAL_NUMBERS;
+
+            const rafflesRef = tenantCollection(context.tenantId, "raffles");
+            const newRaffleRef = rafflesRef.doc();
+            const raffleId = newRaffleRef.id;
 
             await newRaffleRef.set({
                 id: raffleId,
@@ -128,9 +145,9 @@ export const createRaffle = onCall(
                 updatedAt: FieldValue.serverTimestamp(),
             });
 
-            // Generate tickets for the raffle (se le pasa el total de NÚMEROS)
+            // Generar las boletas (para 2 números se pasan las parejas del tenant).
             const { generateTickets } = await import("./ticket.service");
-            await generateTickets(context.tenantId, raffleId, TOTAL_NUMBERS, data.ticketPrice, data.numbersPerTicket);
+            await generateTickets(context.tenantId, raffleId, TOTAL_NUMBERS, data.ticketPrice, data.numbersPerTicket, pairs);
 
             // Audit trail
             await createAuditEntry(context.tenantId, "raffle_created", "raffle", raffleId, context.uid, null, {
