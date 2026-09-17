@@ -8,7 +8,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
-import { deriveTicketStatus } from "@/utils/ticket-status";
+import { deriveTicketStatus, deriveRaffleTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
@@ -237,7 +237,7 @@ function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; ven
 }
 
 function UnsoldTickets({ tickets, vendors }: { tickets: Ticket[]; vendors: Map<string, Vendor> }) {
-    const unsold = tickets.filter(t => deriveTicketStatus(t) === "assigned");
+    const unsold = tickets.filter(t => deriveRaffleTicketStatus(t) === "assigned");
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Boletas sin vender</h2>
@@ -477,11 +477,12 @@ function Morosos({ tickets, customers, ticketPrice }: { tickets: Ticket[]; custo
 }
 
 function RaffleStatus({ tickets, ticketPrice }: { tickets: Ticket[]; ticketPrice: number }) {
+    // Estado general de la rifa: perspectiva rifa (Disponible = sin vendedor).
     const statuses = {
-        available: tickets.filter(t => deriveTicketStatus(t) === "available").length,
-        assigned: tickets.filter(t => deriveTicketStatus(t) === "assigned").length,
-        sold: tickets.filter(t => deriveTicketStatus(t) === "sold").length,
-        installment: tickets.filter(t => deriveTicketStatus(t) === "installment").length,
+        available: tickets.filter(t => deriveRaffleTicketStatus(t) === "available").length,
+        assigned: tickets.filter(t => deriveRaffleTicketStatus(t) === "assigned").length,
+        sold: tickets.filter(t => deriveRaffleTicketStatus(t) === "sold").length,
+        installment: tickets.filter(t => deriveRaffleTicketStatus(t) === "installment").length,
     };
     const totalCollected = tickets.reduce((s, t) => s + (t.value - t.pendingBalance), 0);
     const totalPotential = tickets.length * ticketPrice;

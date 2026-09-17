@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
-import { deriveTicketStatus } from "@/utils/ticket-status";
+import { deriveRaffleTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { doc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
 import { getDb } from "@/lib/firebase/firestore";
@@ -174,7 +174,7 @@ export default function TicketSearchPage() {
                                 {(result.ticket.numbers?.length ?? 0) > 1 && (
                                     <p className="text-xs text-default-500 font-mono">Boleta (pareja): {formatTicketNumbers(result.ticket.numbers, result.ticket.number)}</p>
                                 )}
-                                <StatusBadge status={deriveTicketStatus(result.ticket)} />
+                                <StatusBadge status={deriveRaffleTicketStatus(result.ticket)} />
                             </div>
                         </div>
                         <p className="text-default-500">
@@ -202,7 +202,7 @@ export default function TicketSearchPage() {
                                     {/* "Ocupada": ya la tiene alguien, aunque el estado (Definición A)
                                         sea "Disponible" por no tener cliente todavía. */}
                                     <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400">Ocupada</span>
-                                    <StatusBadge status={deriveTicketStatus(result.ticket)} />
+                                    <StatusBadge status={deriveRaffleTicketStatus(result.ticket)} />
                                 </div>
                             </div>
                         </div>

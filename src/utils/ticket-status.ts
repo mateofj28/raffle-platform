@@ -38,6 +38,41 @@ export function deriveTicketStatus(ticket: TicketLike): DerivedTicketStatus {
     return "available";
 }
 
+/**
+ * Estado de una boleta desde la perspectiva de la RIFA (tarjetas de /raffles/[id]
+ * y búsqueda). Aquí lo que manda es SI HAY VENDEDOR, no el cliente:
+ *
+ *  - Disponible: no tiene NADA (ni vendedor, ni cliente, ni abono). Libre para
+ *    asignarle un vendedor.
+ *  - Asignada:   ya tiene vendedor (no importa cliente ni plata).
+ *  - Abonada:    tiene vendedor y algún abono (parcial), pero no está vendida.
+ *  - Vendida:    tiene vendedor, cliente y pago completo.
+ *
+ * Casos borde acordados: una boleta con vendedor + pago completo pero SIN cliente
+ * NO es "Vendida" (le falta cliente) → cae en "Abonada" por tener plata.
+ * Solo para MOSTRAR; no cambia lo guardado.
+ */
+interface RaffleTicketLike extends TicketLike {
+    vendorId?: string | null;
+}
+
+export function deriveRaffleTicketStatus(ticket: RaffleTicketLike): DerivedTicketStatus {
+    const value = ticket.value ?? 0;
+    const pending = ticket.pendingBalance ?? value;
+    const paid = value - pending;
+    const hasVendor = !!ticket.vendorId;
+    const hasClient = !!ticket.customerId;
+
+    // Sin dueño y sin plata → Disponible (libre para cualquier vendedor).
+    if (!hasVendor && !hasClient && paid <= 0) return "available";
+    // Vendida: vendedor + cliente + pago completo.
+    if (hasVendor && hasClient && value > 0 && paid >= value) return "sold";
+    // Abonada: hay algún abono (con vendedor) pero no califica como vendida.
+    if (paid > 0) return "installment";
+    // Tiene vendedor (o dueño) sin plata → Asignada.
+    return "assigned";
+}
+
 /** Etiqueta y color para el estado derivado. */
 export const DERIVED_STATUS_CONFIG: Record<DerivedTicketStatus, { label: string; color: string }> = {
     available: { label: "Disponible", color: "default" },

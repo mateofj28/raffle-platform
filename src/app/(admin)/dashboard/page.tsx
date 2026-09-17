@@ -11,7 +11,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
-import { deriveTicketStatus } from "@/utils/ticket-status";
+import { deriveRaffleTicketStatus } from "@/utils/ticket-status";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, orderBy, where, doc, getDoc, limit } from "firebase/firestore";
@@ -135,8 +135,8 @@ export default function AdminDashboardPage() {
 
                 ticketsSnap.docs.forEach(d => {
                     const t = d.data();
-                    // Estado derivado (Disponible/Asignada/Abonada/Vendida) según cliente + abono.
-                    switch (deriveTicketStatus(t as { customerId?: string | null; value?: number; pendingBalance?: number })) {
+                    // Estado a nivel de rifa (Disponible = sin vendedor; Asignada = con vendedor).
+                    switch (deriveRaffleTicketStatus(t as { vendorId?: string | null; customerId?: string | null; value?: number; pendingBalance?: number })) {
                         case "available": available++; break;
                         case "assigned": assigned++; break;
                         case "sold": sold++; break;

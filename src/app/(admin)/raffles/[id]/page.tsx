@@ -12,7 +12,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency, formatDate, formatTicketNumber } from "@/utils/formatters";
-import { deriveTicketStatus } from "@/utils/ticket-status";
+import { deriveRaffleTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, orderBy, doc, getDoc, where, limit } from "firebase/firestore";
@@ -235,19 +235,21 @@ export default function RaffleDetailPage() {
         // usuario escribe cualquiera de los dos números, es la misma boleta.
         if (assignList.includes(ticket.number)) { setAssignError(`Esa boleta ya está en la lista`); return; }
 
-        const derived = deriveTicketStatus(ticket);
+        // Perspectiva de la rifa: "available" = sin vendedor, sin cliente y sin plata.
+        const derived = deriveRaffleTicketStatus(ticket);
         const pairLabel = (ticket.numbers ?? [ticket.number]).map(formatTicketNumber).join(" · ");
+        const paid = (ticket.value ?? 0) - (ticket.pendingBalance ?? (ticket.value ?? 0));
         if (assignMode === "assign") {
-            // Disponible según la definición unificada: sin cliente y sin abono.
+            // Solo se asigna una boleta totalmente libre.
             if (derived !== "available") {
                 const vendorName = ticket.vendorId ? vendors.find(v => v.id === ticket.vendorId)?.name || "otro vendedor" : "";
-                setAssignError(`La boleta ${pairLabel} no está disponible${vendorName ? ` — asignada a ${vendorName}` : ""}`);
+                setAssignError(`La boleta ${pairLabel} no está disponible${vendorName ? ` — ya la tiene ${vendorName}` : ""}`);
                 return;
             }
         } else {
-            // Para desasignar: debe estar asignada a un vendedor y sin dinero/cliente.
-            if (derived !== "assigned" && !(ticket.vendorId && derived === "available")) {
-                setAssignError(`La boleta ${pairLabel} no se puede desasignar (estado: ${derived})`);
+            // Desasignar: tiene vendedor pero sin cliente y sin abono (se puede liberar).
+            if (!ticket.vendorId || ticket.customerId || paid > 0) {
+                setAssignError(`La boleta ${pairLabel} no se puede desasignar (ya tiene cliente o abonos).`);
                 return;
             }
         }
@@ -304,7 +306,7 @@ export default function RaffleDetailPage() {
     if (loading) return <div><PageHeader title="Detalle de Rifa" /><LoadingSkeleton rows={6} /></div>;
     if (!raffle) return <div><PageHeader title="Rifa no encontrada" /><p className="text-default-500">No se encontró la rifa.</p></div>;
 
-    const statusCounts = tickets.reduce((acc, t) => { const s = deriveTicketStatus(t); acc[s] = (acc[s] || 0) + 1; return acc; }, {} as Record<string, number>);
+    const statusCounts = tickets.reduce((acc, t) => { const s = deriveRaffleTicketStatus(t); acc[s] = (acc[s] || 0) + 1; return acc; }, {} as Record<string, number>);
 
     return (
         <div>
