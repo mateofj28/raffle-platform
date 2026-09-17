@@ -9,6 +9,7 @@ import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
 import { deriveTicketStatus, deriveRaffleTicketStatus } from "@/utils/ticket-status";
+import { vendorCommission } from "@/utils/money";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
@@ -373,7 +374,7 @@ function Commissions({ tickets, vendors, ticketPrice }: { tickets: Ticket[]; ven
         if (collected <= 0) return;
         const current = byVendor.get(t.vendorId) || { collected: 0, commission: 0 };
         current.collected += collected;
-        current.commission += Math.floor(collected * 0.30);
+        current.commission += vendorCommission(collected);
         byVendor.set(t.vendorId, current);
     });
 
@@ -526,7 +527,7 @@ function VendorLiquidation({ tickets, vendors, ticketPrice }: { tickets: Ticket[
         if (st === "installment") current.installment++;
         const collected = t.value - t.pendingBalance;
         current.collected += collected;
-        current.commission += Math.floor(collected * 0.30);
+        current.commission += vendorCommission(collected);
         byVendor.set(t.vendorId, current);
     });
 

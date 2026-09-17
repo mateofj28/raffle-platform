@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
+import { vendorCommission } from "@/utils/money";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
@@ -98,7 +99,7 @@ export default function VendorTicketsPage() {
     const totalCollected = tickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
     const recaudadoPagadas = tickets.filter(t => t.status === "paid").reduce((sum, t) => sum + t.value, 0);
     const recaudadoAbonadas = tickets.filter(t => t.status === "installment").reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
-    const commission = Math.floor(totalCollected * 0.30);
+    const commission = vendorCommission(totalCollected);
 
     if (loading) return <div><PageHeader title="Mis Boletas" /><LoadingSkeleton rows={6} /></div>;
 

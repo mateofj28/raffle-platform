@@ -40,8 +40,11 @@ export const onPaymentCreated = onDocumentCreated(
         if (ticket.pendingBalance !== 0) return;
 
         // Calculate commission (30%) and company profit (70%)
-        const commissionAmount = Math.floor(ticket.value * 0.30);
-        const companyProfit = Math.ceil(ticket.value * 0.70);
+        // Comisión del vendedor = 30% redondeado; la empresa recibe el RESTO
+        // exacto. Así ambas partes suman el valor completo y coinciden con lo
+        // que muestra la interfaz (Math.round, no floor, para no perder pesos).
+        const commissionAmount = Math.round(ticket.value * 0.30);
+        const companyProfit = ticket.value - commissionAmount;
 
         // Create commission document
         const commissionsRef = db.collection(`tenants/${tenantId}/commissions`);

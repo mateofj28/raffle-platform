@@ -9,6 +9,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
+import { vendorCommission } from "@/utils/money";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
@@ -73,7 +74,7 @@ export default function VendorDashboardPage() {
                     totalCollected += (t.value - t.pendingBalance);
                 });
 
-                const commission = Math.floor(totalCollected * 0.30);
+                const commission = vendorCommission(totalCollected);
                 const toDeliver = totalCollected - commission;
 
                 setMetrics({ assigned, sold, paid, installment, totalCollected, commission, toDeliver });

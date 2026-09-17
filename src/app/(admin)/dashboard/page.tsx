@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { deriveRaffleTicketStatus } from "@/utils/ticket-status";
+import { vendorCommission } from "@/utils/money";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, orderBy, where, doc, getDoc, limit } from "firebase/firestore";
@@ -181,7 +182,7 @@ export default function AdminDashboardPage() {
                 const collectedForRole = isCashier
                     ? allPayments.reduce((s, p) => s + p.amount, 0)
                     : totalCollected;
-                const commissionGenerated = Math.floor(collectedForRole * 0.30);
+                const commissionGenerated = vendorCommission(collectedForRole);
                 const companyProfit = collectedForRole - commissionGenerated;
 
                 setMetrics({

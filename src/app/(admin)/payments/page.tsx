@@ -12,6 +12,7 @@ import { formatCurrency, formatDateTime, formatTicketNumbers } from "@/utils/for
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { pairingService } from "@/features/raffles/services/pairing.service";
+import { vendorCommission } from "@/utils/money";
 import { getDocs, query, orderBy, where, limit, startAfter, type QueryDocumentSnapshot } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Payment } from "@/types/api.types";
@@ -279,8 +280,8 @@ export default function PaymentsPage() {
                           </thead>
                           <tbody className="divide-y divide-default-200">
                                     {paginated.map((payment) => {
-                                        const vendorCommission = Math.floor(payment.amount * 0.30);
-                                        const companyProfit = payment.amount - vendorCommission;
+                                        const commission = vendorCommission(payment.amount);
+                                        const companyProfit = payment.amount - commission;
                                         return (
                                   <tr key={payment.id} className="hover:bg-default-50">
                                       <td className="px-4 py-3 text-xs text-default-500">
@@ -296,7 +297,7 @@ export default function PaymentsPage() {
                                       </td>
                                       <td className="px-4 py-3 text-default-600"><PaymentMethodBadge method={payment.method} /></td>
                                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(payment.amount)}</td>
-                                          <td className="px-4 py-3 text-right text-amber-500 font-medium">{formatCurrency(vendorCommission)}</td>
+                                                <td className="px-4 py-3 text-right text-amber-500 font-medium">{formatCurrency(commission)}</td>
                                           <td className="px-4 py-3 text-right text-success font-medium">{formatCurrency(companyProfit)}</td>
                                   </tr>
                                   );

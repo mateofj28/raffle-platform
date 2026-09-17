@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
+import { splitPayment, vendorCommission } from "@/utils/money";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
@@ -124,7 +125,7 @@ export default function VendorDetailPage() {
     const totalAbonado = tickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
     const recaudadoPagadas = paidTickets.reduce((sum, t) => sum + t.value, 0);
     const recaudadoAbonadas = installmentTickets.reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
-    const commission = Math.floor(totalAbonado * 0.30);
+    const commission = vendorCommission(totalAbonado);
 
     // Payment panel handlers
     const handleAddPayment = () => {
@@ -290,7 +291,19 @@ export default function VendorDetailPage() {
                                 <label className="text-xs font-medium mb-1 block">Monto</label>
                                 <Input placeholder="Ej: 30.000" value={payAmountInput ? parseInt(payAmountInput).toLocaleString("es-CO") : ""} onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); const num = parseInt(raw || "0"); if (num <= (activeRaffle?.ticketPrice || 999999)) setPayAmountInput(raw); }} onKeyDown={handlePayFieldEnter} inputMode="numeric" className="w-32" />
                             </div>
-                            <div>
+                            <div
+                                onKeyDownCapture={(e) => {
+                                    // Con el foco en el método, Enter debe EJECUTAR "Agregar",
+                                    // no abrir el desplegable del select. Se intercepta en captura
+                                    // para adelantarse al manejo interno del Select.
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const canAdd = payTicketInput && payAmountInput && parseInt(payAmountInput || "0", 10) >= 5000;
+                                        if (canAdd) handleAddPayment();
+                                    }
+                                }}
+                            >
                                 <label className="text-xs font-medium mb-1 block">Método</label>
                                 <Select aria-label="Método" selectedKey={payMethodInput} onSelectionChange={(key) => setPayMethodInput(String(key ?? "cash"))} className="w-40">
                                     <SelectTrigger className="w-full"><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
@@ -360,9 +373,17 @@ export default function VendorDetailPage() {
                                 ))}
                                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-default-200">
                                     <div className="flex items-center gap-6">
-                                        <p className="text-sm font-semibold">Total: <span className="text-emerald-500">{formatCurrency(paymentList.reduce((s, p) => s + p.amount, 0))}</span></p>
-                                        <p className="text-xs text-default-500">Recibe cajero (70%): <span className="font-medium">{formatCurrency(Math.floor(paymentList.reduce((s, p) => s + p.amount, 0) * 0.70))}</span></p>
-                                        <p className="text-xs text-default-500">Comisión vendedor (30%): <span className="font-medium text-amber-500">{formatCurrency(Math.floor(paymentList.reduce((s, p) => s + p.amount, 0) * 0.30))}</span></p>
+                                        {(() => {
+                                            const total = paymentList.reduce((s, p) => s + p.amount, 0);
+                                            const { cashier, commission } = splitPayment(total);
+                                            return (
+                                                <>
+                                                    <p className="text-sm font-semibold">Total: <span className="text-emerald-500">{formatCurrency(total)}</span></p>
+                                                    <p className="text-xs text-default-500">Recibe cajero (70%): <span className="font-medium">{formatCurrency(cashier)}</span></p>
+                                                    <p className="text-xs text-default-500">Comisión vendedor (30%): <span className="font-medium text-amber-500">{formatCurrency(commission)}</span></p>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                     <Button variant="primary" isDisabled={processing} onPress={handleConfirmPayments}>
                                         {processing ? "Procesando..." : `Confirmar ${paymentList.length} pago(s)`}
