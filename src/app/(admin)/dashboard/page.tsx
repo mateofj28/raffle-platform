@@ -129,8 +129,6 @@ export default function AdminDashboardPage() {
 
                 let available = 0, assigned = 0, sold = 0, paid = 0, installment = 0;
                 let totalCollected = 0, totalPending = 0;
-                const vendorIds = new Set<string>();
-                const customerIds = new Set<string>();
                 // Recaudado por vendedor (para el Top 3 vendedores).
                 const collectedByVendor = new Map<string, number>();
 
@@ -143,8 +141,6 @@ export default function AdminDashboardPage() {
                         case "sold": sold++; break;
                         case "installment": installment++; break;
                     }
-                    if (t.vendorId) vendorIds.add(t.vendorId);
-                    if (t.customerId) customerIds.add(t.customerId);
                     const collected = t.value - t.pendingBalance;
                     totalCollected += collected;
                     totalPending += t.pendingBalance;
@@ -189,8 +185,10 @@ export default function AdminDashboardPage() {
                     totalTickets: ticketsSnap.size,
                     available, assigned, sold, paid, installment,
                     totalCollected: collectedForRole, totalPending, totalPotential,
-                    vendorsCount: vendorIds.size,
-                    customersCount: customerIds.size,
+                    // Total REAL de vendedores/clientes registrados en el tenant,
+                    // no cuántos aparecen en las boletas de esta rifa.
+                    vendorsCount: vendorsSnap.size,
+                    customersCount: customersSnap.size,
                     commissionGenerated, companyProfit,
                 });
 
