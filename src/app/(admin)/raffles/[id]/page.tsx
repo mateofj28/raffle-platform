@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
-import { formatCurrency, formatDate, formatTicketNumber } from "@/utils/formatters";
+import { formatCurrency, formatDate, formatTicketNumbers } from "@/utils/formatters";
 import { deriveRaffleTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -229,7 +229,7 @@ export default function RaffleDetailPage() {
         // Buscar la boleta que CONTIENE ese número (en rifas de 2 números la
         // boleta juega una pareja [a, b]; cualquiera de los dos la identifica).
         const ticket = tickets.find(t => (t.numbers ?? [t.number]).includes(num));
-        if (!ticket) { setAssignError(`El número ${formatTicketNumber(num)} no existe`); return; }
+        if (!ticket) { setAssignError(`El número ${formatTicketNumbers([num])} no existe`); return; }
 
         // La boleta se identifica por su número base (min de la pareja). Si el
         // usuario escribe cualquiera de los dos números, es la misma boleta.
@@ -237,7 +237,7 @@ export default function RaffleDetailPage() {
 
         // Perspectiva de la rifa: "available" = sin vendedor, sin cliente y sin plata.
         const derived = deriveRaffleTicketStatus(ticket);
-        const pairLabel = (ticket.numbers ?? [ticket.number]).map(formatTicketNumber).join(" · ");
+        const pairLabel = formatTicketNumbers(ticket.numbers, ticket.number);
         const paid = (ticket.value ?? 0) - (ticket.pendingBalance ?? (ticket.value ?? 0));
         if (assignMode === "assign") {
             // Solo se asigna una boleta totalmente libre.
@@ -265,8 +265,7 @@ export default function RaffleDetailPage() {
     // muestra la pareja "0000 · 1111" en rifas de 2 números, o el único número.
     const ticketLabel = (baseNumber: number): string => {
         const t = tickets.find(tt => tt.number === baseNumber);
-        const nums = t?.numbers ?? [baseNumber];
-        return nums.map(formatTicketNumber).join(" · ");
+        return formatTicketNumbers(t?.numbers, baseNumber);
     };
 
     // Vista previa de la pareja mientras el usuario escribe un número (feedback):
@@ -428,7 +427,7 @@ export default function RaffleDetailPage() {
                                 <div>
                                     <label className="text-xs font-medium mb-1 block">Pareja</label>
                                     <div className="h-10 px-3 flex items-center rounded-lg border border-teal-500/40 bg-teal-500/5 text-sm font-semibold font-mono">
-                                        {(previewTicket.numbers ?? [previewTicket.number]).map(formatTicketNumber).join(" · ")}
+                                        {formatTicketNumbers(previewTicket.numbers, previewTicket.number)}
                                     </div>
                                 </div>
                             )}
