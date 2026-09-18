@@ -188,18 +188,27 @@ export const deleteVendor = onCall(
                 throw new AppError(AppErrorCode.NOT_FOUND, "Vendedor no encontrado.");
             }
 
-            // ¿Tiene boletas en alguna rifa? Si sí, no se puede eliminar.
+            // Solo se puede eliminar si TODAS sus boletas están "cerradas":
+            // pago completo (pendingBalance <= 0) Y con cliente. Cualquier boleta
+            // con saldo pendiente, o pagada pero sin cliente, se considera
+            // "pendiente" (aún admite abono o asignar cliente) y bloquea el borrado.
             const rafflesSnap = await db.collection(`tenants/${context.tenantId}/raffles`).get();
             for (const raffle of rafflesSnap.docs) {
-                const withTickets = await db
+                const ticketsSnap = await db
                     .collection(`tenants/${context.tenantId}/raffles/${raffle.id}/tickets`)
                     .where("vendorId", "==", vendorId)
-                    .limit(1)
                     .get();
-                if (!withTickets.empty) {
+                const hasPending = ticketsSnap.docs.some((d) => {
+                    const t = d.data();
+                    const value = (t.value as number) ?? 0;
+                    const pending = (t.pendingBalance as number) ?? value;
+                    const cerrada = !!t.customerId && pending <= 0;
+                    return !cerrada; // hay actividad pendiente
+                });
+                if (hasPending) {
                     throw new AppError(
                         AppErrorCode.CONFLICT,
-                        "No se puede eliminar: el vendedor tiene boletas asignadas. Libera sus boletas primero."
+                        "No se puede eliminar: el vendedor tiene boletas pendientes (por abonar, o pagadas sin cliente)."
                     );
                 }
             }

@@ -31,11 +31,13 @@ interface VendorTableProps {
     vendors: Vendor[];
     /** Solo el admin puede eliminar. */
     canDelete?: boolean;
+    /** IDs de vendedores con boletas pendientes (no cerradas): no se pueden eliminar. */
+    pendingIds?: Set<string>;
     /** Se llama tras eliminar para refrescar la lista. */
     onDeleted?: () => void;
 }
 
-export function VendorTable({ vendors, canDelete = false, onDeleted }: VendorTableProps) {
+export function VendorTable({ vendors, canDelete = false, pendingIds, onDeleted }: VendorTableProps) {
     const [toDelete, setToDelete] = useState<Vendor | null>(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -83,7 +85,7 @@ export function VendorTable({ vendors, canDelete = false, onDeleted }: VendorTab
                                         <Link href={`/vendors/${vendor.id}`} className="text-default-500 hover:text-primary" aria-label="Ver vendedor">
                                             <Eye className="h-4 w-4 inline" />
                                         </Link>
-                                        {canDelete && (
+                                        {canDelete && !pendingIds?.has(vendor.id) && (
                                             <button
                                                 onClick={() => setToDelete(vendor)}
                                                 className="text-default-400 hover:text-red-500 transition-colors"

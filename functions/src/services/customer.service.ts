@@ -186,18 +186,25 @@ export const deleteCustomer = onCall(
                 throw new AppError(AppErrorCode.NOT_FOUND, "Cliente no encontrado.");
             }
 
-            // ¿Tiene boletas en alguna rifa? Si sí, no se puede eliminar.
+            // Solo se puede eliminar si TODAS sus boletas están pagadas por
+            // completo (pendingBalance <= 0). Una boleta suya con saldo pendiente
+            // (le faltan abonos) se considera "pendiente" y bloquea el borrado.
             const rafflesSnap = await db.collection(`tenants/${context.tenantId}/raffles`).get();
             for (const raffle of rafflesSnap.docs) {
-                const withTickets = await db
+                const ticketsSnap = await db
                     .collection(`tenants/${context.tenantId}/raffles/${raffle.id}/tickets`)
                     .where("customerId", "==", customerId)
-                    .limit(1)
                     .get();
-                if (!withTickets.empty) {
+                const hasPending = ticketsSnap.docs.some((d) => {
+                    const t = d.data();
+                    const value = (t.value as number) ?? 0;
+                    const pending = (t.pendingBalance as number) ?? value;
+                    return pending > 0; // le faltan abonos
+                });
+                if (hasPending) {
                     throw new AppError(
                         AppErrorCode.CONFLICT,
-                        "No se puede eliminar: el cliente tiene boletas asociadas. Quítale las boletas primero."
+                        "No se puede eliminar: el cliente tiene boletas con abonos pendientes."
                     );
                 }
             }

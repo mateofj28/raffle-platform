@@ -11,12 +11,17 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { CustomerTable } from "@/features/customers/components/customer-table";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
 import { useAuthStore } from "@/store/auth.store";
+import { getDocs, query, where } from "firebase/firestore";
+import { tenantCollection } from "@/lib/firebase/firestore";
 
 export default function CustomersPage() {
     const { data: customers = [], isLoading, refetch } = useCustomers();
+    const tenantId = useAuthStore((s) => s.user?.tenantId);
     const isAdmin = useAuthStore((s) => s.user?.role) === "admin";
     const [search, setSearch] = useState("");
     const [isDark, setIsDark] = useState(false);
+    // Clientes con alguna boleta "pendiente" (saldo > 0). No se pueden eliminar.
+    const [pendingCustomerIds, setPendingCustomerIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const check = () => setIsDark(document.documentElement.classList.contains("dark"));
@@ -25,6 +30,34 @@ export default function CustomersPage() {
         observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
         return () => observer.disconnect();
     }, []);
+
+    // Solo admin: calcular qué clientes tienen boletas con saldo pendiente en
+    // cualquier rifa (esas no se pueden eliminar → no se muestra el botón).
+    useEffect(() => {
+        if (!isAdmin || !tenantId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const rafflesSnap = await getDocs(tenantCollection(tenantId, "raffles"));
+                const pending = new Set<string>();
+                for (const raffle of rafflesSnap.docs) {
+                    // Solo boletas con cliente (las demás no aplican a clientes).
+                    const ticketsSnap = await getDocs(query(
+                        tenantCollection(tenantId, `raffles/${raffle.id}/tickets`),
+                        where("customerId", "!=", null)
+                    ));
+                    ticketsSnap.docs.forEach((d) => {
+                        const t = d.data();
+                        const value = (t.value as number) ?? 0;
+                        const bal = (t.pendingBalance as number) ?? value;
+                        if (t.customerId && bal > 0) pending.add(t.customerId as string);
+                    });
+                }
+                if (!cancelled) setPendingCustomerIds(pending);
+            } catch (e) { console.error(e); }
+        })();
+        return () => { cancelled = true; };
+    }, [isAdmin, tenantId, customers]);
 
     const filtered = search.length >= 2
         ? customers.filter(c =>
@@ -74,7 +107,7 @@ export default function CustomersPage() {
                             {filtered.length === 0 ? (
                                 <p className="text-sm text-default-500 py-8 text-center">No se encontraron clientes con "{search}"</p>
                             ) : (
-                                    <CustomerTable customers={filtered} canDelete={isAdmin} onDeleted={() => refetch()} />
+                                    <CustomerTable customers={filtered} canDelete={isAdmin} pendingIds={pendingCustomerIds} onDeleted={() => refetch()} />
                             )}
                         </>
           )}

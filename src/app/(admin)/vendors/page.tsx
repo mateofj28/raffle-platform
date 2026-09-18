@@ -11,12 +11,17 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { VendorTable } from "@/features/vendors/components/vendor-table";
 import { useVendors } from "@/features/vendors/hooks/use-vendors";
 import { useAuthStore } from "@/store/auth.store";
+import { getDocs, query, where } from "firebase/firestore";
+import { tenantCollection } from "@/lib/firebase/firestore";
 
 export default function VendorsPage() {
     const { data: vendors = [], isLoading, refetch } = useVendors();
+    const tenantId = useAuthStore((s) => s.user?.tenantId);
     const isAdmin = useAuthStore((s) => s.user?.role) === "admin";
     const [search, setSearch] = useState("");
     const [isDark, setIsDark] = useState(false);
+    // Vendedores con alguna boleta "pendiente" (no cerrada). No se pueden eliminar.
+    const [pendingVendorIds, setPendingVendorIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const check = () => setIsDark(document.documentElement.classList.contains("dark"));
@@ -25,6 +30,35 @@ export default function VendorsPage() {
         observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
         return () => observer.disconnect();
     }, []);
+
+    // Solo admin: calcular qué vendedores tienen boletas "pendientes" en cualquier
+    // rifa. Una boleta está cerrada solo si tiene cliente Y pago completo; si no,
+    // es pendiente y el vendedor no se puede eliminar (no se muestra el botón).
+    useEffect(() => {
+        if (!isAdmin || !tenantId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const rafflesSnap = await getDocs(tenantCollection(tenantId, "raffles"));
+                const pending = new Set<string>();
+                for (const raffle of rafflesSnap.docs) {
+                    const ticketsSnap = await getDocs(query(
+                        tenantCollection(tenantId, `raffles/${raffle.id}/tickets`),
+                        where("vendorId", "!=", null)
+                    ));
+                    ticketsSnap.docs.forEach((d) => {
+                        const t = d.data();
+                        const value = (t.value as number) ?? 0;
+                        const bal = (t.pendingBalance as number) ?? value;
+                        const cerrada = !!t.customerId && bal <= 0;
+                        if (t.vendorId && !cerrada) pending.add(t.vendorId as string);
+                    });
+                }
+                if (!cancelled) setPendingVendorIds(pending);
+            } catch (e) { console.error(e); }
+        })();
+        return () => { cancelled = true; };
+    }, [isAdmin, tenantId, vendors]);
 
     const filtered = search.length >= 2
         ? vendors.filter(v =>
@@ -74,7 +108,7 @@ export default function VendorsPage() {
                             {filtered.length === 0 ? (
                                 <p className="text-sm text-default-500 py-8 text-center">No se encontraron vendedores con "{search}"</p>
                             ) : (
-                                    <VendorTable vendors={filtered} canDelete={isAdmin} onDeleted={() => refetch()} />
+                                    <VendorTable vendors={filtered} canDelete={isAdmin} pendingIds={pendingVendorIds} onDeleted={() => refetch()} />
                             )}
                         </>
           )}

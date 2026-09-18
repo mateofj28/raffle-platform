@@ -11,11 +11,13 @@ interface CustomerTableProps {
   customers: Customer[];
   /** Solo el admin puede eliminar. */
   canDelete?: boolean;
+  /** IDs de clientes con boletas pendientes (saldo > 0): no se pueden eliminar. */
+  pendingIds?: Set<string>;
   /** Se llama tras eliminar para refrescar la lista. */
   onDeleted?: () => void;
 }
 
-export function CustomerTable({ customers, canDelete = false, onDeleted }: CustomerTableProps) {
+export function CustomerTable({ customers, canDelete = false, pendingIds, onDeleted }: CustomerTableProps) {
   const [toDelete, setToDelete] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -58,7 +60,7 @@ export function CustomerTable({ customers, canDelete = false, onDeleted }: Custo
                   <Link href={`/customers/${customer.id}`} className="text-default-500 hover:text-primary" aria-label="Ver cliente">
                     <Eye className="h-4 w-4 inline" />
                   </Link>
-                  {canDelete && (
+                  {canDelete && !pendingIds?.has(customer.id) && (
                     <button
                       onClick={() => setToDelete(customer)}
                       className="text-default-400 hover:text-red-500 transition-colors"
