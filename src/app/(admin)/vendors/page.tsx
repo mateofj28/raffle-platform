@@ -11,6 +11,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { VendorTable } from "@/features/vendors/components/vendor-table";
 import { useVendors } from "@/features/vendors/hooks/use-vendors";
 import { useAuthStore } from "@/store/auth.store";
+import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, where } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 
@@ -18,6 +19,7 @@ export default function VendorsPage() {
     const { data: vendors = [], isLoading, refetch } = useVendors();
     const tenantId = useAuthStore((s) => s.user?.tenantId);
     const isAdmin = useAuthStore((s) => s.user?.role) === "admin";
+    const activeRaffle = useRaffleStore((s) => s.activeRaffle);
     const [search, setSearch] = useState("");
     const [isDark, setIsDark] = useState(false);
     // Vendedores con alguna boleta "pendiente" (no cerrada). No se pueden eliminar.
@@ -33,34 +35,33 @@ export default function VendorsPage() {
         return () => observer.disconnect();
     }, []);
 
-    // Solo admin: calcular qué vendedores tienen boletas "pendientes" en cualquier
-    // rifa. Una boleta está cerrada solo si tiene cliente Y pago completo; si no,
+    // Solo admin: qué vendedores tienen boletas "pendientes" EN LA RIFA ACTUAL.
+    // La responsabilidad del vendedor es solo en la rifa actual; sus boletas en
+    // rifas anteriores no cuentan. Cerrada = con cliente Y pago completo; si no,
     // es pendiente y el vendedor no se puede eliminar (no se muestra el botón).
     useEffect(() => {
         if (!isAdmin || !tenantId) return;
+        if (!activeRaffle) { setPendingVendorIds(new Set()); setPendingReady(true); return; }
         let cancelled = false;
         (async () => {
             try {
-                const rafflesSnap = await getDocs(tenantCollection(tenantId, "raffles"));
                 const pending = new Set<string>();
-                for (const raffle of rafflesSnap.docs) {
-                    const ticketsSnap = await getDocs(query(
-                        tenantCollection(tenantId, `raffles/${raffle.id}/tickets`),
-                        where("vendorId", "!=", null)
-                    ));
-                    ticketsSnap.docs.forEach((d) => {
-                        const t = d.data();
-                        const value = (t.value as number) ?? 0;
-                        const bal = (t.pendingBalance as number) ?? value;
-                        const cerrada = !!t.customerId && bal <= 0;
-                        if (t.vendorId && !cerrada) pending.add(t.vendorId as string);
-                    });
-                }
+                const ticketsSnap = await getDocs(query(
+                    tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`),
+                    where("vendorId", "!=", null)
+                ));
+                ticketsSnap.docs.forEach((d) => {
+                    const t = d.data();
+                    const value = (t.value as number) ?? 0;
+                    const bal = (t.pendingBalance as number) ?? value;
+                    const cerrada = !!t.customerId && bal <= 0;
+                    if (t.vendorId && !cerrada) pending.add(t.vendorId as string);
+                });
                 if (!cancelled) { setPendingVendorIds(pending); setPendingReady(true); }
             } catch (e) { console.error(e); if (!cancelled) setPendingReady(true); }
         })();
         return () => { cancelled = true; };
-    }, [isAdmin, tenantId, vendors]);
+    }, [isAdmin, tenantId, activeRaffle, vendors]);
 
     const filtered = search.length >= 2
         ? vendors.filter(v =>

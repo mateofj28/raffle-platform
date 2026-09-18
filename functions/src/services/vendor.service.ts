@@ -13,7 +13,7 @@ import { z } from "zod";
 import { validateAuth, requireAdmin, requireAdminOrCashier, requireVendorOwnership, type AuthContext } from "../middleware/auth";
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
-import { getDb } from "../utils/firestore";
+import { getDb, getOfficialRaffleId } from "../utils/firestore";
 
 // --- Zod Schemas ---
 
@@ -188,14 +188,15 @@ export const deleteVendor = onCall(
                 throw new AppError(AppErrorCode.NOT_FOUND, "Vendedor no encontrado.");
             }
 
-            // Solo se puede eliminar si TODAS sus boletas están "cerradas":
-            // pago completo (pendingBalance <= 0) Y con cliente. Cualquier boleta
-            // con saldo pendiente, o pagada pero sin cliente, se considera
-            // "pendiente" (aún admite abono o asignar cliente) y bloquea el borrado.
-            const rafflesSnap = await db.collection(`tenants/${context.tenantId}/raffles`).get();
-            for (const raffle of rafflesSnap.docs) {
+            // La responsabilidad del vendedor es SOLO en la rifa actual (oficial).
+            // Las boletas en rifas anteriores no cuentan. Solo se puede eliminar si
+            // en la rifa actual no tiene boletas "pendientes": una boleta está
+            // cerrada solo con cliente Y pago completo; si no, es pendiente (admite
+            // abono o asignar cliente) y bloquea el borrado.
+            const officialId = await getOfficialRaffleId(context.tenantId);
+            if (officialId) {
                 const ticketsSnap = await db
-                    .collection(`tenants/${context.tenantId}/raffles/${raffle.id}/tickets`)
+                    .collection(`tenants/${context.tenantId}/raffles/${officialId}/tickets`)
                     .where("vendorId", "==", vendorId)
                     .get();
                 const hasPending = ticketsSnap.docs.some((d) => {
@@ -208,7 +209,7 @@ export const deleteVendor = onCall(
                 if (hasPending) {
                     throw new AppError(
                         AppErrorCode.CONFLICT,
-                        "No se puede eliminar: el vendedor tiene boletas pendientes (por abonar, o pagadas sin cliente)."
+                        "No se puede eliminar: el vendedor tiene boletas pendientes en la rifa actual (por abonar, o pagadas sin cliente)."
                     );
                 }
             }

@@ -12,7 +12,7 @@ import { z } from "zod";
 import { validateAuth, requireAdmin, type AuthContext } from "../middleware/auth";
 import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
-import { getDb } from "../utils/firestore";
+import { getDb, getOfficialRaffleId } from "../utils/firestore";
 
 // --- Zod Schemas ---
 
@@ -186,13 +186,13 @@ export const deleteCustomer = onCall(
                 throw new AppError(AppErrorCode.NOT_FOUND, "Cliente no encontrado.");
             }
 
-            // Solo se puede eliminar si TODAS sus boletas están pagadas por
-            // completo (pendingBalance <= 0). Una boleta suya con saldo pendiente
-            // (le faltan abonos) se considera "pendiente" y bloquea el borrado.
-            const rafflesSnap = await db.collection(`tenants/${context.tenantId}/raffles`).get();
-            for (const raffle of rafflesSnap.docs) {
+            // Solo cuenta la rifa actual (oficial): las boletas del cliente en
+            // rifas anteriores no bloquean. Se puede eliminar si en la rifa actual
+            // no tiene boletas con saldo pendiente (le faltan abonos).
+            const officialId = await getOfficialRaffleId(context.tenantId);
+            if (officialId) {
                 const ticketsSnap = await db
-                    .collection(`tenants/${context.tenantId}/raffles/${raffle.id}/tickets`)
+                    .collection(`tenants/${context.tenantId}/raffles/${officialId}/tickets`)
                     .where("customerId", "==", customerId)
                     .get();
                 const hasPending = ticketsSnap.docs.some((d) => {
@@ -204,7 +204,7 @@ export const deleteCustomer = onCall(
                 if (hasPending) {
                     throw new AppError(
                         AppErrorCode.CONFLICT,
-                        "No se puede eliminar: el cliente tiene boletas con abonos pendientes."
+                        "No se puede eliminar: el cliente tiene boletas con abonos pendientes en la rifa actual."
                     );
                 }
             }

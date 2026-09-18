@@ -11,6 +11,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { CustomerTable } from "@/features/customers/components/customer-table";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
 import { useAuthStore } from "@/store/auth.store";
+import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, where } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 
@@ -18,6 +19,7 @@ export default function CustomersPage() {
     const { data: customers = [], isLoading, refetch } = useCustomers();
     const tenantId = useAuthStore((s) => s.user?.tenantId);
     const isAdmin = useAuthStore((s) => s.user?.role) === "admin";
+    const activeRaffle = useRaffleStore((s) => s.activeRaffle);
     const [search, setSearch] = useState("");
     const [isDark, setIsDark] = useState(false);
     // Clientes con alguna boleta "pendiente" (saldo > 0). No se pueden eliminar.
@@ -34,33 +36,31 @@ export default function CustomersPage() {
         return () => observer.disconnect();
     }, []);
 
-    // Solo admin: calcular qué clientes tienen boletas con saldo pendiente en
-    // cualquier rifa (esas no se pueden eliminar → no se muestra el botón).
+    // Solo admin: qué clientes tienen boletas con saldo pendiente EN LA RIFA
+    // ACTUAL. Las boletas en rifas anteriores no cuentan. Esas no se pueden
+    // eliminar → no se muestra el botón.
     useEffect(() => {
         if (!isAdmin || !tenantId) return;
+        if (!activeRaffle) { setPendingCustomerIds(new Set()); setPendingReady(true); return; }
         let cancelled = false;
         (async () => {
             try {
-                const rafflesSnap = await getDocs(tenantCollection(tenantId, "raffles"));
                 const pending = new Set<string>();
-                for (const raffle of rafflesSnap.docs) {
-                    // Solo boletas con cliente (las demás no aplican a clientes).
-                    const ticketsSnap = await getDocs(query(
-                        tenantCollection(tenantId, `raffles/${raffle.id}/tickets`),
-                        where("customerId", "!=", null)
-                    ));
-                    ticketsSnap.docs.forEach((d) => {
-                        const t = d.data();
-                        const value = (t.value as number) ?? 0;
-                        const bal = (t.pendingBalance as number) ?? value;
-                        if (t.customerId && bal > 0) pending.add(t.customerId as string);
-                    });
-                }
+                const ticketsSnap = await getDocs(query(
+                    tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`),
+                    where("customerId", "!=", null)
+                ));
+                ticketsSnap.docs.forEach((d) => {
+                    const t = d.data();
+                    const value = (t.value as number) ?? 0;
+                    const bal = (t.pendingBalance as number) ?? value;
+                    if (t.customerId && bal > 0) pending.add(t.customerId as string);
+                });
                 if (!cancelled) { setPendingCustomerIds(pending); setPendingReady(true); }
             } catch (e) { console.error(e); if (!cancelled) setPendingReady(true); }
         })();
         return () => { cancelled = true; };
-    }, [isAdmin, tenantId, customers]);
+    }, [isAdmin, tenantId, activeRaffle, customers]);
 
     const filtered = search.length >= 2
         ? customers.filter(c =>
