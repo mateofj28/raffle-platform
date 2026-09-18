@@ -22,6 +22,8 @@ export default function VendorsPage() {
     const [isDark, setIsDark] = useState(false);
     // Vendedores con alguna boleta "pendiente" (no cerrada). No se pueden eliminar.
     const [pendingVendorIds, setPendingVendorIds] = useState<Set<string>>(new Set());
+    // ¿Ya terminó el cálculo de elegibilidad? Evita el parpadeo de papeleras.
+    const [pendingReady, setPendingReady] = useState(false);
 
     useEffect(() => {
         const check = () => setIsDark(document.documentElement.classList.contains("dark"));
@@ -54,8 +56,8 @@ export default function VendorsPage() {
                         if (t.vendorId && !cerrada) pending.add(t.vendorId as string);
                     });
                 }
-                if (!cancelled) setPendingVendorIds(pending);
-            } catch (e) { console.error(e); }
+                if (!cancelled) { setPendingVendorIds(pending); setPendingReady(true); }
+            } catch (e) { console.error(e); if (!cancelled) setPendingReady(true); }
         })();
         return () => { cancelled = true; };
     }, [isAdmin, tenantId, vendors]);
@@ -108,7 +110,7 @@ export default function VendorsPage() {
                             {filtered.length === 0 ? (
                                 <p className="text-sm text-default-500 py-8 text-center">No se encontraron vendedores con "{search}"</p>
                             ) : (
-                                    <VendorTable vendors={filtered} canDelete={isAdmin} pendingIds={pendingVendorIds} onDeleted={() => refetch()} />
+                                    <VendorTable vendors={filtered} canDelete={isAdmin && pendingReady} pendingIds={pendingVendorIds} onDeleted={() => refetch()} />
                             )}
                         </>
           )}

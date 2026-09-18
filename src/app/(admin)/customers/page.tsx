@@ -22,6 +22,9 @@ export default function CustomersPage() {
     const [isDark, setIsDark] = useState(false);
     // Clientes con alguna boleta "pendiente" (saldo > 0). No se pueden eliminar.
     const [pendingCustomerIds, setPendingCustomerIds] = useState<Set<string>>(new Set());
+    // ¿Ya terminó el cálculo de elegibilidad? Hasta que no, no mostramos papeleras
+    // (evita el parpadeo de mostrar todas y luego ocultar las no elegibles).
+    const [pendingReady, setPendingReady] = useState(false);
 
     useEffect(() => {
         const check = () => setIsDark(document.documentElement.classList.contains("dark"));
@@ -53,8 +56,8 @@ export default function CustomersPage() {
                         if (t.customerId && bal > 0) pending.add(t.customerId as string);
                     });
                 }
-                if (!cancelled) setPendingCustomerIds(pending);
-            } catch (e) { console.error(e); }
+                if (!cancelled) { setPendingCustomerIds(pending); setPendingReady(true); }
+            } catch (e) { console.error(e); if (!cancelled) setPendingReady(true); }
         })();
         return () => { cancelled = true; };
     }, [isAdmin, tenantId, customers]);
@@ -107,7 +110,7 @@ export default function CustomersPage() {
                             {filtered.length === 0 ? (
                                 <p className="text-sm text-default-500 py-8 text-center">No se encontraron clientes con "{search}"</p>
                             ) : (
-                                    <CustomerTable customers={filtered} canDelete={isAdmin} pendingIds={pendingCustomerIds} onDeleted={() => refetch()} />
+                                    <CustomerTable customers={filtered} canDelete={isAdmin && pendingReady} pendingIds={pendingCustomerIds} onDeleted={() => refetch()} />
                             )}
                         </>
           )}
