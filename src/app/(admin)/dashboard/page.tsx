@@ -209,19 +209,38 @@ export default function AdminDashboardPage() {
                 // Calculate today metrics
                 const todayMoney = todayPayments.reduce((s, p) => s + p.amount, 0);
 
-                // Boletas de hoy:
-                // - Cajero: cantidad de boletas distintas sobre las que registró pagos hoy.
-                // - Admin: boletas de la rifa cuya venta (saleDate) fue hoy.
+                // "Boletas vendidas hoy": una boleta que HOY quedó VENDIDA, es
+                // decir cumple el criterio de venta (cliente + pago completo) y
+                // ese cierre ocurrió hoy. El cierre puede darse por:
+                //   - el pago que completó el saldo se registró hoy, o
+                //   - se le asignó el cliente hoy (saleDate) estando ya pagada.
+                // No basta con que tenga saleDate hoy: debe estar realmente vendida.
+                const ticketIdsPaidToday = new Set(todayPayments.map(p => String(p.ticketId)));
                 let ticketsSoldToday = 0;
                 if (isCashier) {
-                    ticketsSoldToday = new Set(todayPayments.map(p => p.ticketId)).size;
+                    // El cajero ve las boletas que él dejó vendidas hoy con sus pagos.
+                    ticketsSnap.docs.forEach(d => {
+                        const t = d.data();
+                        const value = t.value ?? 0;
+                        const pending = t.pendingBalance ?? value;
+                        const isSold = !!t.customerId && value > 0 && pending <= 0;
+                        if (isSold && ticketIdsPaidToday.has(String(t.number).padStart(4, "0"))) ticketsSoldToday++;
+                    });
                 } else {
                     ticketsSnap.docs.forEach(d => {
                         const t = d.data();
+                        const value = t.value ?? 0;
+                        const pending = t.pendingBalance ?? value;
+                        const isSold = !!t.customerId && value > 0 && pending <= 0;
+                        if (!isSold) return;
+                        const docId = String(t.number).padStart(4, "0");
+                        const paidToday = ticketIdsPaidToday.has(docId);
+                        let clientAssignedToday = false;
                         if (t.saleDate) {
                             const saleDate = t.saleDate.toDate?.() || new Date(t.saleDate.seconds * 1000);
-                            if (saleDate >= startOfDay) ticketsSoldToday++;
+                            clientAssignedToday = saleDate >= startOfDay;
                         }
+                        if (paidToday || clientAssignedToday) ticketsSoldToday++;
                     });
                 }
 
