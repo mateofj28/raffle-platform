@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast, ComboBox, Input as HeroInput } from "@heroui/react";
 import { Ticket, Calendar, Trophy, Hash, DollarSign, UserPlus, UserMinus, X, ChevronDown } from "lucide-react";
@@ -106,21 +106,22 @@ export default function RaffleDetailPage() {
         load();
     }, [tenantId, raffleId, setActiveRaffle]);
 
-    // Load tickets
-    useEffect(() => {
+    // Carga (o recarga) las boletas desde el servidor. Se reutiliza tras asignar/
+    // desasignar para reflejar el estado real y no quedarse con datos obsoletos.
+    const reloadTickets = useCallback(async () => {
         if (!tenantId || !raffleId) return;
-        const load = async () => {
-            setTicketsLoading(true);
-            try {
-                const col = tenantCollection(tenantId, `raffles/${raffleId}/tickets`);
-                const q = query(col, orderBy("number", "asc"));
-                const snap = await getDocs(q);
-                setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
-            } catch (e) { console.error(e); }
-            finally { setTicketsLoading(false); }
-        };
-        load();
+        setTicketsLoading(true);
+        try {
+            const col = tenantCollection(tenantId, `raffles/${raffleId}/tickets`);
+            const q = query(col, orderBy("number", "asc"));
+            const snap = await getDocs(q);
+            setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
+        } catch (e) { console.error(e); }
+        finally { setTicketsLoading(false); }
     }, [tenantId, raffleId]);
+
+    // Load tickets
+    useEffect(() => { reloadTickets(); }, [reloadTickets]);
 
     // Load vendors
     useEffect(() => {
@@ -282,19 +283,34 @@ export default function RaffleDetailPage() {
         if (assignList.length === 0) return;
         setAssigning(true);
         setAssignError(null);
+        type SkipDetail = { number: number; reason: string };
         try {
-            if (assignMode === "assign") {
-                const result = await callFunction<{ assigned: number; skipped: number }>("assignTickets", { raffleId, vendorId: selectedVendor, ticketNumbers: assignList });
-                toast.success(`${result.assigned} boletas asignadas`);
-                setTickets(prev => prev.map(t => assignList.includes(t.number) && t.status === "available" ? { ...t, status: "assigned" as const, vendorId: selectedVendor } : t));
-            } else {
-                await callFunction("unassignTickets", { raffleId, ticketNumbers: assignList });
-                toast.success(`${assignList.length} boleta(s) liberada(s)`);
-                setTickets(prev => prev.map(t => assignList.includes(t.number) && t.status === "assigned" ? { ...t, status: "available" as const, vendorId: null } : t));
+            const fnName = assignMode === "assign" ? "assignTickets" : "unassignTickets";
+            const payload = assignMode === "assign"
+                ? { raffleId, vendorId: selectedVendor, ticketNumbers: assignList }
+                : { raffleId, ticketNumbers: assignList };
+            const result = await callFunction<{ assigned?: number; unassigned?: number; skipped: number; skippedDetails?: SkipDetail[] }>(fnName, payload);
+
+            const okCount = assignMode === "assign" ? (result.assigned ?? 0) : (result.unassigned ?? 0);
+            const okVerb = assignMode === "assign" ? "asignada(s)" : "liberada(s)";
+
+            if (okCount > 0) toast.success(`${okCount} boleta(s) ${okVerb}`);
+
+            // Avisar las que se saltaron (alguien las cambió, etc.).
+            if (result.skipped > 0) {
+                const details = result.skippedDetails ?? [];
+                const nums = details.filter(d => d.number >= 0).map(d => formatTicketNumbers([d.number])).join(", ");
+                toast.warning(
+                    `${result.skipped} boleta(s) no se procesaron${nums ? `: ${nums}` : ""}. ` +
+                    `Puede que alguien las haya cambiado. Refresca la pantalla.`
+                );
             }
+
             setAssignList([]);
             setAssignMode(null);
             setSelectedVendor("");
+            // Recargar boletas desde el servidor para reflejar el estado real.
+            await reloadTickets();
         } catch (err) {
             setAssignError(err instanceof Error ? err.message : "Error al procesar");
         } finally { setAssigning(false); }

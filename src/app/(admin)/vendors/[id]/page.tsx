@@ -471,10 +471,19 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
         if (confirmTicket === null) return;
         setUnassigning(true);
         try {
-            await ticketService.unassign(raffleId, [confirmTicket]);
+            const res = await ticketService.unassign(raffleId, [confirmTicket]) as { unassigned?: number; skipped?: number };
             setConfirmTicket(null);
+            if ((res?.skipped ?? 0) > 0 && (res?.unassigned ?? 0) === 0) {
+                // No se pudo liberar: alguien la cambió (abono/cliente) desde otra sesión.
+                toast.warning("No se pudo liberar la boleta. Puede que alguien la haya cambiado. Refresca la pantalla.");
+            } else if ((res?.unassigned ?? 0) > 0) {
+                toast.success("Boleta liberada");
+            }
             onReload();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            toast.danger(e instanceof Error ? e.message : "No se pudo liberar la boleta");
+        }
         finally { setUnassigning(false); }
     };
 

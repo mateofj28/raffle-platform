@@ -178,54 +178,44 @@ export const reversePayment = onCall(
             const db = getDb();
             const paymentRef = db.doc(`tenants/${context.tenantId}/payments/${paymentId}`);
             const adjustmentsCol = db.collection(`tenants/${context.tenantId}/adjustments`);
-
-            // Read original payment
-            const paymentSnap = await paymentRef.get();
-
-            if (!paymentSnap.exists) {
-                throw new AppError(AppErrorCode.NOT_FOUND, "Pago no encontrado.");
-            }
-
-            const payment = paymentSnap.data()!;
-
-            // Query existing reversals for this payment
-            const existingReversalsSnap = await adjustmentsCol
-                .where("paymentId", "==", paymentId)
-                .get();
-
-            let existingReversals = 0;
-            for (const doc of existingReversalsSnap.docs) {
-                existingReversals += doc.data().amount as number;
-            }
-
-            // Calculate the effective amount to reverse (what hasn't been reversed yet)
-            const effectiveAmount = Math.max(0, payment.amount - existingReversals);
-
-            // Get ticket reference
-            const ticketRef = db.doc(
-                `tenants/${context.tenantId}/raffles/${payment.raffleId}/tickets/${payment.ticketId}`
-            );
-
-            // Create adjustment and update ticket in a transaction
             const adjustmentRef = adjustmentsCol.doc();
 
+            // TODO transaccional: el pago, las reversas previas y la boleta se
+            // LEEN dentro de la transacción para evitar doble reverso concurrente
+            // y saldos incorrectos. (Antes se leían fuera y podían quedar obsoletos.)
             const result = await db.runTransaction(async (transaction) => {
-                const ticketSnap = await transaction.get(ticketRef);
+                // 1) Releer el pago dentro de la transacción.
+                const paymentSnap = await transaction.get(paymentRef);
+                if (!paymentSnap.exists) {
+                    throw new AppError(AppErrorCode.NOT_FOUND, "El pago ya no existe (alguien lo modificó). Refresca la pantalla.");
+                }
+                const payment = paymentSnap.data()!;
 
+                // 2) Releer las reversas ya existentes para este pago.
+                const existingReversalsSnap = await transaction.get(
+                    adjustmentsCol.where("paymentId", "==", paymentId)
+                );
+                let existingReversals = 0;
+                for (const doc of existingReversalsSnap.docs) {
+                    existingReversals += doc.data().amount as number;
+                }
+                const effectiveAmount = Math.max(0, (payment.amount as number) - existingReversals);
+
+                // 3) Releer la boleta.
+                const ticketRef = db.doc(
+                    `tenants/${context.tenantId}/raffles/${payment.raffleId}/tickets/${payment.ticketId}`
+                );
+                const ticketSnap = await transaction.get(ticketRef);
                 if (!ticketSnap.exists) {
                     throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
                 }
-
                 const ticket = ticketSnap.data()!;
 
-                // Only adjust balance for the portion not yet reversed
+                // Ajustar saldo solo por la porción no revertida aún.
                 if (effectiveAmount > 0) {
                     const newPendingBalance = ticket.pendingBalance + effectiveAmount;
-
-                    // Status recalculado (fuente única de verdad) con el nuevo saldo.
                     const ticketStatus = computeTicketStatus({ ...ticket, pendingBalance: newPendingBalance });
 
-                    // Create adjustment document
                     transaction.set(adjustmentRef, {
                         paymentId,
                         ticketId: payment.ticketId,
@@ -236,7 +226,6 @@ export const reversePayment = onCall(
                         createdAt: FieldValue.serverTimestamp(),
                     });
 
-                    // Update ticket
                     transaction.update(ticketRef, {
                         pendingBalance: newPendingBalance,
                         status: ticketStatus,
@@ -244,7 +233,7 @@ export const reversePayment = onCall(
                     });
                 }
 
-                // Always delete the payment document
+                // Siempre borrar el documento de pago.
                 transaction.delete(paymentRef);
 
                 const finalBalance = effectiveAmount > 0
@@ -252,16 +241,21 @@ export const reversePayment = onCall(
                     : ticket.pendingBalance;
                 const finalStatus = computeTicketStatus({ ...ticket, pendingBalance: finalBalance });
 
-                return { newPendingBalance: finalBalance, ticketStatus: finalStatus };
+                return {
+                    effectiveAmount,
+                    ticketId: payment.ticketId as string,
+                    newPendingBalance: finalBalance,
+                    ticketStatus: finalStatus,
+                };
             });
 
             // Audit trail
             await createAuditEntry(context.tenantId, "payment_deleted", "payment", paymentId, context.uid, null, {
-                amount: effectiveAmount, reason, ticketId: payment.ticketId,
+                amount: result.effectiveAmount, reason, ticketId: result.ticketId,
             });
 
             return {
-                adjustmentId: effectiveAmount > 0 ? adjustmentRef.id : null,
+                adjustmentId: result.effectiveAmount > 0 ? adjustmentRef.id : null,
                 newPendingBalance: result.newPendingBalance,
                 ticketStatus: result.ticketStatus,
             };
@@ -294,35 +288,33 @@ export const correctPayment = onCall(
 
             const db = getDb();
             const paymentRef = db.doc(`tenants/${context.tenantId}/payments/${paymentId}`);
-            const paymentSnap = await paymentRef.get();
 
-            if (!paymentSnap.exists) {
-                throw new AppError(AppErrorCode.NOT_FOUND, "Pago no encontrado.");
-            }
+            // Transaccional: el pago y la boleta se LEEN dentro de la transacción,
+            // así `oldAmount` (monto actual del pago) nunca queda obsoleto si otro
+            // usuario corrige/reversa el mismo pago en paralelo.
+            const result = await db.runTransaction(async (transaction) => {
+                const paymentSnap = await transaction.get(paymentRef);
+                if (!paymentSnap.exists) {
+                    throw new AppError(AppErrorCode.NOT_FOUND, "El pago ya no existe (alguien lo modificó). Refresca la pantalla.");
+                }
+                const payment = paymentSnap.data()!;
+                const oldAmount = payment.amount as number;
+                const ticketDocId = payment.ticketId as string;
+                const raffleId = payment.raffleId as string;
 
-            const payment = paymentSnap.data()!;
-            const oldAmount = payment.amount as number;
-            const ticketDocId = payment.ticketId as string;
-            const raffleId = payment.raffleId as string;
-
-            // Get ticket
-            const ticketRef = db.doc(`tenants/${context.tenantId}/raffles/${raffleId}/tickets/${ticketDocId}`);
-
-            await db.runTransaction(async (transaction) => {
+                const ticketRef = db.doc(`tenants/${context.tenantId}/raffles/${raffleId}/tickets/${ticketDocId}`);
                 const ticketSnap = await transaction.get(ticketRef);
                 if (!ticketSnap.exists) throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
 
                 const ticket = ticketSnap.data()!;
                 const currentBalance = ticket.pendingBalance as number;
 
-                // Calculate new balance: add back old amount, subtract new amount
+                // Nuevo saldo: devolver el monto viejo y restar el nuevo.
                 const newBalance = currentBalance + oldAmount - newAmount;
-
                 if (newBalance < 0) {
                     throw new AppError(AppErrorCode.PAYMENT_EXCEEDS_BALANCE, "El nuevo monto excede el valor de la boleta.");
                 }
 
-                // Update the payment document with new amount
                 transaction.update(paymentRef, {
                     amount: newAmount,
                     observations: `${payment.observations || ""} [Corregido: $${oldAmount.toLocaleString()} → $${newAmount.toLocaleString()}. ${reason}]`,
@@ -330,7 +322,6 @@ export const correctPayment = onCall(
                     correctedBy: context.uid,
                 });
 
-                // Update ticket balance — status recalculado (fuente única de verdad).
                 const newStatus = computeTicketStatus({ ...ticket, pendingBalance: newBalance });
                 transaction.update(ticketRef, {
                     pendingBalance: newBalance,
@@ -338,25 +329,26 @@ export const correctPayment = onCall(
                     updatedAt: FieldValue.serverTimestamp(),
                 });
 
-                // Create audit adjustment record
                 const adjustmentsCol = db.collection(`tenants/${context.tenantId}/adjustments`);
                 transaction.set(adjustmentsCol.doc(), {
                     paymentId,
                     ticketId: ticketDocId,
                     raffleId,
-                    amount: newAmount - oldAmount, // difference (can be positive or negative)
+                    amount: newAmount - oldAmount,
                     reason: `Corrección: $${oldAmount.toLocaleString()} → $${newAmount.toLocaleString()}. ${reason}`,
                     authorizedBy: context.uid,
                     createdAt: FieldValue.serverTimestamp(),
                 });
+
+                return { oldAmount };
             });
 
             // Audit trail
             await createAuditEntry(context.tenantId, "payment_corrected", "payment", paymentId, context.uid, null, {
-                oldAmount, newAmount, reason,
+                oldAmount: result.oldAmount, newAmount, reason,
             });
 
-            return { success: true, oldAmount, newAmount };
+            return { success: true, oldAmount: result.oldAmount, newAmount };
         } catch (error) {
             handleError(error);
         }

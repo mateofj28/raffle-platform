@@ -211,49 +211,55 @@ export const assignTickets = onCall(
 
             let assigned = 0;
             let skipped = 0;
+            // Detalle de las boletas que no se pudieron asignar y por qué, para que
+            // el front avise (p. ej. "alguien las cambió, refresca la pantalla").
+            const skippedDetails: { number: number; reason: string }[] = [];
 
-            for (let i = 0; i < refsToAssign.length; i += BATCH_SIZE) {
-                const batch = db.batch();
-                const chunk = refsToAssign.slice(i, i + BATCH_SIZE);
+            // Cada boleta se procesa en su PROPIA transacción (get+update atómico):
+            // si otro usuario la modificó entre la resolución y la escritura, la
+            // relectura dentro de la transacción lo detecta y no la pisa.
+            for (const ticketRef of refsToAssign) {
+                try {
+                    await db.runTransaction(async (transaction) => {
+                        const ticketSnap = await transaction.get(ticketRef);
+                        if (!ticketSnap.exists) {
+                            skipped++;
+                            skippedDetails.push({ number: -1, reason: "La boleta no existe." });
+                            return;
+                        }
+                        const ticket = ticketSnap.data()!;
+                        const ticketNum = (ticket.number as number) ?? -1;
 
-                for (const ticketRef of chunk) {
-                    const ticketSnap = await ticketRef.get();
+                        // Se puede (re)asignar solo si NO tiene cliente y NO tiene abono.
+                        const value = (ticket.value as number) ?? 0;
+                        const pending = (ticket.pendingBalance as number) ?? value;
+                        const paid = value - pending;
+                        const canAssign = !ticket.customerId && paid <= 0;
 
-                    if (!ticketSnap.exists) {
-                        skipped++;
-                        continue;
-                    }
+                        if (!canAssign) {
+                            skipped++;
+                            skippedDetails.push({
+                                number: ticketNum,
+                                reason: "Ya tiene cliente o abonos (alguien la cambió). Refresca la pantalla.",
+                            });
+                            return;
+                        }
 
-                    const ticket = ticketSnap.data()!;
-
-                    // Una boleta se puede (re)asignar si NO tiene cliente y NO tiene
-                    // abono, sin importar su status guardado. Esto unifica la definición
-                    // de "disponible" con el estado derivado que ve el usuario y evita
-                    // el caso "assigned sin cliente ni dinero" que quedaba bloqueado.
-                    const value = (ticket.value as number) ?? 0;
-                    const pending = (ticket.pendingBalance as number) ?? value;
-                    const paid = value - pending;
-                    const canAssign = !ticket.customerId && paid <= 0;
-
-                    if (!canAssign) {
-                        skipped++;
-                        continue;
-                    }
-
-                    // Recalcular el status con el nuevo vendedor (fuente única de verdad).
-                    const newStatus = computeTicketStatus({ ...ticket, vendorId });
-                    batch.update(ticketRef, {
-                        status: newStatus,
-                        vendorId,
-                        updatedAt: FieldValue.serverTimestamp(),
+                        const newStatus = computeTicketStatus({ ...ticket, vendorId });
+                        transaction.update(ticketRef, {
+                            status: newStatus,
+                            vendorId,
+                            updatedAt: FieldValue.serverTimestamp(),
+                        });
+                        assigned++;
                     });
-                    assigned++;
+                } catch {
+                    skipped++;
+                    skippedDetails.push({ number: -1, reason: "No se pudo asignar (error temporal)." });
                 }
-
-                await batch.commit();
             }
 
-            return { assigned, skipped };
+            return { assigned, skipped, skippedDetails };
         } catch (error) {
             handleError(error);
         }
@@ -302,7 +308,7 @@ export const sellTicket = onCall(
                 if (ticket.status !== "assigned") {
                     throw new AppError(
                         AppErrorCode.CONFLICT,
-                        "La boleta ya no está disponible."
+                        "La boleta cambió de estado y ya no está disponible para vender. Refresca la pantalla."
                     );
                 }
 
@@ -373,46 +379,56 @@ export const unassignTickets = onCall(
             );
             let unassigned = 0;
             let skipped = 0;
+            const skippedDetails: { number: number; reason: string }[] = [];
 
-            for (let i = 0; i < refsToUnassign.length; i += BATCH_SIZE) {
-                const batch = db.batch();
-                const chunk = refsToUnassign.slice(i, i + BATCH_SIZE);
+            // Cada boleta en su propia transacción (get+update atómico) para no
+            // liberar por error una boleta que otro usuario acaba de abonar/vender.
+            for (const ticketRef of refsToUnassign) {
+                try {
+                    await db.runTransaction(async (transaction) => {
+                        const ticketSnap = await transaction.get(ticketRef);
+                        if (!ticketSnap.exists) {
+                            skipped++;
+                            skippedDetails.push({ number: -1, reason: "La boleta no existe." });
+                            return;
+                        }
+                        const ticket = ticketSnap.data()!;
+                        const ticketNum = (ticket.number as number) ?? -1;
 
-                for (const ticketRef of chunk) {
-                    const ticketSnap = await ticketRef.get();
+                        // Se puede desasignar si está "assigned", o si no tiene cliente
+                        // ni abono (liberar no pierde información). Si recibió abono o
+                        // tiene cliente, se bloquea (alguien la cambió).
+                        const amountPaid = (ticket.value ?? 0) - (ticket.pendingBalance ?? 0);
+                        const canUnassign =
+                            ticket.status === "assigned" ||
+                            (!ticket.customerId && amountPaid === 0);
 
-                    if (!ticketSnap.exists) { skipped++; continue; }
+                        if (!canUnassign) {
+                            skipped++;
+                            skippedDetails.push({
+                                number: ticketNum,
+                                reason: "Ya tiene cliente o abonos (alguien la cambió). Refresca la pantalla.",
+                            });
+                            return;
+                        }
 
-                    const ticket = ticketSnap.data()!;
-
-                    // Se permite desasignar una boleta cuando:
-                    //  - está "assigned" (asignada, sin vender), o
-                    //  - no tiene cliente y no tiene ningún abono (abonado en $0),
-                    //    sin importar el estado. Una boleta sin dueño ni dinero no
-                    //    pierde información al liberarse.
-                    const amountPaid = (ticket.value ?? 0) - (ticket.pendingBalance ?? 0);
-                    const canUnassign =
-                        ticket.status === "assigned" ||
-                        (!ticket.customerId && amountPaid === 0);
-
-                    if (!canUnassign) { skipped++; continue; }
-
-                    // Boleta liberada: sin dueño, sin cliente y saldo completo → available.
-                    batch.update(ticketRef, {
-                        status: computeTicketStatus({ value: ticket.value ?? 0, pendingBalance: ticket.value ?? 0, vendorId: null, customerId: null }),
-                        vendorId: null,
-                        customerId: null,
-                        pendingBalance: ticket.value ?? 0,
-                        saleDate: null,
-                        updatedAt: FieldValue.serverTimestamp(),
+                        transaction.update(ticketRef, {
+                            status: computeTicketStatus({ value: ticket.value ?? 0, pendingBalance: ticket.value ?? 0, vendorId: null, customerId: null }),
+                            vendorId: null,
+                            customerId: null,
+                            pendingBalance: ticket.value ?? 0,
+                            saleDate: null,
+                            updatedAt: FieldValue.serverTimestamp(),
+                        });
+                        unassigned++;
                     });
-                    unassigned++;
+                } catch {
+                    skipped++;
+                    skippedDetails.push({ number: -1, reason: "No se pudo liberar (error temporal)." });
                 }
-
-                await batch.commit();
             }
 
-            return { unassigned, skipped };
+            return { unassigned, skipped, skippedDetails };
         } catch (error) {
             handleError(error);
         }
@@ -452,30 +468,35 @@ export const updateTicketClient = onCall(
                 throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
             }
 
-            const ticketSnap = await ticketRef.get();
-            if (!ticketSnap.exists) {
-                throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
-            }
+            const db = getDb();
+            // Transaccional: se relee la boleta y se escribe atómicamente para no
+            // pisar cambios concurrentes (otro usuario pudo desasignarla/venderla).
+            await db.runTransaction(async (transaction) => {
+                const ticketSnap = await transaction.get(ticketRef);
+                if (!ticketSnap.exists) {
+                    throw new AppError(AppErrorCode.NOT_FOUND, "Boleta no encontrada.");
+                }
 
-            const ticket = ticketSnap.data()!;
+                const ticket = ticketSnap.data()!;
 
-            // If vendor role, validate ownership — a vendor can only touch their own tickets
-            if (context.role === "vendor") {
-                requireVendorOwnership(context, ticket.vendorId);
-            }
+                // If vendor role, validate ownership — a vendor can only touch their own tickets
+                if (context.role === "vendor") {
+                    requireVendorOwnership(context, ticket.vendorId);
+                }
 
-            // Recalcular el status con el nuevo cliente (fuente única de verdad).
-            const newStatus = computeTicketStatus({ ...ticket, customerId });
-            const updates: Record<string, unknown> = {
-                customerId,
-                status: newStatus,
-                updatedAt: FieldValue.serverTimestamp(),
-            };
-            // saleDate: se pone al ganar cliente pagado; se limpia al quedar sin cliente.
-            if (!customerId) updates.saleDate = null;
-            else if (!ticket.saleDate) updates.saleDate = FieldValue.serverTimestamp();
+                // Recalcular el status con el nuevo cliente (fuente única de verdad).
+                const newStatus = computeTicketStatus({ ...ticket, customerId });
+                const updates: Record<string, unknown> = {
+                    customerId,
+                    status: newStatus,
+                    updatedAt: FieldValue.serverTimestamp(),
+                };
+                // saleDate: se pone al ganar cliente pagado; se limpia al quedar sin cliente.
+                if (!customerId) updates.saleDate = null;
+                else if (!ticket.saleDate) updates.saleDate = FieldValue.serverTimestamp();
 
-            await ticketRef.update(updates);
+                transaction.update(ticketRef, updates);
+            });
 
             return { success: true };
         } catch (error) {
