@@ -8,7 +8,7 @@ import { ArrowLeft, User, DollarSign, Search } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
-import { formatCurrency, formatTicketNumber } from "@/utils/formatters";
+import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
@@ -143,7 +143,7 @@ export default function EditTicketPage() {
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-4 text-sm">
-              <span className="font-mono font-bold">#{ticketNumber}</span>
+              <span className="font-mono font-bold">#{formatTicketNumbers(ticket.numbers, ticketNumber)}</span>
               <span className="text-default-500">Estado: <span className="font-medium text-foreground">{{ available: "Disponible", assigned: "Asignada", sold: "Vendida", paid: "Pagada", installment: "Abonada", winner: "Ganadora" }[ticket.status] || ticket.status}</span></span>
               <span className="text-default-500">Saldo: <span className="font-medium text-foreground">{formatCurrency(ticket.pendingBalance)}</span></span>
               {ticket.customerId && (
