@@ -9,4 +9,7 @@ export const vendorService = {
 
     getMetrics: (vendorId: string, raffleId?: string) =>
         callFunction<Record<string, number>>("getVendorMetrics", { vendorId, raffleId }),
+
+    remove: (vendorId: string) =>
+        callFunction<{ success: boolean }>("deleteVendor", { vendorId }),
 };

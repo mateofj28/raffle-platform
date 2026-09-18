@@ -10,9 +10,11 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { CustomerTable } from "@/features/customers/components/customer-table";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
+import { useAuthStore } from "@/store/auth.store";
 
 export default function CustomersPage() {
-    const { data: customers = [], isLoading } = useCustomers();
+    const { data: customers = [], isLoading, refetch } = useCustomers();
+    const isAdmin = useAuthStore((s) => s.user?.role) === "admin";
     const [search, setSearch] = useState("");
     const [isDark, setIsDark] = useState(false);
 
@@ -72,7 +74,7 @@ export default function CustomersPage() {
                             {filtered.length === 0 ? (
                                 <p className="text-sm text-default-500 py-8 text-center">No se encontraron clientes con "{search}"</p>
                             ) : (
-                                <CustomerTable customers={filtered} />
+                                    <CustomerTable customers={filtered} canDelete={isAdmin} onDeleted={() => refetch()} />
                             )}
                         </>
           )}

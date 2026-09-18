@@ -6,4 +6,7 @@ export const customerService = {
 
     update: (customerId: string, data: Record<string, unknown>) =>
         callFunction<{ success: boolean }>("updateCustomer", { customerId, ...data }),
+
+    remove: (customerId: string) =>
+        callFunction<{ success: boolean }>("deleteCustomer", { customerId }),
 };

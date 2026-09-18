@@ -7,8 +7,8 @@ export { setCustomClaims, createUser, updateUser, recordLoginAttempt, checkAccou
 export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber, deleteRaffle } from "./services/raffle.service";
 export { assignTickets, sellTicket, unassignTickets, updateTicketClient, generateTickets } from "./services/ticket.service";
 export { registerPayment, reversePayment, correctPayment } from "./services/payment.service";
-export { createCustomer, updateCustomer } from "./services/customer.service";
-export { createVendor, updateVendor, getVendorMetrics } from "./services/vendor.service";
+export { createCustomer, updateCustomer, deleteCustomer } from "./services/customer.service";
+export { createVendor, updateVendor, getVendorMetrics, deleteVendor } from "./services/vendor.service";
 export { getDashboardMetrics } from "./services/dashboard.service";
 export { globalSearch } from "./services/search.service";
 export { exportData } from "./services/export.service";

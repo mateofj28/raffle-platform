@@ -10,9 +10,11 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { VendorTable } from "@/features/vendors/components/vendor-table";
 import { useVendors } from "@/features/vendors/hooks/use-vendors";
+import { useAuthStore } from "@/store/auth.store";
 
 export default function VendorsPage() {
-    const { data: vendors = [], isLoading } = useVendors();
+    const { data: vendors = [], isLoading, refetch } = useVendors();
+    const isAdmin = useAuthStore((s) => s.user?.role) === "admin";
     const [search, setSearch] = useState("");
     const [isDark, setIsDark] = useState(false);
 
@@ -72,7 +74,7 @@ export default function VendorsPage() {
                             {filtered.length === 0 ? (
                                 <p className="text-sm text-default-500 py-8 text-center">No se encontraron vendedores con "{search}"</p>
                             ) : (
-                                <VendorTable vendors={filtered} />
+                                    <VendorTable vendors={filtered} canDelete={isAdmin} onDeleted={() => refetch()} />
                             )}
                         </>
           )}

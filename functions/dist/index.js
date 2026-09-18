@@ -5,7 +5,7 @@
  * Uses lazy exports to avoid initialization timeout on Node 24.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.finishExpiredRaffles = exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.getPairings = exports.savePairings = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.sellTicket = exports.assignTickets = exports.deleteRaffle = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
+exports.finishExpiredRaffles = exports.cleanupExports = exports.aggregateMetrics = exports.onTicketStatusChanged = exports.onAdjustmentCreated = exports.onPaymentCreated = exports.getPairings = exports.savePairings = exports.payCommission = exports.exportData = exports.globalSearch = exports.getDashboardMetrics = exports.deleteVendor = exports.getVendorMetrics = exports.updateVendor = exports.createVendor = exports.deleteCustomer = exports.updateCustomer = exports.createCustomer = exports.correctPayment = exports.reversePayment = exports.registerPayment = exports.generateTickets = exports.updateTicketClient = exports.unassignTickets = exports.sellTicket = exports.assignTickets = exports.deleteRaffle = exports.setWinningNumber = exports.transitionRaffleState = exports.updateRaffle = exports.createRaffle = exports.checkAccountLock = exports.recordLoginAttempt = exports.updateUser = exports.createUser = exports.setCustomClaims = void 0;
 // Initialize Firebase Admin immediately (lightweight)
 const firestore_1 = require("./utils/firestore");
 (0, firestore_1.initAdmin)();
@@ -40,11 +40,13 @@ Object.defineProperty(exports, "correctPayment", { enumerable: true, get: functi
 var customer_service_1 = require("./services/customer.service");
 Object.defineProperty(exports, "createCustomer", { enumerable: true, get: function () { return customer_service_1.createCustomer; } });
 Object.defineProperty(exports, "updateCustomer", { enumerable: true, get: function () { return customer_service_1.updateCustomer; } });
+Object.defineProperty(exports, "deleteCustomer", { enumerable: true, get: function () { return customer_service_1.deleteCustomer; } });
 // Vendor service
 var vendor_service_1 = require("./services/vendor.service");
 Object.defineProperty(exports, "createVendor", { enumerable: true, get: function () { return vendor_service_1.createVendor; } });
 Object.defineProperty(exports, "updateVendor", { enumerable: true, get: function () { return vendor_service_1.updateVendor; } });
 Object.defineProperty(exports, "getVendorMetrics", { enumerable: true, get: function () { return vendor_service_1.getVendorMetrics; } });
+Object.defineProperty(exports, "deleteVendor", { enumerable: true, get: function () { return vendor_service_1.deleteVendor; } });
 // Dashboard
 var dashboard_service_1 = require("./services/dashboard.service");
 Object.defineProperty(exports, "getDashboardMetrics", { enumerable: true, get: function () { return dashboard_service_1.getDashboardMetrics; } });

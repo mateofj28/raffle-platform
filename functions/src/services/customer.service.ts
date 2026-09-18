@@ -36,6 +36,10 @@ const updateCustomerSchema = z.object({
     city: z.string().max(50).optional(),
 });
 
+const deleteCustomerSchema = z.object({
+    customerId: z.string().min(1),
+});
+
 // --- Callable Functions ---
 
 /**
@@ -154,6 +158,51 @@ export const updateCustomer = onCall(
 
             await customerRef.update(updateData);
 
+            return { success: true };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
+
+/**
+ * Elimina un cliente. Solo admin.
+ * Por seguridad, NO permite eliminar un cliente que tenga boletas asociadas
+ * en cualquier rifa (evita dejar boletas apuntando a un cliente inexistente).
+ */
+export const deleteCustomer = onCall(
+    { region: "us-central1", timeoutSeconds: 120 },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const { customerId } = validateData(deleteCustomerSchema, request.data);
+
+            const db = getDb();
+            const customerRef = db.doc(`tenants/${context.tenantId}/customers/${customerId}`);
+            const customerSnap = await customerRef.get();
+            if (!customerSnap.exists) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Cliente no encontrado.");
+            }
+
+            // ¿Tiene boletas en alguna rifa? Si sí, no se puede eliminar.
+            const rafflesSnap = await db.collection(`tenants/${context.tenantId}/raffles`).get();
+            for (const raffle of rafflesSnap.docs) {
+                const withTickets = await db
+                    .collection(`tenants/${context.tenantId}/raffles/${raffle.id}/tickets`)
+                    .where("customerId", "==", customerId)
+                    .limit(1)
+                    .get();
+                if (!withTickets.empty) {
+                    throw new AppError(
+                        AppErrorCode.CONFLICT,
+                        "No se puede eliminar: el cliente tiene boletas asociadas. Quítale las boletas primero."
+                    );
+                }
+            }
+
+            await customerRef.delete();
             return { success: true };
         } catch (error) {
             handleError(error);

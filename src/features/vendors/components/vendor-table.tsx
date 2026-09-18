@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { Button, AlertDialog, toast } from "@heroui/react";
 import type { Vendor } from "@/types/api.types";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Eye } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
+import { vendorService } from "../services/vendor.service";
 
 const VENDOR_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     active: { label: "Activo", color: "success" },
@@ -26,9 +29,31 @@ function usernameFromName(fullName: string): string {
 
 interface VendorTableProps {
     vendors: Vendor[];
+    /** Solo el admin puede eliminar. */
+    canDelete?: boolean;
+    /** Se llama tras eliminar para refrescar la lista. */
+    onDeleted?: () => void;
 }
 
-export function VendorTable({ vendors }: VendorTableProps) {
+export function VendorTable({ vendors, canDelete = false, onDeleted }: VendorTableProps) {
+    const [toDelete, setToDelete] = useState<Vendor | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDelete = async () => {
+        if (!toDelete) return;
+        setDeleting(true);
+        try {
+            await vendorService.remove(toDelete.id);
+            toast.success(`Vendedor "${toDelete.name}" eliminado`);
+            setToDelete(null);
+            onDeleted?.();
+        } catch (e) {
+            toast.danger(e instanceof Error ? e.message : "No se pudo eliminar el vendedor");
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     return (
         <>
             <div className="overflow-x-auto rounded-lg border border-default-200">
@@ -54,15 +79,49 @@ export function VendorTable({ vendors }: VendorTableProps) {
                                     <StatusBadge status={vendor.status} statusConfig={VENDOR_STATUS_CONFIG} />
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                    <Link href={`/vendors/${vendor.id}`} className="text-default-500 hover:text-primary">
-                                        <Eye className="h-4 w-4 inline" />
-                                    </Link>
+                                    <div className="inline-flex items-center gap-3">
+                                        <Link href={`/vendors/${vendor.id}`} className="text-default-500 hover:text-primary" aria-label="Ver vendedor">
+                                            <Eye className="h-4 w-4 inline" />
+                                        </Link>
+                                        {canDelete && (
+                                            <button
+                                                onClick={() => setToDelete(vendor)}
+                                                className="text-default-400 hover:text-red-500 transition-colors"
+                                                aria-label="Eliminar vendedor"
+                                            >
+                                                <Trash2 className="h-4 w-4 inline" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+
+            {/* Modal de confirmación de eliminación */}
+            <AlertDialog.Backdrop isOpen={toDelete !== null} onOpenChange={(open) => { if (!open) setToDelete(null); }} isDismissable>
+                <AlertDialog.Container placement="center" size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.CloseTrigger />
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger" />
+                            <AlertDialog.Heading>¿Eliminar vendedor?</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <p>Vas a eliminar a <strong>{toDelete?.name}</strong> ({toDelete?.document}). Esta acción no se puede deshacer.</p>
+                            <p className="text-sm text-default-500 mt-2">Si el vendedor tiene boletas asignadas, no se podrá eliminar.</p>
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">Cancelar</Button>
+                            <Button variant="danger" isDisabled={deleting} onPress={handleDelete}>
+                                {deleting ? "Eliminando..." : "Sí, eliminar"}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </>
     );
 }

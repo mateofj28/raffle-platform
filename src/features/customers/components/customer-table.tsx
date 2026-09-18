@@ -1,14 +1,39 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { Button, AlertDialog, toast } from "@heroui/react";
 import type { Customer } from "@/types/api.types";
-import { Eye } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
+import { customerService } from "../services/customer.service";
 
 interface CustomerTableProps {
   customers: Customer[];
+  /** Solo el admin puede eliminar. */
+  canDelete?: boolean;
+  /** Se llama tras eliminar para refrescar la lista. */
+  onDeleted?: () => void;
 }
 
-export function CustomerTable({ customers }: CustomerTableProps) {
+export function CustomerTable({ customers, canDelete = false, onDeleted }: CustomerTableProps) {
+  const [toDelete, setToDelete] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await customerService.remove(toDelete.id);
+      toast.success(`Cliente "${toDelete.name}" eliminado`);
+      setToDelete(null);
+      onDeleted?.();
+    } catch (e) {
+      toast.danger(e instanceof Error ? e.message : "No se pudo eliminar el cliente");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="overflow-x-auto rounded-lg border border-default-200">
       <table className="w-full text-sm">
@@ -29,14 +54,48 @@ export function CustomerTable({ customers }: CustomerTableProps) {
               <td className="px-4 py-3 text-default-600">{customer.phone}</td>
               <td className="px-4 py-3 text-default-600">{customer.city || "—"}</td>
               <td className="px-4 py-3 text-right">
-                <Link href={`/customers/${customer.id}`} className="text-default-500 hover:text-primary">
-                  <Eye className="h-4 w-4 inline" />
-                </Link>
+                <div className="inline-flex items-center gap-3">
+                  <Link href={`/customers/${customer.id}`} className="text-default-500 hover:text-primary" aria-label="Ver cliente">
+                    <Eye className="h-4 w-4 inline" />
+                  </Link>
+                  {canDelete && (
+                    <button
+                      onClick={() => setToDelete(customer)}
+                      className="text-default-400 hover:text-red-500 transition-colors"
+                      aria-label="Eliminar cliente"
+                    >
+                      <Trash2 className="h-4 w-4 inline" />
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {/* Modal de confirmación de eliminación */}
+      <AlertDialog.Backdrop isOpen={toDelete !== null} onOpenChange={(open) => { if (!open) setToDelete(null); }} isDismissable>
+        <AlertDialog.Container placement="center" size="sm">
+          <AlertDialog.Dialog>
+            <AlertDialog.CloseTrigger />
+            <AlertDialog.Header>
+              <AlertDialog.Icon status="danger" />
+              <AlertDialog.Heading>¿Eliminar cliente?</AlertDialog.Heading>
+            </AlertDialog.Header>
+            <AlertDialog.Body>
+              <p>Vas a eliminar a <strong>{toDelete?.name}</strong> ({toDelete?.document}). Esta acción no se puede deshacer.</p>
+              <p className="text-sm text-default-500 mt-2">Si el cliente tiene boletas asociadas, no se podrá eliminar.</p>
+            </AlertDialog.Body>
+            <AlertDialog.Footer>
+              <Button slot="close" variant="tertiary">Cancelar</Button>
+              <Button variant="danger" isDisabled={deleting} onPress={handleDelete}>
+                {deleting ? "Eliminando..." : "Sí, eliminar"}
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Dialog>
+        </AlertDialog.Container>
+      </AlertDialog.Backdrop>
     </div>
   );
 }

@@ -39,6 +39,10 @@ const getVendorMetricsSchema = z.object({
     raffleId: z.string().min(1).optional(),
 });
 
+const deleteVendorSchema = z.object({
+    vendorId: z.string().min(1),
+});
+
 // --- Callable Functions ---
 
 /**
@@ -156,6 +160,51 @@ export const updateVendor = onCall(
 
             await vendorRef.update(updateData);
 
+            return { success: true };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
+
+/**
+ * Elimina un vendedor. Solo admin.
+ * Por seguridad, NO permite eliminar un vendedor que tenga boletas asociadas
+ * en cualquier rifa (evita dejar boletas con un vendedor inexistente).
+ */
+export const deleteVendor = onCall(
+    { region: "us-central1", timeoutSeconds: 120 },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const { vendorId } = validateData(deleteVendorSchema, request.data);
+
+            const db = getDb();
+            const vendorRef = db.doc(`tenants/${context.tenantId}/vendors/${vendorId}`);
+            const vendorSnap = await vendorRef.get();
+            if (!vendorSnap.exists) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Vendedor no encontrado.");
+            }
+
+            // ¿Tiene boletas en alguna rifa? Si sí, no se puede eliminar.
+            const rafflesSnap = await db.collection(`tenants/${context.tenantId}/raffles`).get();
+            for (const raffle of rafflesSnap.docs) {
+                const withTickets = await db
+                    .collection(`tenants/${context.tenantId}/raffles/${raffle.id}/tickets`)
+                    .where("vendorId", "==", vendorId)
+                    .limit(1)
+                    .get();
+                if (!withTickets.empty) {
+                    throw new AppError(
+                        AppErrorCode.CONFLICT,
+                        "No se puede eliminar: el vendedor tiene boletas asignadas. Libera sus boletas primero."
+                    );
+                }
+            }
+
+            await vendorRef.delete();
             return { success: true };
         } catch (error) {
             handleError(error);

@@ -22,10 +22,10 @@ export { assignTickets, sellTicket, unassignTickets, updateTicketClient, generat
 export { registerPayment, reversePayment, correctPayment } from "./services/payment.service";
 
 // Customer service
-export { createCustomer, updateCustomer } from "./services/customer.service";
+export { createCustomer, updateCustomer, deleteCustomer } from "./services/customer.service";
 
 // Vendor service
-export { createVendor, updateVendor, getVendorMetrics } from "./services/vendor.service";
+export { createVendor, updateVendor, getVendorMetrics, deleteVendor } from "./services/vendor.service";
 
 // Dashboard
 export { getDashboardMetrics } from "./services/dashboard.service";
