@@ -89,6 +89,15 @@ export const registerPayment = onCall(
                     );
                 }
 
+                // Debe tener un vendedor responsable para aceptar un abono. Si fue
+                // liberada (dato obsoleto en pantalla), se bloquea con aviso de refrescar.
+                if (!ticket.vendorId) {
+                    throw new AppError(
+                        AppErrorCode.CONFLICT,
+                        "La boleta ya no tiene vendedor asignado (alguien la liberó). Refresca la pantalla."
+                    );
+                }
+
                 // If vendor role, validate ownership
                 if (context.role === "vendor") {
                     requireVendorOwnership(context, ticket.vendorId);

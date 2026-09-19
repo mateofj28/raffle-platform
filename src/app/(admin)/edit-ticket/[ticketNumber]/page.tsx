@@ -154,6 +154,14 @@ export default function EditTicketPage() {
         </Card>
       )}
 
+      {/* Aviso: no se puede asignar cliente si la boleta no tiene vendedor. */}
+      {ticket && !ticket.vendorId && (
+        <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <span className="font-semibold">Esta boleta no tiene vendedor asignado.</span>{" "}
+          Puede que haya sido liberada. Para asignarle un cliente, primero debe asignarse a un vendedor. Refresca la pantalla.
+        </div>
+      )}
+
       {/* Change client */}
       {action === "client" && (
         <Card>
@@ -206,7 +214,7 @@ export default function EditTicketPage() {
                 </Button>
               )}
               <Button variant="ghost" onPress={() => router.back()}>Cancelar</Button>
-              <Button variant="primary" isDisabled={!selectedCustomerId || processing} onPress={handleChangeClient}>
+              <Button variant="primary" isDisabled={!selectedCustomerId || processing || !ticket?.vendorId} onPress={handleChangeClient}>
                 {processing ? "Guardando..." : "Guardar cliente"}
               </Button>
             </div>

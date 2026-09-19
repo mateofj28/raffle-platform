@@ -484,6 +484,18 @@ export const updateTicketClient = onCall(
                     requireVendorOwnership(context, ticket.vendorId);
                 }
 
+                // Para ASIGNAR un cliente, la boleta debe tener vendedor. No puede
+                // haber cliente sin un vendedor responsable. Esto bloquea el caso en
+                // que la pantalla mostraba una boleta ya desasignada (dato obsoleto)
+                // y aún permitía ponerle cliente. Quitar el cliente (customerId null)
+                // se permite siempre.
+                if (customerId && !ticket.vendorId) {
+                    throw new AppError(
+                        AppErrorCode.CONFLICT,
+                        "La boleta ya no tiene vendedor asignado (alguien la liberó). Refresca la pantalla; primero debe asignarse a un vendedor."
+                    );
+                }
+
                 // Recalcular el status con el nuevo cliente (fuente única de verdad).
                 const newStatus = computeTicketStatus({ ...ticket, customerId });
                 const updates: Record<string, unknown> = {
