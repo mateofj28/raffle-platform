@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, toast } from "@heroui/react";
-import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil, ChevronDown, X, Trash2 } from "lucide-react";
+import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil, ChevronDown, X, Trash2, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -450,6 +450,55 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
     const [statusFilter, setStatusFilter] = useState("");
     const PAGE_SIZE = 20;
 
+    const tenantId = useAuthStore((s) => s.user?.tenantId);
+    // Número de boleta cuya acción se está verificando (para el spinner en su botón).
+    const [verifyingNum, setVerifyingNum] = useState<number | null>(null);
+    // Mensaje de problema detectado al verificar (abre el modal). null = sin problema.
+    const [problem, setProblem] = useState<string | null>(null);
+
+    /**
+     * Antes de navegar a una pantalla de acción, RE-VERIFICA el estado real de la
+     * boleta en Firestore (por si la pantalla tiene datos obsoletos). Si hay
+     * problema, muestra un modal con el mensaje; si todo bien, ejecuta `go()`.
+     * `action`: "client" (agregar/cambiar cliente) o "correct" (corregir abono).
+     */
+    const verifyThenGo = async (baseNumber: number, action: "client" | "correct", go: () => void) => {
+        if (!tenantId) { go(); return; }
+        setVerifyingNum(baseNumber);
+        try {
+            const padded = String(baseNumber).padStart(4, "0");
+            const snap = await getDoc(doc(getDb(), "tenants", tenantId, "raffles", raffleId, "tickets", padded));
+            if (!snap.exists()) {
+                setProblem("La boleta ya no existe. Alguien pudo haberla modificado.");
+                return;
+            }
+            const t = snap.data() as { vendorId?: string | null; customerId?: string | null; value?: number; pendingBalance?: number };
+            const value = t.value ?? 0;
+            const pending = t.pendingBalance ?? value;
+            const paid = value - pending;
+
+            if (action === "client") {
+                // Para asignar/cambiar cliente la boleta debe tener vendedor.
+                if (!t.vendorId) {
+                    setProblem("La boleta ya no tiene vendedor asignado (alguien la liberó). Primero debe asignarse a un vendedor.");
+                    return;
+                }
+            } else if (action === "correct") {
+                // Para corregir un abono, debe tener algún abono registrado.
+                if (paid <= 0) {
+                    setProblem("La boleta ya no tiene abonos registrados (alguien los modificó). No hay nada que corregir.");
+                    return;
+                }
+            }
+            // Todo bien → navegar.
+            go();
+        } catch {
+            setProblem("No se pudo verificar el estado de la boleta. Intenta de nuevo.");
+        } finally {
+            setVerifyingNum(null);
+        }
+    };
+
     // Filter tickets
     const filtered = tickets.filter(t => {
         if (statusFilter && deriveTicketStatus(t) !== statusFilter) return false;
@@ -593,8 +642,10 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                             {(ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
-                                                        <Button variant="ghost" size="sm" onPress={() => onEditTicket(ticket.number, "client")} aria-label="Agregar cliente">
-                                                            <Pencil className="h-4 w-4 text-amber-400" />
+                                                        <Button variant="ghost" size="sm" isDisabled={verifyingNum !== null} onPress={() => verifyThenGo(ticket.number, "client", () => onEditTicket(ticket.number, "client"))} aria-label="Agregar cliente">
+                                                            {verifyingNum === ticket.number
+                                                                ? <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+                                                                : <Pencil className="h-4 w-4 text-amber-400" />}
                                                         </Button>
                                                     </Tooltip.Trigger>
                                                     <Tooltip.Content>Agregar cliente</Tooltip.Content>
@@ -603,8 +654,10 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                             {amountPaid > 0 && userRole === "admin" && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
-                                                        <Button variant="ghost" size="sm" onPress={() => onCorrectPayment(ticket.number)} aria-label="Corregir abono">
-                                                            <DollarSign className="h-4 w-4 text-cyan-400" />
+                                                        <Button variant="ghost" size="sm" isDisabled={verifyingNum !== null} onPress={() => verifyThenGo(ticket.number, "correct", () => onCorrectPayment(ticket.number))} aria-label="Corregir abono">
+                                                            {verifyingNum === ticket.number
+                                                                ? <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                                                                : <DollarSign className="h-4 w-4 text-cyan-400" />}
                                                         </Button>
                                                     </Tooltip.Trigger>
                                                     <Tooltip.Content>Corregir abono</Tooltip.Content>
@@ -661,6 +714,29 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                   </AlertDialog.Dialog>
               </AlertDialog.Container>
           </AlertDialog.Backdrop>
+
+            {/* Modal de problema detectado al verificar (datos obsoletos). */}
+            <AlertDialog.Backdrop isOpen={problem !== null} onOpenChange={(open) => { if (!open) setProblem(null); }} isDismissable>
+                <AlertDialog.Container placement="center" size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.CloseTrigger />
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="warning" />
+                            <AlertDialog.Heading>La boleta cambió</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <p>{problem}</p>
+                            <p className="text-sm text-default-500 mt-2">Actualiza para ver el estado real de las boletas.</p>
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">Cerrar</Button>
+                            <Button variant="primary" onPress={() => { setProblem(null); onReload(); }}>
+                                Actualizar
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
       </>
   );
 }
