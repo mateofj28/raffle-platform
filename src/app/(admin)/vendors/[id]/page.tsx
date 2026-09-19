@@ -462,7 +462,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
      * problema, muestra un modal con el mensaje; si todo bien, ejecuta `go()`.
      * `action`: "client" (agregar/cambiar cliente) o "correct" (corregir abono).
      */
-    const verifyThenGo = async (baseNumber: number, action: "client" | "correct", go: () => void) => {
+    const verifyThenGo = async (baseNumber: number, action: "client" | "correct" | "unassign", go: () => void) => {
         if (!tenantId) { go(); return; }
         setVerifyingNum(baseNumber);
         try {
@@ -489,8 +489,18 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                     setProblem("La boleta ya no tiene abonos registrados (alguien los modificó). No hay nada que corregir.");
                     return;
                 }
+            } else if (action === "unassign") {
+                // Para desasignar: debe tener vendedor, sin cliente y sin abono.
+                if (!t.vendorId) {
+                    setProblem("La boleta ya no tiene vendedor asignado (alguien la liberó). No hay nada que desasignar.");
+                    return;
+                }
+                if (t.customerId || paid > 0) {
+                    setProblem("La boleta ya tiene cliente o abonos (alguien la cambió). No se puede desasignar.");
+                    return;
+                }
             }
-            // Todo bien → navegar.
+            // Todo bien → continuar (navegar o abrir el modal de confirmación).
             go();
         } catch {
             setProblem("No se pudo verificar el estado de la boleta. Intenta de nuevo.");
@@ -632,8 +642,10 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                             {!ticket.customerName && amountPaid === 0 && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
-                                                        <Button variant="ghost" size="sm" onPress={() => setConfirmTicket(ticket.number)} aria-label="Desasignar">
-                                                            <UserMinus className="h-4 w-4 text-danger" />
+                                                        <Button variant="ghost" size="sm" isDisabled={verifyingNum !== null} onPress={() => verifyThenGo(ticket.number, "unassign", () => setConfirmTicket(ticket.number))} aria-label="Desasignar">
+                                                            {verifyingNum === ticket.number
+                                                                ? <Loader2 className="h-4 w-4 animate-spin text-danger" />
+                                                                : <UserMinus className="h-4 w-4 text-danger" />}
                                                         </Button>
                                                     </Tooltip.Trigger>
                                                     <Tooltip.Content>Desasignar boleta</Tooltip.Content>
@@ -730,7 +742,8 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                         </AlertDialog.Body>
                         <AlertDialog.Footer>
                             <Button slot="close" variant="tertiary">Cerrar</Button>
-                            <Button variant="primary" onPress={() => { setProblem(null); onReload(); }}>
+                            {/* Recargar la página para ver el reflejo puro de la base de datos. */}
+                            <Button variant="primary" onPress={() => window.location.reload()}>
                                 Actualizar
                             </Button>
                         </AlertDialog.Footer>
