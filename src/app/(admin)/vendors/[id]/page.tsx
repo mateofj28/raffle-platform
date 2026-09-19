@@ -462,7 +462,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
      * problema, muestra un modal con el mensaje; si todo bien, ejecuta `go()`.
      * `action`: "client" (agregar/cambiar cliente) o "correct" (corregir abono).
      */
-    const verifyThenGo = async (baseNumber: number, action: "client" | "correct" | "unassign", go: () => void) => {
+    const verifyThenGo = async (baseNumber: number, action: "client" | "unassign", go: () => void) => {
         if (!tenantId) { go(); return; }
         setVerifyingNum(baseNumber);
         try {
@@ -481,12 +481,6 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                 // Para asignar/cambiar cliente la boleta debe tener vendedor.
                 if (!t.vendorId) {
                     setProblem("La boleta ya no tiene vendedor asignado (alguien la liberó). Primero debe asignarse a un vendedor.");
-                    return;
-                }
-            } else if (action === "correct") {
-                // Para corregir un abono, debe tener algún abono registrado.
-                if (paid <= 0) {
-                    setProblem("La boleta ya no tiene abonos registrados (alguien los modificó). No hay nada que corregir.");
                     return;
                 }
             } else if (action === "unassign") {
@@ -666,10 +660,8 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                             {amountPaid > 0 && userRole === "admin" && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
-                                                        <Button variant="ghost" size="sm" isDisabled={verifyingNum !== null} onPress={() => verifyThenGo(ticket.number, "correct", () => onCorrectPayment(ticket.number))} aria-label="Corregir abono">
-                                                            {verifyingNum === ticket.number
-                                                                ? <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
-                                                                : <DollarSign className="h-4 w-4 text-cyan-400" />}
+                                                        <Button variant="ghost" size="sm" onPress={() => onCorrectPayment(ticket.number)} aria-label="Corregir abono">
+                                                            <DollarSign className="h-4 w-4 text-cyan-400" />
                                                         </Button>
                                                     </Tooltip.Trigger>
                                                     <Tooltip.Content>Corregir abono</Tooltip.Content>
