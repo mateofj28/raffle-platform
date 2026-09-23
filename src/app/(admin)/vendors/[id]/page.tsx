@@ -382,8 +382,10 @@ export default function VendorDetailPage() {
                                         )}
                                     </div>
                                 ))}
-                                <div className="flex items-center justify-between mt-4 pt-3 border-t border-default-200">
-                                    <div className="flex items-center gap-6">
+                                {/* En móvil se apila: totales arriba y botón a lo ancho abajo.
+                                    En escritorio: totales a la izquierda y botón a la derecha. */}
+                                <div className="flex flex-col gap-3 mt-4 pt-3 border-t border-default-200 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
                                         {(() => {
                                             const total = paymentList.reduce((s, p) => s + p.amount, 0);
                                             const { cashier, commission } = splitPayment(total);
@@ -396,7 +398,7 @@ export default function VendorDetailPage() {
                                             );
                                         })()}
                                     </div>
-                                    <Button variant="primary" isDisabled={processing} onPress={handleConfirmPayments}>
+                                    <Button variant="primary" isDisabled={processing} onPress={handleConfirmPayments} className="w-full sm:w-auto">
                                         {processing ? "Procesando..." : `Confirmar ${paymentList.length} pago(s)`}
                                     </Button>
                                 </div>
