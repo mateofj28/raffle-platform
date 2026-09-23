@@ -38,10 +38,12 @@ export function StatCard({ title, value, icon, iconColorIndex, trend }: StatCard
                       </div>
                   )}
               </div>
-              <div className="flex items-end justify-between">
-                  <p className="text-2xl font-bold leading-none">{value}</p>
+                <div className="flex items-end justify-between gap-2">
+                    {/* min-w-0 + break-words evita que valores largos (montos en COP)
+                      se salgan de la tarjeta; el texto ajusta o parte de línea. */}
+                    <p className="min-w-0 break-words text-xl sm:text-2xl font-bold leading-tight">{value}</p>
                   {trend && (
-                      <div className={cn("flex items-center gap-1 text-xs font-medium", trend.isPositive ? "text-success" : "text-danger")}>
+                        <div className={cn("flex shrink-0 items-center gap-1 text-xs font-medium", trend.isPositive ? "text-success" : "text-danger")}>
                           {trend.isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                           <span>{trend.value}%</span>
                       </div>
