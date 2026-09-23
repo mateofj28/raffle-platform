@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { splitPayment, vendorCommission } from "@/utils/money";
+import { isRaffleDrawLocked } from "@/utils/raffle-lock";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
@@ -212,6 +213,9 @@ export default function VendorDetailPage() {
         } finally { setProcessing(false); }
     };
 
+    // ¿La rifa está cerrada por el sorteo (después de las 8pm del día del sorteo)?
+    const drawLocked = isRaffleDrawLocked(activeRaffle?.endDate);
+
     return (
       <div>
           <PageHeader
@@ -219,7 +223,7 @@ export default function VendorDetailPage() {
               description={`Boletas en "${activeRaffle.name}"`}
                 actions={
                     <div className="flex items-center gap-2">
-                        <Button variant="primary" size="sm" onPress={() => setShowPaymentPanel(true)}>
+                        <Button variant="primary" size="sm" isDisabled={drawLocked} onPress={() => setShowPaymentPanel(true)}>
                             <DollarSign className="h-4 w-4" /> Registrar pago
                         </Button>
                         <Link href={`/vendors/${vendorId}/edit`}>
@@ -231,6 +235,13 @@ export default function VendorDetailPage() {
                     </div>
                 }
           />
+
+            {drawLocked && (
+                <div className="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm">
+                    <span className="font-semibold">Rifa cerrada por el sorteo.</span>{" "}
+                    El día del sorteo, a partir de las 8:00 p.m., no se permiten operaciones (asignar, desasignar, vender, abonar ni corregir). Esto garantiza la transparencia.
+                </div>
+            )}
 
           {/* Vendor info */}
       <Card className="mb-6">
@@ -431,7 +442,7 @@ export default function VendorDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este vendedor no tiene boletas en esta rifa" icon={<Ticket className="h-12 w-12" />} />
                   ) : (
-                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} onCorrectPayment={(num) => router.push(`/correct-payment/${num}`)} userRole={userRole} />
+                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} drawLocked={drawLocked} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} onCorrectPayment={(num) => router.push(`/correct-payment/${num}`)} userRole={userRole} />
                   )}
               </>
           )}
@@ -442,7 +453,7 @@ export default function VendorDetailPage() {
 
 // --- Table with unassign (SRP) ---
 
-function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, onEditTicket, onCorrectPayment, userRole }: { tickets: TicketWithCustomer[]; raffleId: string; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void; onCorrectPayment: (ticketNum: number) => void; userRole?: string }) {
+function TicketsTableWithUnassign({ tickets, raffleId, drawLocked = false, onReload, onSell, onPay, onEditTicket, onCorrectPayment, userRole }: { tickets: TicketWithCustomer[]; raffleId: string; drawLocked?: boolean; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void; onCorrectPayment: (ticketNum: number) => void; userRole?: string }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
     const [page, setPage] = useState(1);
@@ -636,7 +647,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                             {!ticket.customerName && amountPaid === 0 && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
-                                                        <Button variant="ghost" size="sm" isDisabled={verifyingNum !== null} onPress={() => verifyThenGo(ticket.number, "unassign", () => setConfirmTicket(ticket.number))} aria-label="Desasignar">
+                                                        <Button variant="ghost" size="sm" isDisabled={verifyingNum !== null || drawLocked} onPress={() => verifyThenGo(ticket.number, "unassign", () => setConfirmTicket(ticket.number))} aria-label="Desasignar">
                                                             {verifyingNum === ticket.number
                                                                 ? <Loader2 className="h-4 w-4 animate-spin text-danger" />
                                                                 : <UserMinus className="h-4 w-4 text-danger" />}
@@ -648,7 +659,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, onReload, onSell, onPay, 
                                             {(ticket.status === "assigned" || ticket.status === "sold" || ticket.status === "installment" || ticket.status === "paid") && (
                                                 <Tooltip>
                                                     <Tooltip.Trigger>
-                                                        <Button variant="ghost" size="sm" isDisabled={verifyingNum !== null} onPress={() => verifyThenGo(ticket.number, "client", () => onEditTicket(ticket.number, "client"))} aria-label="Agregar cliente">
+                                                        <Button variant="ghost" size="sm" isDisabled={verifyingNum !== null || drawLocked} onPress={() => verifyThenGo(ticket.number, "client", () => onEditTicket(ticket.number, "client"))} aria-label="Agregar cliente">
                                                             {verifyingNum === ticket.number
                                                                 ? <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
                                                                 : <Pencil className="h-4 w-4 text-amber-400" />}

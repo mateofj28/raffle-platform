@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { formatCurrency, formatDate, formatTicketNumbers } from "@/utils/formatters";
 import { deriveRaffleTicketStatus } from "@/utils/ticket-status";
+import { isRaffleDrawLocked } from "@/utils/raffle-lock";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { getDocs, query, orderBy, doc, getDoc, where, limit } from "firebase/firestore";
@@ -98,7 +99,7 @@ export default function RaffleDetailPage() {
                 if (raffleDoc.exists()) {
                     const data = raffleDoc.data();
                     setRaffle({ id: raffleDoc.id, ...data } as Raffle);
-                    setActiveRaffle({ id: raffleDoc.id, name: data.name, status: data.status, ticketPrice: data.ticketPrice, totalTickets: data.totalTickets, semester: data.semester });
+                    setActiveRaffle({ id: raffleDoc.id, name: data.name, status: data.status, ticketPrice: data.ticketPrice, totalTickets: data.totalTickets, semester: data.semester, endDate: data.endDate });
                 }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
@@ -322,6 +323,8 @@ export default function RaffleDetailPage() {
     if (!raffle) return <div><PageHeader title="Rifa no encontrada" /><p className="text-default-500">No se encontró la rifa.</p></div>;
 
     const statusCounts = tickets.reduce((acc, t) => { const s = deriveRaffleTicketStatus(t); acc[s] = (acc[s] || 0) + 1; return acc; }, {} as Record<string, number>);
+    // Rifa cerrada por el sorteo (después de las 8pm del día del sorteo).
+    const drawLocked = isRaffleDrawLocked((raffle as { endDate?: string }).endDate);
 
     return (
         <div>
@@ -330,13 +333,13 @@ export default function RaffleDetailPage() {
                 description={raffle.description}
                 actions={
                     <div className="flex gap-2">
-                        {/* Asignar/Desasignar solo en la rifa oficial (la actual). */}
-                        {!assignMode && isOfficial === true && (
+                        {/* Asignar/Desasignar solo en la rifa oficial (la actual) y si NO está cerrada por el sorteo. */}
+                        {!assignMode && isOfficial === true && !drawLocked && (
                             <Button variant="primary" size="sm" onPress={() => { if (vendors.length === 0) { setShowNoVendorsModal(true); return; } setAssignMode("assign"); }}>
                                 <UserPlus className="h-4 w-4" /> Asignar
                             </Button>
                         )}
-                        {!assignMode && isOfficial === true && (
+                        {!assignMode && isOfficial === true && !drawLocked && (
                             <Button variant="outline" size="sm" onPress={() => setAssignMode("unassign")}>
                                 <UserMinus className="h-4 w-4" /> Desasignar
                             </Button>
@@ -357,6 +360,14 @@ export default function RaffleDetailPage() {
                 <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
                     <span className="font-semibold">Estás viendo una rifa anterior.</span>{" "}
                     Esta vista es solo de consulta: no puedes asignar boletas ni registrar operaciones aquí. Las operaciones solo se permiten en la rifa actual.
+                </div>
+            )}
+
+            {/* Aviso: rifa cerrada por el sorteo */}
+            {isOfficial === true && drawLocked && (
+                <div className="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm">
+                    <span className="font-semibold">Rifa cerrada por el sorteo.</span>{" "}
+                    A partir de las 8:00 p.m. del día del sorteo no se permiten operaciones (asignar, desasignar, vender, abonar ni corregir), para garantizar la transparencia.
                 </div>
             )}
 

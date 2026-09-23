@@ -18,6 +18,7 @@ import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb, BATCH_SIZE, getOfficialRaffleId } from "../utils/firestore";
 import { computeTicketStatus } from "../utils/ticket-status";
 import { resolveTicketRef, resolveTicketRefs } from "../utils/ticket-resolve";
+import { assertRaffleNotLockedById } from "../utils/raffle-lock";
 import { createAuditEntry } from "./audit.service";
 
 /**
@@ -155,6 +156,8 @@ export const assignTickets = onCall(
 
             // Solo se puede asignar en la rifa oficial (la actual), no en anteriores.
             await assertOfficialRaffle(context.tenantId, raffleId);
+            // Bloqueo por sorteo: tras las 8pm del día del sorteo nadie opera.
+            await assertRaffleNotLockedById(context.tenantId, raffleId);
 
             const db = getDb();
 
@@ -281,6 +284,8 @@ export const sellTicket = onCall(
 
             // Solo se puede vender en la rifa oficial (la actual), no en anteriores.
             await assertOfficialRaffle(context.tenantId, raffleId);
+            // Bloqueo por sorteo: tras las 8pm del día del sorteo nadie opera.
+            await assertRaffleNotLockedById(context.tenantId, raffleId);
 
             const db = getDb();
             // Resolver el número (cualquiera de la pareja) a su boleta real.
@@ -369,6 +374,8 @@ export const unassignTickets = onCall(
 
             // Solo se puede desasignar en la rifa oficial (la actual).
             await assertOfficialRaffle(context.tenantId, raffleId);
+            // Bloqueo por sorteo: tras las 8pm del día del sorteo nadie opera.
+            await assertRaffleNotLockedById(context.tenantId, raffleId);
 
             const db = getDb();
             // Resolver los números a boletas reales (deduplicando parejas).
@@ -461,6 +468,8 @@ export const updateTicketClient = onCall(
 
             // Solo se puede modificar el cliente en la rifa oficial (la actual).
             await assertOfficialRaffle(context.tenantId, raffleId);
+            // Bloqueo por sorteo: tras las 8pm del día del sorteo nadie opera.
+            await assertRaffleNotLockedById(context.tenantId, raffleId);
 
             // Resolver el número (cualquiera de la pareja) a su boleta real.
             const ticketRef = await resolveTicketRef(context.tenantId, raffleId, ticketNumber);

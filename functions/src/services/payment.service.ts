@@ -15,6 +15,7 @@ import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { getDb, getOfficialRaffleId } from "../utils/firestore";
 import { computeTicketStatus } from "../utils/ticket-status";
 import { resolveTicketRef } from "../utils/ticket-resolve";
+import { assertRaffleNotLockedById } from "../utils/raffle-lock";
 import { createAuditEntry } from "./audit.service";
 
 // --- Zod Schemas ---
@@ -57,6 +58,8 @@ export const registerPayment = onCall(
                     "Solo puedes operar en la rifa actual. Esta es una rifa anterior."
                 );
             }
+            // Bloqueo por sorteo: tras las 8pm del día del sorteo nadie opera.
+            await assertRaffleNotLockedById(context.tenantId, raffleId);
 
             const db = getDb();
             // Resolver el número (cualquiera de la pareja) a su boleta real.
@@ -189,6 +192,12 @@ export const reversePayment = onCall(
             const adjustmentsCol = db.collection(`tenants/${context.tenantId}/adjustments`);
             const adjustmentRef = adjustmentsCol.doc();
 
+            // Bloqueo por sorteo: tras las 8pm del día del sorteo nadie opera.
+            const preSnap = await paymentRef.get();
+            if (preSnap.exists) {
+                await assertRaffleNotLockedById(context.tenantId, preSnap.data()?.raffleId as string);
+            }
+
             // TODO transaccional: el pago, las reversas previas y la boleta se
             // LEEN dentro de la transacción para evitar doble reverso concurrente
             // y saldos incorrectos. (Antes se leían fuera y podían quedar obsoletos.)
@@ -297,6 +306,12 @@ export const correctPayment = onCall(
 
             const db = getDb();
             const paymentRef = db.doc(`tenants/${context.tenantId}/payments/${paymentId}`);
+
+            // Bloqueo por sorteo: tras las 8pm del día del sorteo nadie opera.
+            const preSnap = await paymentRef.get();
+            if (preSnap.exists) {
+                await assertRaffleNotLockedById(context.tenantId, preSnap.data()?.raffleId as string);
+            }
 
             // Transaccional: el pago y la boleta se LEEN dentro de la transacción,
             // así `oldAmount` (monto actual del pago) nunca queda obsoleto si otro

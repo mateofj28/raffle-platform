@@ -42,6 +42,7 @@ export default function RafflesPage() {
             ticketPrice: raffle.ticketPrice,
             totalTickets: raffle.totalTickets,
             semester: raffle.semester,
+            endDate: raffle.endDate,
         });
         router.push("/dashboard");
     };

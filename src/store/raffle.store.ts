@@ -10,6 +10,8 @@ interface ActiveRaffle {
   ticketPrice: number;
   totalTickets: number;
   semester?: 1 | 2;
+  /** Fecha del sorteo (YYYY-MM-DD). Se usa para el bloqueo del día del sorteo. */
+  endDate?: string;
 }
 
 interface RaffleStore {

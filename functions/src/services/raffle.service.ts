@@ -16,6 +16,7 @@ import { validateData } from "../middleware/validation";
 import { AppError, AppErrorCode, handleError } from "../utils/errors";
 import { tenantCollection, getDb, BATCH_SIZE } from "../utils/firestore";
 import { computeTicketStatus } from "../utils/ticket-status";
+import { assertRaffleNotDrawLocked } from "../utils/raffle-lock";
 import { createAuditEntry } from "./audit.service";
 import type { RaffleStatus } from "../types/index";
 
@@ -193,6 +194,10 @@ export const updateRaffle = onCall(
                     `No se puede modificar una rifa en estado "${currentStatus}".`
                 );
             }
+
+            // Bloqueo por sorteo: tras las 8pm del día del sorteo la rifa no se puede
+            // editar (evita mover la fecha para burlar el cierre de transparencia).
+            assertRaffleNotDrawLocked(raffleDoc.data()?.endDate ?? raffleDoc.data()?.drawDate);
 
             // Build update object with only provided fields
             const updateData: Record<string, unknown> = {
