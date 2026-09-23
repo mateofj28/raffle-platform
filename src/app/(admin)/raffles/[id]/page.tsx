@@ -332,7 +332,7 @@ export default function RaffleDetailPage() {
                 title={raffle.name}
                 description={raffle.description}
                 actions={
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         {/* Asignar/Desasignar solo en la rifa oficial (la actual) y si NO está cerrada por el sorteo. */}
                         {!assignMode && isOfficial === true && !drawLocked && (
                             <Button variant="primary" size="sm" onPress={() => { if (vendors.length === 0) { setShowNoVendorsModal(true); return; } setAssignMode("assign"); }}>
@@ -432,9 +432,9 @@ export default function RaffleDetailPage() {
                         {/* Inputs inline */}
                         <div className="flex items-end gap-3 mb-3 flex-wrap">
                             {assignMode === "assign" && (
-                                <div>
+                                <div className="w-full sm:w-auto">
                                     <label className="text-xs font-medium mb-1 block">Vendedor</label>
-                                    <ComboBox aria-label="Vendedor" selectedKey={selectedVendor || null} onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))} menuTrigger="focus" className="w-56">
+                                    <ComboBox aria-label="Vendedor" selectedKey={selectedVendor || null} onSelectionChange={(key) => setSelectedVendor(String(key ?? ""))} menuTrigger="focus" className="w-full sm:w-56">
                                         <ComboBox.InputGroup>
                                             <HeroInput placeholder="Buscar vendedor..." />
                                             <ComboBox.Trigger />

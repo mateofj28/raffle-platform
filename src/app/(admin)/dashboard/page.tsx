@@ -401,7 +401,7 @@ export default function AdminDashboardPage() {
 
                                 {/* Revenue by payment method */}
                                 <h3 className="text-sm font-semibold mb-3 mt-6">Recaudado por medio de pago</h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                                     <StatCard title="Efectivo" value={formatCurrency(methodTotals["cash"] || 0)} icon={<DollarSign className="h-5 w-5" />} />
                                     <StatCard title="Nequi" value={formatCurrency(methodTotals["nequi"] || 0)} icon={<CreditCard className="h-5 w-5" />} />
                                     <StatCard title="Daviplata" value={formatCurrency(methodTotals["daviplata"] || 0)} icon={<CreditCard className="h-5 w-5" />} />
@@ -410,7 +410,7 @@ export default function AdminDashboardPage() {
 
                                 {/* People / totales: Vendedores, Clientes y Potencial total son globales
                                     de la rifa; para el cajero solo mostramos el % vendido. */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4 [&_p]:break-words">
                                     {userRole !== "cashier" && (
                                         <>
                                             <StatCard title="Vendedores" value={metrics.vendorsCount} icon={<Users className="h-5 w-5" />} />

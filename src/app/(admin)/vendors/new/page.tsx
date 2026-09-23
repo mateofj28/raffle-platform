@@ -87,17 +87,17 @@ export default function NewVendorPage() {
                 <Card className="border-2 border-success/30 max-w-lg">
                     <CardContent className="p-6">
                         <p className="text-sm font-semibold text-success mb-3">✅ Vendedor &quot;{credentials.name}&quot; creado — comparte estas credenciales:</p>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <p className="text-xs text-default-500">Usuario</p>
-                                <p className="font-mono font-bold text-lg">{credentials.username}</p>
+                                <p className="font-mono font-bold text-lg break-all">{credentials.username}</p>
                             </div>
                             <div>
                                 <p className="text-xs text-default-500">Contraseña</p>
-                                <p className="font-mono font-bold text-lg">{credentials.password}</p>
+                                <p className="font-mono font-bold text-lg break-all">{credentials.password}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
