@@ -207,18 +207,16 @@ export default function AuditPage() {
                         return (
                             <Card key={entry.id}>
                                 <CardContent className="p-4">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Chip size="sm" variant="soft" color={config.color} className="px-3 py-1">{config.label}</Chip>
-                                                <span className="text-xs font-medium text-default-600">{userDisplay}</span>
-                                            </div>
-                                            <p className="text-sm text-default-700">{getOperationDescription(entry, usersMap)}</p>
+                                    {/* Cabecera: badge + usuario + fecha. En móvil se apila y
+                                        la fecha va debajo; en escritorio la fecha va a la derecha. */}
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-1">
+                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+                                            <Chip size="sm" variant="soft" color={config.color} className="px-3 py-1">{config.label}</Chip>
+                                            <span className="text-xs font-medium text-default-600 break-words">{userDisplay}</span>
                                         </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-xs text-default-500">{entry.timestamp ? formatDateTime(entry.timestamp) : "—"}</p>
-                                        </div>
+                                        <p className="text-xs text-default-500 shrink-0 sm:text-right">{entry.timestamp ? formatDateTime(entry.timestamp) : "—"}</p>
                                     </div>
+                                    <p className="text-sm text-default-700 break-words">{getOperationDescription(entry, usersMap)}</p>
                                 </CardContent>
                             </Card>
                         );
