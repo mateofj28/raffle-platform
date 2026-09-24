@@ -215,18 +215,18 @@ export default function CorrectPaymentPage() {
           {/* Summary Card */}
           <Card className="mb-6">
             <CardContent className="p-6">
-              <div className="grid grid-cols-3 gap-6 text-center">
-                <div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-6 text-center">
+                <div className="min-w-0">
                   <p className="text-xs text-default-500 mb-1">Valor boleta</p>
-                  <p className="text-xl font-bold">{formatCurrency(ticketPrice)}</p>
+                  <p className="text-base sm:text-xl font-bold break-words">{formatCurrency(ticketPrice)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-default-500 mb-1">Total abonado</p>
-                  <p className="text-xl font-bold text-success">{formatCurrency(totalAbonado)}</p>
+                  <p className="text-base sm:text-xl font-bold text-success break-words">{formatCurrency(totalAbonado)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-default-500 mb-1">Pendiente</p>
-                  <p className={`text-xl font-bold ${pendiente === 0 ? "text-success" : "text-warning"}`}>{formatCurrency(pendiente)}</p>
+                  <p className={`text-base sm:text-xl font-bold break-words ${pendiente === 0 ? "text-success" : "text-warning"}`}>{formatCurrency(pendiente)}</p>
                 </div>
               </div>
 
