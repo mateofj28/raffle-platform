@@ -131,8 +131,10 @@ export default function TicketSearchPage() {
             {/* Search Input */}
             <Card className="mb-6">
                 <CardContent className="p-6">
-                    <div className="flex items-end gap-3">
-                        <div className="flex-1 max-w-xs">
+                    {/* En móvil: input a lo ancho y botón debajo. En pantallas
+                        medianas+: en una fila (input acotado + botón al lado). */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <div className="w-full sm:max-w-xs">
                             <label className="text-sm font-medium mb-1 block">Número (0000–9999)</label>
                             <Input
                                 placeholder="Ej: 0055"
@@ -147,12 +149,14 @@ export default function TicketSearchPage() {
                                 }}
                                 inputMode="numeric"
                                 maxLength={4}
+                                className="w-full"
                             />
                         </div>
                         <Button
                             variant="primary"
                             onPress={handleSearch}
                             isDisabled={!searchInput || searching}
+                            className="w-full sm:w-auto"
                         >
                             <Search className="h-4 w-4" />
                             {searching ? "Buscando..." : "Buscar"}
