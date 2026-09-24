@@ -244,9 +244,9 @@ export default function CorrectPaymentPage() {
           </Card>
 
           {/* Payments list header */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <h3 className="font-semibold flex items-center gap-2">
-              <CreditCard className="h-4 w-4" /> Pagos registrados ({payments.length})
+              <CreditCard className="h-4 w-4 shrink-0" /> Pagos registrados ({payments.length})
             </h3>
             {payments.length > 1 && (
               <Button variant="ghost" size="sm" onPress={() => setDeleteAllConfirm(true)}>
@@ -262,35 +262,18 @@ export default function CorrectPaymentPage() {
                 {payments.map((payment, index) => (
                   <Card key={payment.id} className={editingId === payment.id ? "border-2 border-primary" : ""}>
                     <CardContent className="p-4">
-                      {/* Payment info row */}
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1">
-                          {/* Number badge */}
+                      {/* Cabecera: número + monto a la izquierda, acciones a la derecha. */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-default-100 text-xs font-bold">
                             {payments.length - index}
                           </div>
-
-                          {/* Details */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-lg font-bold">{formatCurrency(payment.amount)}</p>
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                              <span className={`text-xs font-medium ${payment.type === "payment" ? "text-success" : "text-amber-400"}`}>
-                                {TYPE_LABELS[payment.type]}
-                              </span>
-                              <PaymentMethodBadge method={payment.method} />
-                              <span className="text-xs text-default-500 flex items-center gap-1">
-                                <Calendar className="h-3 w-3" /> {formatDateTime(payment.createdAt)}
-                              </span>
-                            </div>
-                            {payment.observations && (
-                              <p className="text-xs text-default-400 mt-1 truncate">{payment.observations}</p>
-                            )}
-                          </div>
+                          <p className="text-lg font-bold break-words">{formatCurrency(payment.amount)}</p>
                         </div>
 
                         {/* Action buttons */}
                         {editingId !== payment.id && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-0.5 shrink-0">
                             <Button variant="ghost" size="sm" isIconOnly onPress={() => printReceipt(payment)} aria-label="Imprimir comprobante">
                               <Printer className="h-4 w-4 text-blue-400" />
                             </Button>
@@ -303,6 +286,20 @@ export default function CorrectPaymentPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Metadatos: tipo, método y fecha usan el ancho completo (con wrap). */}
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-11">
+                        <span className={`text-xs font-medium ${payment.type === "payment" ? "text-success" : "text-amber-400"}`}>
+                          {TYPE_LABELS[payment.type]}
+                        </span>
+                        <PaymentMethodBadge method={payment.method} />
+                        <span className="text-xs text-default-500 flex items-center gap-1">
+                          <Calendar className="h-3 w-3 shrink-0" /> {formatDateTime(payment.createdAt)}
+                        </span>
+                      </div>
+                      {payment.observations && (
+                        <p className="text-xs text-default-400 mt-1 pl-11 break-words">{payment.observations}</p>
+                      )}
 
                       {/* Edit mode */}
                       {editingId === payment.id && (
