@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, toast } from "@heroui/react";
@@ -110,6 +110,38 @@ export default function VendorDetailPage() {
     };
       load();
   }, [tenantId, vendorId]);
+
+    // Recarga puntual de las boletas del vendedor (una sola lectura). Se usa como
+    // RED DE SEGURIDAD para el listener en vivo: los navegadores pausan la conexión
+    // de Firestore cuando la pestaña está oculta/segundo plano, así que el onSnapshot
+    // NO entrega cambios mientras la ventana no está visible. Al volver el foco
+    // forzamos esta recarga para reflejar lo que pasó mientras no estábamos mirando.
+    const fetchTicketsOnce = useCallback(async () => {
+        if (!tenantId || !vendorId || !activeRaffle) return;
+        try {
+            const customersMap = new Map<string, string>();
+            const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
+            customersSnap.docs.forEach(d => customersMap.set(d.id, d.data().name));
+
+            const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
+            const q = query(ticketsCol, where("vendorId", "==", vendorId), orderBy("number", "asc"));
+            const snap = await getDocs(q);
+            setTickets(snap.docs.map(d => {
+                const data = d.data() as TicketType;
+                return { ...data, customerName: data.customerId ? customersMap.get(data.customerId) || data.customerId : undefined };
+            }));
+        } catch (e) { console.error(e); }
+    }, [tenantId, vendorId, activeRaffle]);
+
+    // Red de seguridad: al volver la ventana al primer plano, recargar las boletas.
+    // Complementa al onSnapshot, que no recibe eventos mientras la pestaña está oculta.
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === "visible") fetchTicketsOnce();
+        };
+        document.addEventListener("visibilitychange", onVisible);
+        return () => document.removeEventListener("visibilitychange", onVisible);
+    }, [fetchTicketsOnce]);
 
     // Tiempo real (Fase 1): se ESCUCHA en vivo SOLO las boletas de este vendedor
     // (where vendorId == vendorId), un conjunto pequeño y barato. Así, si un cajero
