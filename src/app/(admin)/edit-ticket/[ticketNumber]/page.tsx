@@ -12,7 +12,7 @@ import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
-import { getDocs, doc, getDoc } from "firebase/firestore";
+import { getDocs, doc, getDoc, query, where, orderBy, limit } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import type { Customer, Ticket as TicketType } from "@/types/api.types";
 
@@ -25,7 +25,7 @@ export default function EditTicketPage() {
   const tenantId = useAuthStore((s) => s.user?.tenantId);
   const userRole = useAuthStore((s) => s.user?.role);
   const userVendorId = useAuthStore((s) => s.user?.vendorId);
-  const { activeRaffle } = useRaffleStore();
+  const { activeRaffle, setActiveRaffle } = useRaffleStore();
 
   const [ticket, setTicket] = useState<TicketType | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -35,9 +35,35 @@ export default function EditTicketPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Si no hay rifa activa en el store (p. ej. el vendedor entró directo a esta
+  // pantalla), auto-detectar la rifa OFICIAL en vez de mandar al selector de admin.
+  // Solo si no existe ninguna rifa oficial se redirige, y al destino correcto por rol.
   useEffect(() => {
-    if (!activeRaffle) router.push("/raffles");
-  }, [activeRaffle, router]);
+    if (activeRaffle || !tenantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDocs(query(
+          tenantCollection(tenantId, "raffles"),
+          where("status", "in", ["active", "draft"]),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        ));
+        if (cancelled) return;
+        if (snap.empty) {
+          router.push(userRole === "vendor" ? "/vendor/dashboard" : "/raffles");
+          return;
+        }
+        const r = snap.docs[0];
+        const d = r.data();
+        setActiveRaffle({ id: r.id, name: d.name, status: d.status, ticketPrice: d.ticketPrice, totalTickets: d.totalTickets, semester: d.semester, endDate: d.endDate, numbersPerTicket: d.numbersPerTicket });
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) router.push(userRole === "vendor" ? "/vendor/dashboard" : "/raffles");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeRaffle, tenantId, userRole, router, setActiveRaffle]);
 
   // Load ticket + customers
   useEffect(() => {
