@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
-import { subscribeToAuthState, getUserWithClaims } from "../services/auth.service";
+import { subscribeToAuthState, getUserWithClaims, vendorHasTicketsInOfficialRaffle, logout } from "../services/auth.service";
 import { onAuthChange } from "@/lib/firebase/auth";
 import { getAuth } from "firebase/auth";
 import { ROUTES } from "@/constants/routes";
@@ -31,6 +31,20 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
             if (firebaseUser) {
                 try {
                     const authUser = await getUserWithClaims(firebaseUser);
+                    // Un vendedor sin boletas en la rifa actual no puede tener sesión
+                    // activa (cubre la rehidratación al recargar, no solo el login).
+                    if (authUser.role === "vendor") {
+                        const hasTickets = await vendorHasTicketsInOfficialRaffle(
+                            authUser.tenantId,
+                            authUser.vendorId || ""
+                        );
+                        if (!hasTickets) {
+                            await logout();
+                            setUser(null);
+                            setAuthChecked(true);
+                            return;
+                        }
+                    }
                     setUser(authUser);
                 } catch {
                     setUser(null);

@@ -7,8 +7,13 @@ import {
     login,
     logout,
     getUserWithClaims,
+    vendorHasTicketsInOfficialRaffle,
 } from "../services/auth.service";
 import { ROUTES } from "@/constants/routes";
+
+/** Mensaje que ve el vendedor sin boletas al intentar entrar. */
+export const NO_TICKETS_MESSAGE =
+    "No tienes boletas asignadas en la rifa actual. Contacta al administrador.";
 
 export function useAuth() {
     const router = useRouter();
@@ -21,6 +26,24 @@ export function useAuth() {
         try {
             const firebaseUser = await login(email, password);
             const authUser = await getUserWithClaims(firebaseUser);
+
+            // Un vendedor SIN boletas asignadas en la rifa actual no puede entrar.
+            // Se verifica antes de poblar el store; si no tiene, se cierra la sesión
+            // (signInWithEmailAndPassword ya creó la sesión) y se rechaza el acceso.
+            if (authUser.role === "vendor") {
+                const hasTickets = await vendorHasTicketsInOfficialRaffle(
+                    authUser.tenantId,
+                    authUser.vendorId || ""
+                );
+                if (!hasTickets) {
+                    await logout();
+                    reset();
+                    const err = new Error(NO_TICKETS_MESSAGE);
+                    err.name = "NoTicketsError";
+                    throw err;
+                }
+            }
+
             setUser(authUser);
 
             // Al iniciar sesión, limpiar cualquier rifa "activa" que quedara guardada

@@ -35,8 +35,14 @@ export function LoginForm() {
         try {
             const email = toEmail(data.username);
             await login(email, data.password);
-        } catch {
-            setServerError("Usuario o contraseña incorrectos.");
+        } catch (error) {
+            // Mensaje específico cuando un vendedor no tiene boletas asignadas;
+            // de lo contrario, credenciales inválidas (mensaje genérico).
+            if (error instanceof Error && error.name === "NoTicketsError") {
+                setServerError(error.message);
+            } else {
+                setServerError("Usuario o contraseña incorrectos.");
+            }
         }
     };
 
