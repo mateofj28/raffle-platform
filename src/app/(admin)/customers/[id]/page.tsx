@@ -11,7 +11,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency, formatDateTime, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
+import { formatCurrency, formatDateTimeParts, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -395,7 +395,13 @@ export default function CustomerDetailPage() {
                                                 <tr><td colSpan={5} className="px-4 py-8 text-center text-default-400 text-sm">No hay pagos que coincidan con los filtros</td></tr>
                                             ) : filteredPayments.map((payment) => (
                                                 <tr key={payment.id} className="hover:bg-default-50">
-                                                    <td className="px-4 py-3 text-xs text-default-500">{payment.createdAt ? formatDateTime(payment.createdAt) : "—"}</td>
+                                                    <td className="px-4 py-3 text-xs text-default-500 whitespace-nowrap">
+                                                        {(() => {
+                                                            if (!payment.createdAt) return "—";
+                                                            const { date, time } = formatDateTimeParts(payment.createdAt);
+                                                            return (<><span className="block text-foreground">{date}</span><span className="block text-default-400">{time}</span></>);
+                                                        })()}
+                                                    </td>
                                                     <td className="px-4 py-3 font-mono font-bold">{formatTicketNumbers(tickets.find(t => t.number === parseInt(String(payment.ticketId), 10))?.numbers, parseInt(String(payment.ticketId), 10))}</td>
                                                     <td className="px-4 py-3">
                                                         <span className={payment.type === "payment" ? "text-success font-medium" : "text-amber-400"}>

@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
-import { formatCurrency, formatDateTime, formatTicketNumbers } from "@/utils/formatters";
+import { formatCurrency, formatDateTimeParts, formatTicketNumbers } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
@@ -17,21 +17,7 @@ import type { Payment } from "@/types/api.types";
 
 const TYPE_LABELS: Record<string, string> = { payment: "Pago", installment: "Abono" };
 
-const MONTHS = [
-    { id: "", label: "Todos los meses" },
-    { id: "1", label: "Enero" },
-    { id: "2", label: "Febrero" },
-    { id: "3", label: "Marzo" },
-    { id: "4", label: "Abril" },
-    { id: "5", label: "Mayo" },
-    { id: "6", label: "Junio" },
-    { id: "7", label: "Julio" },
-    { id: "8", label: "Agosto" },
-    { id: "9", label: "Septiembre" },
-    { id: "10", label: "Octubre" },
-    { id: "11", label: "Noviembre" },
-    { id: "12", label: "Diciembre" },
-];
+const MONTH_NAMES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 export default function VendorPaymentsPage() {
     const user = useAuthStore((s) => s.user);
@@ -98,15 +84,35 @@ export default function VendorPaymentsPage() {
         return formatTicketNumbers(isPairRaffle ? pairsByBase.get(base) : undefined, base);
     };
 
+    // Fecha de un pago (Timestamp de Firestore o string) a Date.
+    const paymentDate = (p: Payment): Date | null => {
+        const c = p.createdAt as unknown;
+        if (!c) return null;
+        if (typeof c === "string") { const d = new Date(c); return isNaN(d.getTime()) ? null : d; }
+        const anyC = c as { toDate?: () => Date; seconds?: number };
+        if (typeof anyC.toDate === "function") return anyC.toDate();
+        if (typeof anyC.seconds === "number") return new Date(anyC.seconds * 1000);
+        return null;
+    };
+
+    // Meses (con pagos) disponibles para el filtro, más recientes primero.
+    // Solo se listan los meses que REALMENTE tienen pagos (clave "YYYY-M").
+    const monthOptions = Array.from(
+        new Set(payments.map((p) => { const d = paymentDate(p); return d ? `${d.getFullYear()}-${d.getMonth()}` : null; }).filter(Boolean) as string[])
+    )
+        .sort((a, b) => (a < b ? 1 : -1))
+        .map((key) => { const [y, m] = key.split("-").map(Number); return { key, label: `${MONTH_NAMES[m]} ${y}` }; });
+
     // Apply filters
     const filtered = payments.filter(p => {
         if (searchTicket && !p.ticketId.includes(searchTicket) && !ticketLabel(p.ticketId, p.raffleId).toLowerCase().includes(searchTicket.toLowerCase())) return false;
         if (filterType && p.type !== filterType) return false;
         if (filterMethod && p.method !== filterMethod) return false;
         if (filterMonth) {
-            if (!p.createdAt) return false;
-            const pDate = typeof p.createdAt === "string" ? new Date(p.createdAt) : (p.createdAt as any).toDate?.() || new Date((p.createdAt as any).seconds * 1000);
-            if ((pDate.getMonth() + 1) !== parseInt(filterMonth)) return false;
+            const d = paymentDate(p);
+            if (!d) return false;
+            const [y, m] = filterMonth.split("-").map(Number);
+            if (d.getFullYear() !== y || d.getMonth() !== m) return false;
         }
         return true;
     });
@@ -134,25 +140,30 @@ export default function VendorPaymentsPage() {
                                 inputMode="numeric"
                                 style={grayField}
                             />
-                            <Select
-                                aria-label="Mes"
-                                selectedKey={filterMonth || null}
-                                onSelectionChange={(key) => setFilterMonth(key ? String(key) : "")}
-                                placeholder="Mes"
-                                className="w-40"
-                            >
-                                <SelectTrigger style={grayField}>
-                                    <SelectValue />
-                                    <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
-                                </SelectTrigger>
-                                <SelectPopover>
-                                    <ListBox>
-                                        {MONTHS.map(m => (
-                                            <ListBoxItem key={m.id} id={m.id} textValue={m.label}>{m.label}</ListBoxItem>
-                                        ))}
-                                    </ListBox>
-                                </SelectPopover>
-                            </Select>
+                            {/* Filtro por mes: solo aparece si hay pagos en 2+ meses,
+                                y solo lista los meses que realmente tienen pagos. */}
+                            {monthOptions.length >= 2 && (
+                                <Select
+                                    aria-label="Mes"
+                                    selectedKey={filterMonth || null}
+                                    onSelectionChange={(key) => setFilterMonth(key ? String(key) : "")}
+                                    placeholder="Mes"
+                                    className="w-44"
+                                >
+                                    <SelectTrigger style={grayField}>
+                                        <SelectValue />
+                                        <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
+                                    </SelectTrigger>
+                                    <SelectPopover>
+                                        <ListBox>
+                                            <ListBoxItem id="" textValue="Todos los meses">Todos los meses</ListBoxItem>
+                                            {monthOptions.map((m) => (
+                                                <ListBoxItem key={m.key} id={m.key} textValue={m.label}>{m.label}</ListBoxItem>
+                                            ))}
+                                        </ListBox>
+                                    </SelectPopover>
+                                </Select>
+                            )}
                             <Select
                                 aria-label="Tipo"
                                 selectedKey={filterType || null}
@@ -222,8 +233,12 @@ export default function VendorPaymentsPage() {
                                         <tbody className="divide-y divide-default-200">
                                             {filtered.map((payment) => (
                                         <tr key={payment.id} className="hover:bg-default-50">
-                                            <td className="px-4 py-3 text-xs text-default-500">
-                                                {payment.createdAt ? formatDateTime(payment.createdAt) : "—"}
+                                                    <td className="px-4 py-3 text-xs text-default-500 whitespace-nowrap">
+                                                        {(() => {
+                                                            if (!payment.createdAt) return "—";
+                                                            const { date, time } = formatDateTimeParts(payment.createdAt);
+                                                            return (<><span className="block text-foreground">{date}</span><span className="block text-default-400">{time}</span></>);
+                                                        })()}
                                             </td>
                                                     <td className="px-4 py-3 font-mono font-bold">{ticketLabel(payment.ticketId, payment.raffleId)}</td>
                                             <td className="px-4 py-3">

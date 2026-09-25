@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
-import { formatCurrency, formatDateTime, formatTicketNumbers } from "@/utils/formatters";
+import { formatCurrency, formatDateTimeParts, formatTicketNumbers } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { pairingService } from "@/features/raffles/services/pairing.service";
@@ -336,8 +336,12 @@ export default function PaymentsPage() {
                                         const companyProfit = payment.amount - commission;
                                         return (
                                   <tr key={payment.id} className="hover:bg-default-50">
-                                      <td className="px-4 py-3 text-xs text-default-500">
-                                          {payment.createdAt ? formatDateTime(payment.createdAt) : "—"}
+                                                <td className="px-4 py-3 text-xs text-default-500 whitespace-nowrap">
+                                                    {(() => {
+                                                        if (!payment.createdAt) return "—";
+                                                        const { date, time } = formatDateTimeParts(payment.createdAt);
+                                                        return (<><span className="block text-foreground">{date}</span><span className="block text-default-400">{time}</span></>);
+                                                    })()}
                                       </td>
                                                 <td className="px-4 py-3 font-mono font-bold">{ticketLabel(payment.ticketId)}</td>
                                       <td className="px-4 py-3">{customers.get(payment.customerId) || "—"}</td>

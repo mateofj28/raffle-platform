@@ -61,6 +61,26 @@ export function formatDateTime(dateStr: unknown): string {
 }
 
 /**
+ * Fecha y hora en formato COMPACTO, separadas, para celdas estrechas (móvil).
+ * Devuelve { date: "19 sep 2026", time: "4:22 p. m." } para renderizar en dos
+ * líneas cortas y evitar que la fecha se parta en 5-6 renglones.
+ */
+export function formatDateTimeParts(dateStr: unknown): { date: string; time: string } {
+    const date = toDate(dateStr);
+    if (!date) return { date: "—", time: "" };
+    const d = new Intl.DateTimeFormat("es-CO", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    }).format(date).replace(/\./g, ""); // "19 sept 2026" sin puntos
+    const t = new Intl.DateTimeFormat("es-CO", {
+        hour: "numeric",
+        minute: "2-digit",
+    }).format(date);
+    return { date: d, time: t };
+}
+
+/**
  * Formats a ticket number with leading zeros (0000..9999).
  */
 export function formatTicketNumber(num: number, totalDigits = 4): string {
