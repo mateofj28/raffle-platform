@@ -18,7 +18,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { ticketService } from "@/features/raffles/services/ticket.service";
 import { callFunction } from "@/services/firebase-callable";
-import { getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
+import { getDocs, query, where, orderBy, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { tenantCollection, getDb } from "@/lib/firebase/firestore";
 import type { Vendor, Ticket as TicketType } from "@/types/api.types";
 
@@ -111,29 +111,46 @@ export default function VendorDetailPage() {
       load();
   }, [tenantId, vendorId]);
 
+    // Tiempo real (Fase 1): se ESCUCHA en vivo SOLO las boletas de este vendedor
+    // (where vendorId == vendorId), un conjunto pequeño y barato. Así, si un cajero
+    // desasigna/vende/abona desde otro dispositivo, esta tabla y las cuentas se
+    // actualizan solas sin recargar. Los clientes se cargan una vez (mapa de nombres),
+    // porque cambian poco. La suscripción se limpia al salir de la pantalla.
     useEffect(() => {
         if (!tenantId || !vendorId || !activeRaffle) return;
-        const load = async () => {
-            setTicketsLoading(true);
+        let cancelled = false;
+        let unsub: (() => void) | null = null;
+        setTicketsLoading(true);
+
+        (async () => {
+            // 1) Mapa de nombres de clientes (una sola lectura; barato).
+            const customersMap = new Map<string, string>();
             try {
                 const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
-                const customersMap = new Map<string, string>();
-                customersSnap.docs.forEach(d => {
-                    customersMap.set(d.id, d.data().name);
-                });
-
-                const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
-                const q = query(ticketsCol, where("vendorId", "==", vendorId), orderBy("number", "asc"));
-                const ticketsSnap = await getDocs(q);
-
-                setTickets(ticketsSnap.docs.map(d => {
-                    const data = d.data() as TicketType;
-                    return { ...data, customerName: data.customerId ? customersMap.get(data.customerId) || data.customerId : undefined };
-                }));
+                customersSnap.docs.forEach(d => customersMap.set(d.id, d.data().name));
             } catch (e) { console.error(e); }
-            finally { setTicketsLoading(false); }
+            if (cancelled) return;
+
+            // 2) Suscripción en vivo a las boletas del vendedor en la rifa actual.
+            const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
+            const q = query(ticketsCol, where("vendorId", "==", vendorId), orderBy("number", "asc"));
+            unsub = onSnapshot(
+                q,
+                (snap) => {
+                    setTickets(snap.docs.map(d => {
+                        const data = d.data() as TicketType;
+                        return { ...data, customerName: data.customerId ? customersMap.get(data.customerId) || data.customerId : undefined };
+                    }));
+                    setTicketsLoading(false);
+                },
+                (err) => { console.error(err); setTicketsLoading(false); }
+            );
+        })();
+
+        return () => {
+            cancelled = true;
+            if (unsub) unsub(); // cortar la suscripción al desmontar (no seguir cobrando lecturas)
         };
-        load();
     }, [tenantId, vendorId, activeRaffle, reloadKey]);
 
 
