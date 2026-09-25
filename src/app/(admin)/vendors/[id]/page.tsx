@@ -41,6 +41,9 @@ export default function VendorDetailPage() {
     const [loading, setLoading] = useState(true);
     const [ticketsLoading, setTicketsLoading] = useState(true);
     const [reloadKey, setReloadKey] = useState(0);
+    // ¿La rifa activa es la OFICIAL (la más reciente activa/borrador)? Solo en la
+    // oficial se permiten operaciones. null = aún no se sabe.
+    const [isOfficial, setIsOfficial] = useState<boolean | null>(null);
 
     // Payment panel
     const [showPaymentPanel, setShowPaymentPanel] = useState(false);
@@ -72,6 +75,29 @@ export default function VendorDetailPage() {
     useEffect(() => {
         if (!activeRaffle) router.push("/raffles");
     }, [activeRaffle, router]);
+
+    // Determinar si la rifa activa es la OFICIAL (la más reciente activa/borrador).
+    // Solo en la oficial se permiten operaciones; en anteriores es solo consulta.
+    useEffect(() => {
+        if (!tenantId || !activeRaffle) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const q = query(
+                    tenantCollection(tenantId, "raffles"),
+                    where("status", "in", ["active", "draft"]),
+                    orderBy("createdAt", "desc")
+                );
+                const snap = await getDocs(q);
+                const officialId = snap.docs[0]?.id ?? null;
+                if (!cancelled) setIsOfficial(officialId === activeRaffle.id);
+            } catch (e) {
+                console.error(e);
+                if (!cancelled) setIsOfficial(true); // ante error, no bloquear de más
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [tenantId, activeRaffle]);
 
     useEffect(() => {
         if (!tenantId || !vendorId) return;
@@ -215,6 +241,9 @@ export default function VendorDetailPage() {
 
     // ¿La rifa está cerrada por el sorteo (después de las 8pm del día del sorteo)?
     const drawLocked = isRaffleDrawLocked(activeRaffle?.endDate);
+    // Solo se permiten operaciones si la rifa es la oficial y no está cerrada.
+    // (isOfficial === null mientras se determina: no mostrar acciones aún.)
+    const canOperate = isOfficial === true && !drawLocked;
 
     return (
       <div>
@@ -223,12 +252,17 @@ export default function VendorDetailPage() {
               description={`Boletas en "${activeRaffle.name}"`}
                 actions={
                     <div className="flex items-center gap-2">
-                        <Button variant="primary" size="sm" isDisabled={drawLocked} onPress={() => setShowPaymentPanel(true)}>
-                            <DollarSign className="h-4 w-4" /> Registrar pago
-                        </Button>
-                        <Link href={`/vendors/${vendorId}/edit`}>
-                            <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /> Editar</Button>
-                        </Link>
+                        {/* Registrar pago y Editar solo en la rifa oficial (no en anteriores). */}
+                        {canOperate && (
+                            <>
+                                <Button variant="primary" size="sm" onPress={() => setShowPaymentPanel(true)}>
+                                    <DollarSign className="h-4 w-4" /> Registrar pago
+                                </Button>
+                                <Link href={`/vendors/${vendorId}/edit`}>
+                                    <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /> Editar</Button>
+                                </Link>
+                            </>
+                        )}
                         <Link href="/vendors">
                             <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button>
                         </Link>
@@ -444,7 +478,7 @@ export default function VendorDetailPage() {
                   {tickets.length === 0 ? (
                       <EmptyState title="Sin boletas" description="Este vendedor no tiene boletas en esta rifa" icon={<Ticket className="h-12 w-12" />} />
                   ) : (
-                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} drawLocked={drawLocked} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} onCorrectPayment={(num) => router.push(`/correct-payment/${num}`)} userRole={userRole} />
+                            <TicketsTableWithUnassign tickets={tickets} raffleId={activeRaffle.id} drawLocked={drawLocked} canOperate={canOperate} onReload={() => setReloadKey(k => k + 1)} onSell={(num) => router.push(`/sell/${num}`)} onPay={(num) => router.push(`/pay/${num}`)} onEditTicket={(num, action) => router.push(`/edit-ticket/${num}?action=${action}`)} onCorrectPayment={(num) => router.push(`/correct-payment/${num}`)} userRole={userRole} />
                   )}
               </>
           )}
@@ -455,7 +489,7 @@ export default function VendorDetailPage() {
 
 // --- Table with unassign (SRP) ---
 
-function TicketsTableWithUnassign({ tickets, raffleId, drawLocked = false, onReload, onSell, onPay, onEditTicket, onCorrectPayment, userRole }: { tickets: TicketWithCustomer[]; raffleId: string; drawLocked?: boolean; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void; onCorrectPayment: (ticketNum: number) => void; userRole?: string }) {
+function TicketsTableWithUnassign({ tickets, raffleId, drawLocked = false, canOperate = true, onReload, onSell, onPay, onEditTicket, onCorrectPayment, userRole }: { tickets: TicketWithCustomer[]; raffleId: string; drawLocked?: boolean; canOperate?: boolean; onReload: () => void; onSell: (ticketNum: number) => void; onPay: (ticketNum: number) => void; onEditTicket: (ticketNum: number, action: string) => void; onCorrectPayment: (ticketNum: number) => void; userRole?: string }) {
     const [confirmTicket, setConfirmTicket] = useState<number | null>(null);
     const [unassigning, setUnassigning] = useState(false);
     const [page, setPage] = useState(1);
@@ -610,7 +644,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, drawLocked = false, onRel
                           <th className="px-4 py-3 text-left font-medium">Cliente</th>
                             <th className="px-4 py-3 text-right font-medium">Abonado</th>
                           <th className="px-4 py-3 text-right font-medium">Saldo</th>
-                          <th className="px-4 py-3 text-center font-medium">Acción</th>
+                                        {canOperate && <th className="px-4 py-3 text-center font-medium">Acción</th>}
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-default-200">
@@ -642,6 +676,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, drawLocked = false, onRel
                                             <span className="text-red-400 font-medium">{formatCurrency(ticket.pendingBalance)}</span>
                                         )}
                     </td>
+                                    {canOperate && (
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex items-center justify-center gap-1">
                                             {/* Se puede desasignar si la boleta no tiene cliente y no tiene ningún
@@ -682,6 +717,7 @@ function TicketsTableWithUnassign({ tickets, raffleId, drawLocked = false, onRel
                                             )}
                                         </div>
                     </td>
+                                    )}
               </tr>
                             );
                         })}
