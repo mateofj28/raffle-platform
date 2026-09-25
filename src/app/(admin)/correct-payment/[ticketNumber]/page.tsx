@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
-import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumbers } from "@/utils/formatters";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
 import { callFunction } from "@/services/firebase-callable";
@@ -39,6 +39,8 @@ export default function CorrectPaymentPage() {
   const [customerName, setCustomerName] = useState<string>("");
   // Valor real de ESTA boleta (no el de la rifa, que puede diferir tras cambios de precio).
   const [ticketValue, setTicketValue] = useState<number | null>(null);
+  // Números que juega la boleta (uno o la pareja). Para el título y el comprobante.
+  const [ticketNumbers, setTicketNumbers] = useState<number[] | null>(null);
 
   const ticketPrice = ticketValue ?? activeRaffle?.ticketPrice ?? 0;
 
@@ -60,6 +62,8 @@ export default function CorrectPaymentPage() {
       if (snap.exists()) {
         // Valor real de la boleta (fuente de verdad para las cuentas de esta pantalla).
         if (typeof snap.data().value === "number") setTicketValue(snap.data().value);
+        // Números de la boleta (pareja en rifas de 2 números).
+        if (Array.isArray(snap.data().numbers)) setTicketNumbers(snap.data().numbers as number[]);
         if (snap.data().customerId) {
           const customerRef = doc(getDb(), "tenants", tenantId, "customers", snap.data().customerId);
           getDoc(customerRef).then((cSnap) => {
@@ -116,7 +120,7 @@ export default function CorrectPaymentPage() {
         </div>
         <div class="amount">$ ${payment.amount.toLocaleString("es-CO")}</div>
         <div class="field"><span class="field-label">Cliente</span><span class="field-value">${customerName || "—"}</span></div>
-        <div class="field"><span class="field-label">Boleta #</span><span class="field-value">${formatTicketNumber(ticketNumber)}</span></div>
+        <div class="field"><span class="field-label">Boleta</span><span class="field-value">${formatTicketNumbers(ticketNumbers, ticketNumber)}</span></div>
         <div class="field"><span class="field-label">Método de pago</span><span class="field-value">${methodLabels[payment.method] || payment.method}</span></div>
         <div class="field"><span class="field-label">Fecha</span><span class="field-value">${payment.createdAt ? formatDateTime(payment.createdAt) : "—"}</span></div>
         <div class="field"><span class="field-label">Tipo</span><span class="field-value">${payment.type === "payment" ? "Pago completo" : "Abono"}</span></div>
@@ -199,7 +203,7 @@ export default function CorrectPaymentPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <PageHeader
-        title={`Boleta #${formatTicketNumber(ticketNumber)}`}
+        title={`Boleta ${formatTicketNumbers(ticketNumbers, ticketNumber)}`}
         description="Gestionar abonos y pagos"
         actions={
           <Button variant="ghost" size="sm" onPress={() => router.back()}>
