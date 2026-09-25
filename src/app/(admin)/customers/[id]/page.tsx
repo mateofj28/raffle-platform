@@ -240,7 +240,7 @@ export default function CustomerDetailPage() {
                                                 <ListBoxItem id="" textValue="Todos los estados">Todos los estados</ListBoxItem>
                                                 <ListBoxItem id="sold" textValue="Vendida">Vendida</ListBoxItem>
                                                 <ListBoxItem id="installment" textValue="Abonada">Abonada</ListBoxItem>
-                                                <ListBoxItem id="paid" textValue="Pagada">Pagada</ListBoxItem>
+
                                             </ListBox>
                                         </SelectPopover>
                                     </Select>

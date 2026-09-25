@@ -246,7 +246,7 @@ export default function SellTicketPage() {
                 className={`w-full text-left p-4 rounded-lg border text-sm transition-all ${paymentOption === "full" ? "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500/30" : "border-default-200 hover:bg-default-50"}`}
               >
                 <span className="font-semibold">Pago completo</span>
-                <span className="text-xs text-default-500 block mt-1">El cliente paga {formatCurrency(activeRaffle.ticketPrice)} ahora. Boleta queda como "pagada".</span>
+                <span className="text-xs text-default-500 block mt-1">El cliente paga {formatCurrency(activeRaffle.ticketPrice)} ahora. La boleta queda como "vendida".</span>
               </button>
 
               <button
