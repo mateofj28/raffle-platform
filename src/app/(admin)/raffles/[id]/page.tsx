@@ -99,7 +99,7 @@ export default function RaffleDetailPage() {
                 if (raffleDoc.exists()) {
                     const data = raffleDoc.data();
                     setRaffle({ id: raffleDoc.id, ...data } as Raffle);
-                    setActiveRaffle({ id: raffleDoc.id, name: data.name, status: data.status, ticketPrice: data.ticketPrice, totalTickets: data.totalTickets, semester: data.semester, endDate: data.endDate });
+                    setActiveRaffle({ id: raffleDoc.id, name: data.name, status: data.status, ticketPrice: data.ticketPrice, totalTickets: data.totalTickets, semester: data.semester, endDate: data.endDate, numbersPerTicket: data.numbersPerTicket });
                 }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }

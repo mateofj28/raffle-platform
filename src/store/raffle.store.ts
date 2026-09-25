@@ -12,6 +12,8 @@ interface ActiveRaffle {
   semester?: 1 | 2;
   /** Fecha del sorteo (YYYY-MM-DD). Se usa para el bloqueo del día del sorteo. */
   endDate?: string;
+  /** Números por boleta: 1 (número simple) o 2 (pareja). */
+  numbersPerTicket?: number;
 }
 
 interface RaffleStore {

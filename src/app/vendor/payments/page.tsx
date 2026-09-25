@@ -39,6 +39,8 @@ export default function VendorPaymentsPage() {
     const [loading, setLoading] = useState(true);
     const [isDark, setIsDark] = useState(false);
     const [pairsByBase, setPairsByBase] = useState<Map<number, number[]>>(new Map());
+    // raffleId → numbersPerTicket. Solo las rifas de 2 números usan parejas.
+    const [raffleNums, setRaffleNums] = useState<Map<string, number>>(new Map());
 
     useEffect(() => {
         const check = () => setIsDark(document.documentElement.classList.contains("dark"));
@@ -66,7 +68,14 @@ export default function VendorPaymentsPage() {
                 const snap = await getDocs(q);
                 setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
 
-                // Parejas del tenant para mostrar los dos números de la boleta.
+                // Mapa raffleId → numbersPerTicket: para saber, por cada pago, si su
+                // rifa es de 2 números (y solo ahí mostrar la pareja).
+                const rafflesSnap = await getDocs(tenantCollection(user.tenantId, "raffles"));
+                const nums = new Map<string, number>();
+                rafflesSnap.docs.forEach((d) => nums.set(d.id, (d.data().numbersPerTicket as number) ?? 1));
+                setRaffleNums(nums);
+
+                // Parejas del tenant (aplican solo a rifas de 2 números).
                 try {
                     const res = await pairingService.get();
                     if (res.pairs && res.pairs.length > 0) {
@@ -81,15 +90,17 @@ export default function VendorPaymentsPage() {
         load();
     }, [user?.tenantId, user?.vendorId]);
 
-    // Etiqueta de la boleta de un pago: pareja "0000 · 1111" o número base.
-    const ticketLabel = (ticketId: string): string => {
+    // Etiqueta de la boleta de un pago: pareja "0000 · 1111" SOLO si la rifa del
+    // pago es de 2 números; si es de 1 número, muestra el número base solo.
+    const ticketLabel = (ticketId: string, raffleId?: string): string => {
         const base = parseInt(ticketId, 10);
-        return formatTicketNumbers(pairsByBase.get(base), base);
+        const isPairRaffle = raffleId ? raffleNums.get(raffleId) === 2 : false;
+        return formatTicketNumbers(isPairRaffle ? pairsByBase.get(base) : undefined, base);
     };
 
     // Apply filters
     const filtered = payments.filter(p => {
-        if (searchTicket && !p.ticketId.includes(searchTicket) && !ticketLabel(p.ticketId).toLowerCase().includes(searchTicket.toLowerCase())) return false;
+        if (searchTicket && !p.ticketId.includes(searchTicket) && !ticketLabel(p.ticketId, p.raffleId).toLowerCase().includes(searchTicket.toLowerCase())) return false;
         if (filterType && p.type !== filterType) return false;
         if (filterMethod && p.method !== filterMethod) return false;
         if (filterMonth) {
@@ -214,7 +225,7 @@ export default function VendorPaymentsPage() {
                                             <td className="px-4 py-3 text-xs text-default-500">
                                                 {payment.createdAt ? formatDateTime(payment.createdAt) : "—"}
                                             </td>
-                                                    <td className="px-4 py-3 font-mono font-bold">{ticketLabel(payment.ticketId)}</td>
+                                                    <td className="px-4 py-3 font-mono font-bold">{ticketLabel(payment.ticketId, payment.raffleId)}</td>
                                             <td className="px-4 py-3">
                                                 <span className={payment.type === "payment" ? "text-emerald-500 font-medium" : "text-amber-400 font-medium"}>
                                                     {TYPE_LABELS[payment.type] || payment.type}

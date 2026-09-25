@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
                     }
                     const r = snap.docs[0];
                     const d = r.data();
-                    setActiveRaffle({ id: r.id, name: d.name, status: d.status, ticketPrice: d.ticketPrice, totalTickets: d.totalTickets, semester: d.semester, endDate: d.endDate });
+                    setActiveRaffle({ id: r.id, name: d.name, status: d.status, ticketPrice: d.ticketPrice, totalTickets: d.totalTickets, semester: d.semester, endDate: d.endDate, numbersPerTicket: d.numbersPerTicket });
                     return;
                 }
 

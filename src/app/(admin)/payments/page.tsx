@@ -81,16 +81,21 @@ export default function PaymentsPage() {
                 customersSnap.docs.forEach(d => cMap.set(d.id, d.data().name));
                 setCustomers(cMap);
 
-                // Parejas del tenant (rifas de 2 números): mapa base→[a,b] para
-                // mostrar los dos números de la boleta en la tabla de pagos.
-                try {
-                    const res = await pairingService.get();
-                    if (res.pairs && res.pairs.length > 0) {
-                        const pMap = new Map<number, number[]>();
-                        res.pairs.forEach(([a, b]) => { pMap.set(Math.min(a, b), [Math.min(a, b), Math.max(a, b)]); });
-                        setPairsByBase(pMap);
-                    }
-                } catch { /* rifas de 1 número: no hay parejas, se ignora */ }
+                // Parejas del tenant: SOLO aplican si la rifa activa es de 2 números.
+                // En rifas de 1 número cada boleta juega un solo número, así que NO
+                // se deben usar las parejas (evita mostrar "5000 · 7886").
+                if (activeRaffle.numbersPerTicket === 2) {
+                    try {
+                        const res = await pairingService.get();
+                        if (res.pairs && res.pairs.length > 0) {
+                            const pMap = new Map<number, number[]>();
+                            res.pairs.forEach(([a, b]) => { pMap.set(Math.min(a, b), [Math.min(a, b), Math.max(a, b)]); });
+                            setPairsByBase(pMap);
+                        }
+                    } catch { /* sin parejas: se ignora */ }
+                } else {
+                    setPairsByBase(new Map());
+                }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
         };
