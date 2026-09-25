@@ -40,9 +40,10 @@ export default function CustomerDetailPage() {
     const [filterTicket, setFilterTicket] = useState("");
     const [filterType, setFilterType] = useState("");
     const [filterMethod, setFilterMethod] = useState("");
-    // Filtro por período: "" (todos), "this" (este mes), "last" (mes anterior),
-    // o una clave "YYYY-M" para un mes específico con pagos.
-    const [filterPeriod, setFilterPeriod] = useState("");
+    // Filtro rápido: "" (todo), "today", "week" (lun-dom), "month" (este mes).
+    const [filterQuick, setFilterQuick] = useState("");
+    // Filtro por mes concreto: "" o "YYYY-M". Excluyente con el filtro rápido.
+    const [filterMonth, setFilterMonth] = useState("");
 
     // Filtros de la tabla de boletas compradas
     const [ticketFilterNum, setTicketFilterNum] = useState("");
@@ -130,18 +131,39 @@ export default function CustomerDetailPage() {
         .map((key) => { const [y, m] = key.split("-").map(Number); return { key, label: `${MONTH_NAMES[m]} ${y}` }; });
 
     // ¿El pago cae en el período seleccionado?
+    // Inicio de la semana actual (lunes 00:00) en hora local.
+    const startOfWeekMonday = (ref: Date): Date => {
+        const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+        const dow = d.getDay(); // 0=domingo..6=sábado
+        const diff = (dow + 6) % 7; // días desde el lunes
+        d.setDate(d.getDate() - diff);
+        return d;
+    };
+
     const matchesPeriod = (p: Payment): boolean => {
-        if (!filterPeriod) return true;
+        // Filtro por mes concreto (excluyente con el rápido).
+        if (filterMonth) {
+            const d = paymentDate(p);
+            if (!d) return false;
+            const [y, m] = filterMonth.split("-").map(Number);
+            return d.getFullYear() === y && d.getMonth() === m;
+        }
+        if (!filterQuick) return true;
         const d = paymentDate(p);
         if (!d) return false;
         const now = new Date();
-        if (filterPeriod === "this") return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-        if (filterPeriod === "last") {
-            const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            return d.getFullYear() === last.getFullYear() && d.getMonth() === last.getMonth();
+        if (filterQuick === "today") {
+            return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
         }
-        const [y, m] = filterPeriod.split("-").map(Number);
-        return d.getFullYear() === y && d.getMonth() === m;
+        if (filterQuick === "week") {
+            const start = startOfWeekMonday(now);
+            const end = new Date(start); end.setDate(start.getDate() + 7);
+            return d >= start && d < end;
+        }
+        if (filterQuick === "month") {
+            return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        }
+        return true;
     };
 
     // Pagos filtrados por boleta, tipo, método y período (fecha)
@@ -302,19 +324,32 @@ export default function CustomerDetailPage() {
                                         inputMode="numeric"
                                         className="w-full sm:w-56"
                                     />
-                                    <Select aria-label="Período" selectedKey={filterPeriod || null} onSelectionChange={(key) => setFilterPeriod(key ? String(key) : "")} placeholder="Todo el tiempo" className="w-52">
+                                    {/* Filtro rápido: hoy / esta semana / este mes. */}
+                                    <Select aria-label="Período" selectedKey={filterQuick || null} onSelectionChange={(key) => { setFilterQuick(key ? String(key) : ""); setFilterMonth(""); }} placeholder="Todo el tiempo" className="w-44">
                                         <SelectTrigger><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
                                         <SelectPopover>
                                             <ListBox>
                                                 <ListBoxItem id="" textValue="Todo el tiempo">Todo el tiempo</ListBoxItem>
-                                                <ListBoxItem id="this" textValue="Este mes">Este mes</ListBoxItem>
-                                                <ListBoxItem id="last" textValue="Mes anterior">Mes anterior</ListBoxItem>
-                                                {monthOptions.map((m) => (
-                                                    <ListBoxItem key={m.key} id={m.key} textValue={m.label}>{m.label}</ListBoxItem>
-                                                ))}
+                                                <ListBoxItem id="today" textValue="Hoy">Hoy</ListBoxItem>
+                                                <ListBoxItem id="week" textValue="Esta semana">Esta semana</ListBoxItem>
+                                                <ListBoxItem id="month" textValue="Este mes">Este mes</ListBoxItem>
                                             </ListBox>
                                         </SelectPopover>
                                     </Select>
+                                    {/* Filtro por mes: solo aparece si hay pagos en 2+ meses. */}
+                                    {monthOptions.length >= 2 && (
+                                        <Select aria-label="Mes" selectedKey={filterMonth || null} onSelectionChange={(key) => { setFilterMonth(key ? String(key) : ""); setFilterQuick(""); }} placeholder="Por mes" className="w-48">
+                                            <SelectTrigger><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
+                                            <SelectPopover>
+                                                <ListBox>
+                                                    <ListBoxItem id="" textValue="Todos los meses">Todos los meses</ListBoxItem>
+                                                    {monthOptions.map((m) => (
+                                                        <ListBoxItem key={m.key} id={m.key} textValue={m.label}>{m.label}</ListBoxItem>
+                                                    ))}
+                                                </ListBox>
+                                            </SelectPopover>
+                                        </Select>
+                                    )}
                                     <Select aria-label="Tipo de pago" selectedKey={filterType || null} onSelectionChange={(key) => setFilterType(key ? String(key) : "")} placeholder="Todos los tipos" className="w-44">
                                         <SelectTrigger><SelectValue /><SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator></SelectTrigger>
                                         <SelectPopover>
@@ -338,8 +373,8 @@ export default function CustomerDetailPage() {
                                             </ListBox>
                                         </SelectPopover>
                                     </Select>
-                                    {(filterTicket || filterType || filterMethod || filterPeriod) && (
-                                        <Button variant="ghost" size="sm" onPress={() => { setFilterTicket(""); setFilterType(""); setFilterMethod(""); setFilterPeriod(""); }}>✕ Limpiar</Button>
+                                    {(filterTicket || filterType || filterMethod || filterQuick || filterMonth) && (
+                                        <Button variant="ghost" size="sm" onPress={() => { setFilterTicket(""); setFilterType(""); setFilterMethod(""); setFilterQuick(""); setFilterMonth(""); }}>✕ Limpiar</Button>
                                     )}
                                     <span className="text-xs text-default-500 ml-auto">{filteredPayments.length} pago(s)</span>
                                 </div>

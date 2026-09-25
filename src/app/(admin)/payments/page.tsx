@@ -39,8 +39,10 @@ export default function PaymentsPage() {
     const [filterType, setFilterType] = useState<string>("");
     const [filterMethod, setFilterMethod] = useState<string>("");
     const [searchTerm, setSearchTerm] = useState("");
-    // "" (todos), "this" (este mes), "last" (mes anterior), o "YYYY-M" para un mes con pagos.
-    const [filterPeriod, setFilterPeriod] = useState("");
+    // Filtro rápido: "" (todo), "today", "week" (lun-dom), "month" (este mes).
+    const [filterQuick, setFilterQuick] = useState("");
+    // Filtro por mes concreto: "" o "YYYY-M". Excluyente con el filtro rápido.
+    const [filterMonth, setFilterMonth] = useState("");
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -121,18 +123,40 @@ export default function PaymentsPage() {
         .sort((a, b) => (a < b ? 1 : -1))
         .map((key) => { const [y, m] = key.split("-").map(Number); return { key, label: `${MONTH_NAMES[m]} ${y}` }; });
 
+    // Inicio de la semana actual (lunes 00:00) en hora local.
+    const startOfWeekMonday = (ref: Date): Date => {
+        const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+        const dow = d.getDay(); // 0=domingo..6=sábado
+        const diff = (dow + 6) % 7; // días desde el lunes
+        d.setDate(d.getDate() - diff);
+        return d;
+    };
+
     const matchesPeriod = (p: Payment): boolean => {
-        if (!filterPeriod) return true;
+        // Filtro por mes concreto (excluyente con el rápido).
+        if (filterMonth) {
+            const d = paymentDate(p);
+            if (!d) return false;
+            const [y, m] = filterMonth.split("-").map(Number);
+            return d.getFullYear() === y && d.getMonth() === m;
+        }
+        // Filtro rápido.
+        if (!filterQuick) return true;
         const d = paymentDate(p);
         if (!d) return false;
         const now = new Date();
-        if (filterPeriod === "this") return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-        if (filterPeriod === "last") {
-            const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            return d.getFullYear() === last.getFullYear() && d.getMonth() === last.getMonth();
+        if (filterQuick === "today") {
+            return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
         }
-        const [y, m] = filterPeriod.split("-").map(Number);
-        return d.getFullYear() === y && d.getMonth() === m;
+        if (filterQuick === "week") {
+            const start = startOfWeekMonday(now);
+            const end = new Date(start); end.setDate(start.getDate() + 7);
+            return d >= start && d < end;
+        }
+        if (filterQuick === "month") {
+            return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        }
+        return true;
     };
 
     // Apply filters
@@ -154,9 +178,9 @@ export default function PaymentsPage() {
     const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const totalCollected = filtered.reduce((sum, p) => sum + p.amount, 0);
-    const hasFilters = filterType || filterMethod || searchTerm || filterPeriod;
+    const hasFilters = filterType || filterMethod || searchTerm || filterQuick || filterMonth;
 
-    const clearFilters = () => { setFilterType(""); setFilterMethod(""); setSearchTerm(""); setFilterPeriod(""); setPage(1); };
+    const clearFilters = () => { setFilterType(""); setFilterMethod(""); setSearchTerm(""); setFilterQuick(""); setFilterMonth(""); setPage(1); };
 
     if (loading) return <div><PageHeader title="Pagos" /><LoadingSkeleton rows={8} /></div>;
 
@@ -187,12 +211,13 @@ export default function PaymentsPage() {
                                   className="w-full sm:w-64"
                               />
 
+                                    {/* Filtro rápido: hoy / esta semana / este mes. */}
                                     <Select
                                         aria-label="Período"
-                                        selectedKey={filterPeriod || null}
-                                        onSelectionChange={(key) => { setFilterPeriod(key ? String(key) : ""); setPage(1); }}
+                                        selectedKey={filterQuick || null}
+                                        onSelectionChange={(key) => { setFilterQuick(key ? String(key) : ""); setFilterMonth(""); setPage(1); }}
                                         placeholder="Todo el tiempo"
-                                        className="w-52"
+                                        className="w-44"
                                     >
                                         <SelectTrigger>
                                             <SelectValue />
@@ -201,14 +226,36 @@ export default function PaymentsPage() {
                                         <SelectPopover>
                                             <ListBox>
                                                 <ListBoxItem id="" textValue="Todo el tiempo">Todo el tiempo</ListBoxItem>
-                                                <ListBoxItem id="this" textValue="Este mes">Este mes</ListBoxItem>
-                                                <ListBoxItem id="last" textValue="Mes anterior">Mes anterior</ListBoxItem>
-                                                {monthOptions.map((m) => (
-                                                    <ListBoxItem key={m.key} id={m.key} textValue={m.label}>{m.label}</ListBoxItem>
-                                                ))}
+                                                <ListBoxItem id="today" textValue="Hoy">Hoy</ListBoxItem>
+                                                <ListBoxItem id="week" textValue="Esta semana">Esta semana</ListBoxItem>
+                                                <ListBoxItem id="month" textValue="Este mes">Este mes</ListBoxItem>
                                             </ListBox>
                                         </SelectPopover>
                                     </Select>
+
+                                    {/* Filtro por mes: solo aparece si hay pagos en 2+ meses. */}
+                                    {monthOptions.length >= 2 && (
+                                        <Select
+                                            aria-label="Mes"
+                                            selectedKey={filterMonth || null}
+                                            onSelectionChange={(key) => { setFilterMonth(key ? String(key) : ""); setFilterQuick(""); setPage(1); }}
+                                            placeholder="Por mes"
+                                            className="w-48"
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                                <SelectIndicator><ChevronDown className="h-4 w-4" /></SelectIndicator>
+                                            </SelectTrigger>
+                                            <SelectPopover>
+                                                <ListBox>
+                                                    <ListBoxItem id="" textValue="Todos los meses">Todos los meses</ListBoxItem>
+                                                    {monthOptions.map((m) => (
+                                                        <ListBoxItem key={m.key} id={m.key} textValue={m.label}>{m.label}</ListBoxItem>
+                                                    ))}
+                                                </ListBox>
+                                            </SelectPopover>
+                                        </Select>
+                                    )}
 
                                     <Select
                                         aria-label="Tipo de pago"
