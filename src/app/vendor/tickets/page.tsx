@@ -13,7 +13,7 @@ import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { vendorCommission } from "@/utils/money";
 import { useAuthStore } from "@/store/auth.store";
-import { getDocs, query, where, orderBy } from "firebase/firestore";
+import { getDocs, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { tenantCollection } from "@/lib/firebase/firestore";
 import type { Ticket as TicketType, Customer } from "@/types/api.types";
 
@@ -40,39 +40,58 @@ export default function VendorTicketsPage() {
     const [statusFilter, setStatusFilter] = useState("");
     const PAGE_SIZE = 20;
 
+    // Tiempo real (Fase 2): se ESCUCHAN en vivo SOLO las boletas de este vendedor
+    // (where vendorId == vendorId), conjunto pequeño y barato. Así el vendedor ve
+    // al instante cuando le asignan/quitan/venden/abonan una boleta. La rifa activa
+    // y los clientes se resuelven una vez (cambian poco). Suscripción limpiada al salir.
     useEffect(() => {
-        if (!user?.tenantId || !user?.vendorId) return;
-        const load = async () => {
-            setLoading(true);
-            try {
-                // Find the active raffle
-                const rafflesCol = tenantCollection(user.tenantId, "raffles");
-                const rafflesQ = query(rafflesCol, where("status", "in", ["active", "draft"]), orderBy("createdAt", "desc"));
-                const rafflesSnap = await getDocs(rafflesQ);
+        const tenantId = user?.tenantId;
+        const vendorId = user?.vendorId;
+        if (!tenantId || !vendorId) return;
+        let cancelled = false;
+        let unsub: (() => void) | null = null;
+        setLoading(true);
 
+        (async () => {
+            try {
+                // 1) Rifa oficial.
+                const rafflesQ = query(
+                    tenantCollection(tenantId, "raffles"),
+                    where("status", "in", ["active", "draft"]),
+                    orderBy("createdAt", "desc")
+                );
+                const rafflesSnap = await getDocs(rafflesQ);
+                if (cancelled) return;
                 if (rafflesSnap.empty) {
                     setTickets([]);
+                    setLoading(false);
                     return;
                 }
-
                 const activeRaffle = rafflesSnap.docs[0];
                 setRaffleName(activeRaffle.data().name);
 
-                // Get vendor's tickets
-                const ticketsCol = tenantCollection(user.tenantId, `raffles/${activeRaffle.id}/tickets`);
-                const q = query(ticketsCol, where("vendorId", "==", user.vendorId), orderBy("number", "asc"));
-                const snap = await getDocs(q);
-                setTickets(snap.docs.map(d => d.data() as TicketType));
-
-                // Load customers for name resolution
-                const customersSnap = await getDocs(tenantCollection(user.tenantId, "customers"));
+                // 2) Nombres de clientes (una lectura; barato).
+                const customersSnap = await getDocs(tenantCollection(tenantId, "customers"));
                 const cMap = new Map<string, string>();
                 customersSnap.docs.forEach(d => cMap.set(d.id, d.data().name));
+                if (cancelled) return;
                 setCustomers(cMap);
-            } catch (e) { console.error(e); }
-            finally { setLoading(false); }
+
+                // 3) Suscripción en vivo a las boletas del vendedor.
+                const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
+                const q = query(ticketsCol, where("vendorId", "==", vendorId), orderBy("number", "asc"));
+                unsub = onSnapshot(
+                    q,
+                    (snap) => { setTickets(snap.docs.map(d => d.data() as TicketType)); setLoading(false); },
+                    (err) => { console.error(err); setLoading(false); }
+                );
+            } catch (e) { console.error(e); if (!cancelled) setLoading(false); }
+        })();
+
+        return () => {
+            cancelled = true;
+            if (unsub) unsub(); // cortar la suscripción al desmontar
         };
-        load();
     }, [user?.tenantId, user?.vendorId]);
 
     // Filters

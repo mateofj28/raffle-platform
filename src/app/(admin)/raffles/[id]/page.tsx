@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast, ComboBox, Input as HeroInput } from "@heroui/react";
-import { Ticket, Calendar, Trophy, Hash, DollarSign, UserPlus, UserMinus, X, ChevronDown } from "lucide-react";
+import { Ticket, Calendar, Trophy, Hash, DollarSign, UserPlus, UserMinus, X, ChevronDown, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -123,6 +123,16 @@ export default function RaffleDetailPage() {
 
     // Load tickets
     useEffect(() => { reloadTickets(); }, [reloadTickets]);
+
+    // Refresco al volver a la pestaña (barato, escala bien): esta pantalla NO usa
+    // tiempo real porque escucharía miles de boletas. En su lugar, cuando el usuario
+    // regresa a la pestaña (p. ej. tras operar desde el celular), se recargan los
+    // conteos una sola vez. Complementa el botón "Actualizar" del encabezado.
+    useEffect(() => {
+        const onVisible = () => { if (document.visibilityState === "visible") reloadTickets(); };
+        document.addEventListener("visibilitychange", onVisible);
+        return () => document.removeEventListener("visibilitychange", onVisible);
+    }, [reloadTickets]);
 
     // Load vendors
     useEffect(() => {
@@ -350,6 +360,12 @@ export default function RaffleDetailPage() {
                                     <Hash className="h-4 w-4" /> Buscar boleta
                                 </Button>
                             </Link>
+                        )}
+                        {/* Recarga los conteos bajo demanda (esta pantalla no usa tiempo real). */}
+                        {!assignMode && (
+                            <Button variant="ghost" size="sm" isDisabled={ticketsLoading} onPress={() => reloadTickets()} aria-label="Actualizar">
+                                <RefreshCw className={`h-4 w-4 ${ticketsLoading ? "animate-spin" : ""}`} /> Actualizar
+                            </Button>
                         )}
                     </div>
                 }
