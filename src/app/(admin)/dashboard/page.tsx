@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Separator } from "@heroui/react";
-import { DollarSign, Users, CreditCard, ArrowLeft, TrendingUp, Percent, Calendar, Zap } from "lucide-react";
+import { DollarSign, Users, CreditCard, ArrowLeft, TrendingUp, Percent, Calendar, Zap, Upload } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -292,6 +292,24 @@ export default function AdminDashboardPage() {
                     {activeRaffle.totalTickets.toLocaleString()} boletas × {formatCurrency(activeRaffle.ticketPrice)}
                 </span>
             </div>
+
+            {/* Importación masiva desde Excel — aplica a ESTA rifa (la activa). */}
+            <Card className="mb-6 border border-primary/20 bg-primary/5">
+                <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 shrink-0"><Upload className="h-5 w-5 text-primary" /></div>
+                        <div>
+                            <h3 className="font-semibold text-sm">Importar datos desde Excel</h3>
+                            <p className="text-xs text-default-500 mt-0.5">
+                                Carga masiva de boletas y abonos para <span className="font-medium">{activeRaffle.name}</span>. Los datos se aplican a esta rifa.
+                            </p>
+                        </div>
+                    </div>
+                    <Link href="/raffles/import" className="shrink-0">
+                        <Button variant="primary" size="sm"><Upload className="h-4 w-4" /> Importar datos</Button>
+                    </Link>
+                </CardContent>
+            </Card>
 
             {loading ? (
                 <LoadingSkeleton rows={10} />

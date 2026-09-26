@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, AlertDialog, toast } from "@heroui/react";
-import { Plus, Ticket, ArrowRight, LogOut, Trophy, Calendar, Trash2, CheckCircle2, Hash, Upload } from "lucide-react";
+import { Plus, Ticket, ArrowRight, LogOut, Trophy, Calendar, Trash2, CheckCircle2, Hash } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -77,11 +77,6 @@ export default function RafflesPage() {
                             <Link href="/raffles/pairings">
                                 <Button variant="outline" size="sm">
                                     <Hash className="h-4 w-4" /> Parejas de números
-                                </Button>
-                            </Link>
-                            <Link href="/raffles/import">
-                                <Button variant="outline" size="sm">
-                                    <Upload className="h-4 w-4" /> Importar datos
                                 </Button>
                             </Link>
                             <Link href="/raffles/new">
