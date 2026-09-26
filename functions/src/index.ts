@@ -36,6 +36,9 @@ export { globalSearch } from "./services/search.service";
 // Export
 export { exportData } from "./services/export.service";
 
+// Import (carga masiva desde Excel)
+export { importRaffleData } from "./services/import.service";
+
 // Commission
 export { payCommission } from "./services/commission.service";
 
