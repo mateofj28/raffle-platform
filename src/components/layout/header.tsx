@@ -34,6 +34,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                     {activeRaffle.semester && (
                         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary whitespace-nowrap">
                             {activeRaffle.semester === 1 ? "1er semestre" : "2do semestre"}
+                            {activeRaffle.endDate ? ` ${activeRaffle.endDate.slice(0, 4)}` : ""}
                         </span>
                     )}
               </Link>
