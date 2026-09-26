@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@heroui/react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { RaffleForm } from "@/features/raffles/components/raffle-form";
 import { useCreateRaffle } from "@/features/raffles/hooks/use-raffles";
@@ -25,7 +28,15 @@ export default function NewRafflePage() {
 
     return (
         <div>
-            <PageHeader title="Nueva Rifa" description="Crea una nueva rifa" />
+            <PageHeader
+                title="Nueva Rifa"
+                description="Crea una nueva rifa"
+                actions={
+                    <Link href="/raffles">
+                        <Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button>
+                    </Link>
+                }
+            />
           {error && (
               <div className="mb-4 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
                   {error}
