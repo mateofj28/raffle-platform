@@ -1,11 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DatePicker, DateField, Calendar } from "@heroui/react";
+import { Pencil } from "lucide-react";
 import { createRaffleSchema, type CreateRaffleFormData } from "../schemas/raffle.schema";
 import { parseDate, today, getLocalTimeZone, type CalendarDate } from "@internationalized/date";
 import { makeCapitalizedRegister } from "@/utils/capitalize-field";
+
+/** Nombre por defecto de la rifa. Siempre es el mismo; lo que cambia es el
+ *  semestre/año, la descripción y los premios. Se puede editar si algún día
+ *  se decide cambiarlo (botón del lápiz). */
+const DEFAULT_RAFFLE_NAME = "Las dos primas del año";
 
 interface RaffleFormProps {
     onSubmit: (data: CreateRaffleFormData) => void;
@@ -41,6 +48,7 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
     const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<CreateRaffleFormData>({
         resolver: zodResolver(createRaffleSchema),
         defaultValues: {
+            name: DEFAULT_RAFFLE_NAME,
             numbersPerTicket: 1,
             prizeValue: 0,
             ticketPrice: 60000,
@@ -50,6 +58,10 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
 
     // register que capitaliza la primera letra (solo campos de texto).
     const capRegister = makeCapitalizedRegister(register, setValue);
+
+    // El nombre arranca en solo lectura (siempre "Las dos primas del año").
+    // El lápiz lo habilita por si algún día se quiere cambiar.
+    const [nameEditable, setNameEditable] = useState(false);
 
     const startDateValue = watch("startDate");
 
@@ -62,11 +74,26 @@ export function RaffleForm({ onSubmit, isLoading, defaultValues }: RaffleFormPro
                 {/* Nombre */}
                 <div className="md:col-span-2">
                     <label className="text-sm font-medium mb-1 block">Nombre</label>
-                    <input
-                        {...capRegister("name")}
-                        placeholder="Nombre de la rifa"
-                        className="w-full rounded-lg border border-default-200 bg-default-50 px-3 py-2 text-sm outline-none focus:border-primary"
-                    />
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setNameEditable((v) => !v)}
+                            aria-label={nameEditable ? "Bloquear nombre" : "Editar nombre"}
+                            title={nameEditable ? "Bloquear nombre" : "Editar nombre"}
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors ${nameEditable ? "border-primary bg-primary/10 text-primary" : "border-default-200 bg-default-50 text-default-500 hover:text-primary hover:border-primary/40"}`}
+                        >
+                            <Pencil className="h-4 w-4" />
+                        </button>
+                        <input
+                            {...capRegister("name")}
+                            readOnly={!nameEditable}
+                            placeholder="Nombre de la rifa"
+                            className={`w-full rounded-lg border border-default-200 px-3 py-2 text-sm outline-none focus:border-primary ${nameEditable ? "bg-default-50" : "bg-default-100 text-default-600 cursor-default"}`}
+                        />
+                    </div>
+                    {!nameEditable && (
+                        <p className="text-xs text-default-400 mt-1">El nombre es fijo. Usa el lápiz solo si necesitas cambiarlo.</p>
+                    )}
                     {errors.name && <p className="text-sm text-danger mt-1">{errors.name.message}</p>}
                 </div>
 
