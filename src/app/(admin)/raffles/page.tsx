@@ -176,6 +176,10 @@ export default function RafflesPage() {
                                             <span className="font-semibold text-foreground">{formatCurrency(raffle.ticketPrice)}</span>
                                             <span className="text-default-400">por boleta</span>
                                         </div>
+                                                <div className="flex items-center gap-2 text-default-600">
+                                                    <Hash className="h-4 w-4 text-orange-500 shrink-0" />
+                                                    <span>{raffle.numbersPerTicket === 2 ? "Dos números (pareja)" : "Un número"}</span>
+                                                </div>
                                     </div>
 
                                             <Button
