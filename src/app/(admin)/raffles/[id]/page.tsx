@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card, CardContent, Separator, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, AlertDialog, toast, ComboBox, Input as HeroInput } from "@heroui/react";
-import { Ticket, Calendar, Trophy, Hash, DollarSign, UserPlus, UserMinus, X, ChevronDown, RefreshCw } from "lucide-react";
+import { Ticket, Calendar, Trophy, Hash, DollarSign, UserPlus, UserMinus, X, ChevronDown, RefreshCw, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -435,6 +435,26 @@ export default function RaffleDetailPage() {
                     <p className="text-xs text-default-500">Vendidas</p>
                 </div>
             </div>
+
+            {/* Importación masiva desde Excel — solo en la rifa oficial y si no está cerrada por el sorteo. */}
+            {isOfficial === true && !drawLocked && !assignMode && (
+                <Card className="mb-6 border border-primary/20 bg-primary/5">
+                    <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10 shrink-0"><Upload className="h-5 w-5 text-primary" /></div>
+                            <div>
+                                <h3 className="font-semibold text-sm">Importar datos desde Excel</h3>
+                                <p className="text-xs text-default-500 mt-0.5">
+                                    Carga masiva de boletas y abonos para esta rifa desde un archivo Excel.
+                                </p>
+                            </div>
+                        </div>
+                        <Link href="/raffles/import" className="shrink-0">
+                            <Button variant="primary" size="sm"><Upload className="h-4 w-4" /> Importar datos</Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Assignment Panel */}
             {assignMode && (
