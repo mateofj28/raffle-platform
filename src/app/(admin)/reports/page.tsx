@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatCurrency, formatDateTime, formatTicketNumber } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumber, formatRafflePeriod } from "@/utils/formatters";
 import { deriveTicketStatus, deriveRaffleTicketStatus } from "@/utils/ticket-status";
 import { vendorCommission } from "@/utils/money";
 import { useAuthStore } from "@/store/auth.store";
@@ -92,7 +92,10 @@ export default function ReportsPage() {
 
     return (
         <div>
-            <PageHeader title="Reportes" description={`Rifa: ${activeRaffle.name}`} />
+            <PageHeader
+                title="Reportes"
+                description={`Rifa: ${activeRaffle.name}${formatRafflePeriod(activeRaffle.semester, activeRaffle.endDate) ? ` — ${formatRafflePeriod(activeRaffle.semester, activeRaffle.endDate)}` : ""}`}
+            />
 
             {!selectedReport ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

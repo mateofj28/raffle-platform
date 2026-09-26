@@ -8,7 +8,7 @@ import { Plus, Ticket, ArrowRight, LogOut, Trophy, Calendar, Trash2, CheckCircle
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatCurrency, formatDate } from "@/utils/formatters";
+import { formatCurrency, formatDate, formatRafflePeriod } from "@/utils/formatters";
 import { useRaffles, useDeleteRaffle } from "@/features/raffles/hooks/use-raffles";
 import { useRaffleStore } from "@/store/raffle.store";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -146,7 +146,14 @@ export default function RafflesPage() {
 
                                 <CardContent className="p-6">
                                     <div className="flex items-start justify-between gap-2 mb-3">
-                                        <h3 className="font-bold text-lg leading-tight">{raffle.name}</h3>
+                                                <div className="min-w-0">
+                                                    <h3 className="font-bold text-lg leading-tight">{raffle.name}</h3>
+                                                    {formatRafflePeriod(raffle.semester, raffle.endDate) && (
+                                                        <p className="text-sm font-medium text-primary mt-0.5">
+                                                            {formatRafflePeriod(raffle.semester, raffle.endDate)}
+                                                        </p>
+                                                    )}
+                                                </div>
                                         <StatusBadge status={raffle.status} />
                                     </div>
 
