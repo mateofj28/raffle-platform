@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatRafflePeriod } from "@/utils/formatters";
 import { deriveRaffleTicketStatus } from "@/utils/ticket-status";
 import { vendorCommission } from "@/utils/money";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -278,7 +278,7 @@ export default function AdminDashboardPage() {
         <div>
             <PageHeader
                 title={activeRaffle.name}
-                description="Panel de administración"
+                description={formatRafflePeriod(activeRaffle.semester, activeRaffle.endDate) || "Panel de administración"}
                 actions={
                     <Link href="/raffles">
                         <Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4" /> Cambiar Rifa</Button>

@@ -125,3 +125,18 @@ export function capitalizeWords(value: string): string {
     if (!value) return value;
     return value.replace(/(^|\s)(\p{L})/gu, (_m, sep, char) => sep + char.toUpperCase());
 }
+
+/**
+ * Rótulo del período de una rifa: semestre + año.
+ * El nombre de la rifa siempre es el mismo ("Las dos primas del año"), así que
+ * lo que la distingue de verdad es el semestre y el año. Este helper arma un
+ * texto uniforme como "1er semestre 2026" o "2do semestre 2027".
+ *
+ * El año se toma de la fecha del sorteo (`endDate`, formato YYYY-MM-DD). Si no
+ * hay fecha válida, se muestra solo el semestre para no inventar un año.
+ */
+export function formatRafflePeriod(semester?: 1 | 2, endDate?: string): string {
+    const sem = semester === 1 ? "1er semestre" : semester === 2 ? "2do semestre" : "";
+    const year = endDate && /^\d{4}/.test(endDate) ? endDate.slice(0, 4) : "";
+    return [sem, year].filter(Boolean).join(" ");
+}

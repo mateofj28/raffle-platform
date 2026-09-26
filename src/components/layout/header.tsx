@@ -3,6 +3,7 @@
 import { Menu, Ticket } from "lucide-react";
 import { Button } from "@heroui/react";
 import { useRaffleStore } from "@/store/raffle.store";
+import { formatRafflePeriod } from "@/utils/formatters";
 import Link from "next/link";
 
 interface HeaderProps {
@@ -33,8 +34,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   <span className="text-sm font-semibold truncate max-w-[200px]">{activeRaffle.name}</span>
                     {activeRaffle.semester && (
                         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary whitespace-nowrap">
-                            {activeRaffle.semester === 1 ? "1er semestre" : "2do semestre"}
-                            {activeRaffle.endDate ? ` ${activeRaffle.endDate.slice(0, 4)}` : ""}
+                            {formatRafflePeriod(activeRaffle.semester, activeRaffle.endDate)}
                         </span>
                     )}
               </Link>
