@@ -32,6 +32,7 @@ interface ImportRowResult {
     vendorCreated?: boolean;
     customerCreated?: boolean;
     depositApplied?: number;
+    changed?: boolean;
     message?: string;
 }
 
@@ -39,6 +40,8 @@ interface ImportResponse {
     total: number;
     ok: number;
     errors: number;
+    changed: number;
+    unchanged: number;
     results: ImportRowResult[];
 }
 
@@ -231,10 +234,12 @@ export default function ImportRafflePage() {
             };
             const res = await callFunction<ImportResponse, typeof payload>("importRaffleData", payload);
             setSummary(res);
-            if (res.errors === 0) {
-                toast.success(`Importación completa: ${res.ok} boletas procesadas.`);
-            } else {
+            if (res.errors > 0) {
                 toast.danger(`Importación con ${res.errors} errores. Revisa el detalle.`);
+            } else if (res.changed === 0) {
+                toast.success("Todo ya estaba al día: no se registró nada nuevo.");
+            } else {
+                toast.success(`Importación completa: ${res.changed} filas aplicadas.`);
             }
         } catch (e) {
             console.error(e);
@@ -398,9 +403,15 @@ export default function ImportRafflePage() {
                         <h3 className="font-semibold mb-3">Resultado de la importación</h3>
                         <div className="flex flex-wrap gap-3 mb-4 text-sm">
                             <span className="rounded-full bg-default-100 px-3 py-1">{summary.total} filas</span>
-                            <span className="rounded-full bg-emerald-100 text-emerald-700 px-3 py-1">{summary.ok} correctas</span>
+                            <span className="rounded-full bg-emerald-100 text-emerald-700 px-3 py-1">{summary.changed} aplicadas</span>
+                            {summary.unchanged > 0 && <span className="rounded-full bg-blue-100 text-blue-700 px-3 py-1">{summary.unchanged} sin cambios (ya estaban)</span>}
                             {summary.errors > 0 && <span className="rounded-full bg-danger/10 text-danger px-3 py-1">{summary.errors} con error</span>}
                         </div>
+                        {summary.errors === 0 && summary.changed === 0 && (
+                            <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-800">
+                                Estas boletas ya estaban registradas con estos datos, así que no se registró nada nuevo. La importación es segura de repetir: no duplica abonos ni clientes.
+                            </div>
+                        )}
                         {summary.errors > 0 && (
                             <div className="overflow-x-auto border border-default-200 rounded-lg">
                                 <table className="w-full text-sm">

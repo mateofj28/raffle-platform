@@ -60,6 +60,9 @@ interface RowResult {
     vendorCreated?: boolean;
     customerCreated?: boolean;
     depositApplied?: number;
+    // true si esta fila cambió ALGO (creó vendedor/cliente, aplicó abono o cambió
+    // el cliente de la boleta). false si ya estaba al día (reimportación sin efecto).
+    changed?: boolean;
     message?: string;
 }
 
@@ -134,6 +137,8 @@ export const importRaffleData = onCall(
             const results: RowResult[] = [];
             let okCount = 0;
             let errorCount = 0;
+            let changedCount = 0;   // filas que aplicaron algún cambio
+            let unchangedCount = 0; // filas que ya estaban al día (reimportación sin efecto)
 
             // --- Procesar fila por fila ---
             for (const r of rows as ImportRow[]) {
@@ -148,8 +153,13 @@ export const importRaffleData = onCall(
                         () => `IMP-${String(++placeholderSeq).padStart(4, "0")}`
                     );
                     results.push(result);
-                    if (result.status === "ok") okCount++;
-                    else errorCount++;
+                    if (result.status === "ok") {
+                        okCount++;
+                        if (result.changed) changedCount++;
+                        else unchangedCount++;
+                    } else {
+                        errorCount++;
+                    }
                 } catch (err) {
                     errorCount++;
                     results.push({
@@ -169,10 +179,17 @@ export const importRaffleData = onCall(
                 raffleId,
                 context.uid,
                 null,
-                { total: rows.length, ok: okCount, errors: errorCount }
+                { total: rows.length, ok: okCount, errors: errorCount, changed: changedCount, unchanged: unchangedCount }
             );
 
-            return { total: rows.length, ok: okCount, errors: errorCount, results };
+            return {
+                total: rows.length,
+                ok: okCount,
+                errors: errorCount,
+                changed: changedCount,
+                unchanged: unchangedCount,
+                results,
+            };
         } catch (error) {
             handleError(error);
         }
@@ -311,7 +328,9 @@ async function processRow(
                 pendingBalance: newPending,
                 updatedAt: FieldValue.serverTimestamp(),
             };
-            if (finalCustomerId !== (ticket.customerId ?? null)) {
+            const customerChanged = finalCustomerId !== (ticket.customerId ?? null);
+            const vendorChanged = vendorId !== (ticket.vendorId ?? null);
+            if (customerChanged) {
                 updates.customerId = finalCustomerId;
             }
             tx.update(ticketRef, updates);
@@ -336,8 +355,17 @@ async function processRow(
                 });
             }
 
-            return { depositToApply };
+            return { depositToApply, customerChanged, vendorChanged };
         });
+
+        // La fila "cambió algo" si creó vendedor/cliente, aplicó un abono nuevo,
+        // o cambió el vendedor/cliente de la boleta. Si nada de eso, ya estaba al día.
+        const changed =
+            vendorCreated ||
+            customerCreated ||
+            txResult.depositToApply > 0 ||
+            txResult.customerChanged ||
+            txResult.vendorChanged;
 
         return {
             row: r.row,
@@ -346,6 +374,7 @@ async function processRow(
             vendorCreated,
             customerCreated,
             depositApplied: txResult.depositToApply,
+            changed,
         };
     }
 }
