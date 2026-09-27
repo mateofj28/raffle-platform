@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import { Button, Card, CardContent, toast } from "@heroui/react";
-import { ArrowLeft, Upload, Download, FileSpreadsheet, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, Download, FileSpreadsheet, CheckCircle2, AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { formatCurrency } from "@/utils/formatters";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -168,10 +168,30 @@ export default function ImportRafflePage() {
     };
 
     const updateDocument = (rowIdx: number, value: string) => {
+        updateField(rowIdx, "customerDocument", value);
+    };
+
+    // Edición genérica de cualquier campo de una fila (revalida todo al vuelo).
+    const updateField = (rowIdx: number, field: keyof ParsedRow, value: string) => {
         setRows((prev) => {
-            const copy = prev.map((r) => (r.row === rowIdx ? { ...r, customerDocument: value } : r));
+            const copy = prev.map((r) => {
+                if (r.row !== rowIdx) return r;
+                if (field === "number") {
+                    const trimmed = value.trim();
+                    return { ...r, number: trimmed === "" ? null : toInt(trimmed) };
+                }
+                if (field === "deposit") {
+                    return { ...r, deposit: toInt(value) };
+                }
+                return { ...r, [field]: value } as ParsedRow;
+            });
             return revalidateAll(copy);
         });
+    };
+
+    // Eliminar una fila de la vista previa (no toca la base; es antes de importar).
+    const removeRow = (rowIdx: number) => {
+        setRows((prev) => revalidateAll(prev.filter((r) => r.row !== rowIdx)));
     };
 
     // Rellena con placeholder de cédula todas las filas que tengan cliente sin cédula.
@@ -343,6 +363,7 @@ export default function ImportRafflePage() {
                                         <th className="px-3 py-2 font-medium">Cédula</th>
                                         <th className="px-3 py-2 font-medium">Abono</th>
                                         <th className="px-3 py-2 font-medium">Estado</th>
+                                        <th className="px-3 py-2 font-medium text-right">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -351,11 +372,33 @@ export default function ImportRafflePage() {
                                         return (
                                             <tr key={r.row} className={`border-t border-default-100 ${hasError ? "bg-danger/5" : r.needsDocument ? "bg-amber-50" : ""}`}>
                                                 <td className="px-3 py-2 text-default-400">{r.row}</td>
-                                                <td className="px-3 py-2">{r.vendor || <span className="text-danger">—</span>}</td>
-                                                <td className="px-3 py-2 font-mono">{r.number ?? <span className="text-danger">?</span>}</td>
-                                                <td className="px-3 py-2">{r.customerName || <span className="text-default-400">Sin cliente</span>}</td>
-                                                <td className="px-3 py-2">
-                                                    {r.customerName ? (
+                                                <td className="px-2 py-2">
+                                                    <input
+                                                        value={r.vendor}
+                                                        onChange={(e) => updateField(r.row, "vendor", e.target.value)}
+                                                        placeholder="Vendedor"
+                                                        className={`w-40 rounded border px-2 py-1 text-sm outline-none ${!r.vendor.trim() ? "border-danger bg-danger/5" : "border-default-200 bg-default-50"}`}
+                                                    />
+                                                </td>
+                                                <td className="px-2 py-2">
+                                                    <input
+                                                        value={r.number ?? ""}
+                                                        onChange={(e) => updateField(r.row, "number", e.target.value)}
+                                                        inputMode="numeric"
+                                                        placeholder="#"
+                                                        className={`w-20 rounded border px-2 py-1 text-sm font-mono outline-none ${r.number === null ? "border-danger bg-danger/5" : "border-default-200 bg-default-50"}`}
+                                                    />
+                                                </td>
+                                                <td className="px-2 py-2">
+                                                    <input
+                                                        value={r.customerName}
+                                                        onChange={(e) => updateField(r.row, "customerName", e.target.value)}
+                                                        placeholder="Sin cliente"
+                                                        className="w-44 rounded border border-default-200 bg-default-50 px-2 py-1 text-sm outline-none"
+                                                    />
+                                                </td>
+                                                <td className="px-2 py-2">
+                                                    {r.customerName.trim() ? (
                                                         <input
                                                             value={r.customerDocument}
                                                             onChange={(e) => updateDocument(r.row, e.target.value)}
@@ -366,7 +409,15 @@ export default function ImportRafflePage() {
                                                         <span className="text-default-300">—</span>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-2 font-mono">{r.deposit > 0 ? formatCurrency(r.deposit) : <span className="text-default-400">$0</span>}</td>
+                                                <td className="px-2 py-2">
+                                                    <input
+                                                        value={r.deposit ? r.deposit.toLocaleString("es-CO") : ""}
+                                                        onChange={(e) => updateField(r.row, "deposit", e.target.value)}
+                                                        inputMode="numeric"
+                                                        placeholder="$0"
+                                                        className="w-24 rounded border border-default-200 bg-default-50 px-2 py-1 text-sm font-mono outline-none"
+                                                    />
+                                                </td>
                                                 <td className="px-3 py-2">
                                                     {hasError ? (
                                                         <span className="text-danger text-xs flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> {r.errors.join(", ")}</span>
@@ -375,6 +426,17 @@ export default function ImportRafflePage() {
                                                     ) : (
                                                         <span className="text-emerald-600 text-xs flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Lista</span>
                                                     )}
+                                                </td>
+                                                <td className="px-3 py-2 text-right">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeRow(r.row)}
+                                                        aria-label={`Eliminar fila ${r.row}`}
+                                                        title="Eliminar fila"
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-danger hover:bg-danger/10 transition-colors"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );
