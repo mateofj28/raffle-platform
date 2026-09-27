@@ -369,7 +369,6 @@ export default function CustomerDetailPage() {
                                                 <ListBoxItem id="nequi" textValue="Nequi">Nequi</ListBoxItem>
                                                 <ListBoxItem id="daviplata" textValue="Daviplata">Daviplata</ListBoxItem>
                                                 <ListBoxItem id="transfer" textValue="Bancolombia Ahorros">Bancolombia Ahorros</ListBoxItem>
-                                                <ListBoxItem id="other" textValue="Otro">Otro</ListBoxItem>
                                             </ListBox>
                                         </SelectPopover>
                                     </Select>
