@@ -67,6 +67,16 @@ export default function RaffleDetailPage() {
         return () => cancelAnimationFrame(id);
     }, [assignMode]);
 
+    // Refresco automático inteligente: al ABRIR el modo asignar/desasignar,
+    // recarga las boletas desde el servidor para partir del estado más reciente.
+    // Así, si otra persona liberó/ocupó boletas desde otro equipo, esta pantalla
+    // ya lo refleja sin tener que recargar a mano. Es una sola lectura puntual
+    // (barata), no una suscripción en vivo.
+    useEffect(() => {
+        if (assignMode) reloadTickets();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assignMode]);
+
     // Determinar si esta rifa es la oficial (la más reciente activa/borrador).
     useEffect(() => {
         if (!tenantId || !raffleId) return;
@@ -296,6 +306,12 @@ export default function RaffleDetailPage() {
         setAssignError(null);
         type SkipDetail = { number: number; reason: string };
         try {
+            // Refresco previo: recargar el estado real justo antes de confirmar,
+            // para operar sobre datos frescos (otra persona pudo cambiar boletas).
+            // El backend valida transaccionalmente de todos modos, así que nunca
+            // se pisan; esto mantiene la vista consistente y da mejor feedback.
+            await reloadTickets();
+
             const fnName = assignMode === "assign" ? "assignTickets" : "unassignTickets";
             const payload = assignMode === "assign"
                 ? { raffleId, vendorId: selectedVendor, ticketNumbers: assignList }
