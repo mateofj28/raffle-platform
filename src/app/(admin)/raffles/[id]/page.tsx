@@ -44,6 +44,7 @@ export default function RaffleDetailPage() {
     const [assignList, setAssignList] = useState<number[]>([]);
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assigning, setAssigning] = useState(false);
+    const [addingTicket, setAddingTicket] = useState(false); // recarga en curso al dar "Agregar"
     const [showNoVendorsModal, setShowNoVendorsModal] = useState(false);
 
     // Reasignación de boletas de la rifa anterior
@@ -67,15 +68,7 @@ export default function RaffleDetailPage() {
         return () => cancelAnimationFrame(id);
     }, [assignMode]);
 
-    // Refresco automático inteligente: al ABRIR el modo asignar/desasignar,
-    // recarga las boletas desde el servidor para partir del estado más reciente.
-    // Así, si otra persona liberó/ocupó boletas desde otro equipo, esta pantalla
-    // ya lo refleja sin tener que recargar a mano. Es una sola lectura puntual
-    // (barata), no una suscripción en vivo.
-    useEffect(() => {
-        if (assignMode) reloadTickets();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [assignMode]);
+
 
     // Determinar si esta rifa es la oficial (la más reciente activa/borrador).
     useEffect(() => {
@@ -119,15 +112,17 @@ export default function RaffleDetailPage() {
 
     // Carga (o recarga) las boletas desde el servidor. Se reutiliza tras asignar/
     // desasignar para reflejar el estado real y no quedarse con datos obsoletos.
-    const reloadTickets = useCallback(async () => {
-        if (!tenantId || !raffleId) return;
+    const reloadTickets = useCallback(async (): Promise<TicketType[]> => {
+        if (!tenantId || !raffleId) return [];
         setTicketsLoading(true);
         try {
             const col = tenantCollection(tenantId, `raffles/${raffleId}/tickets`);
             const q = query(col, orderBy("number", "asc"));
             const snap = await getDocs(q);
-            setTickets(snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[]);
-        } catch (e) { console.error(e); }
+            const fresh = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as TicketType[];
+            setTickets(fresh);
+            return fresh;
+        } catch (e) { console.error(e); return []; }
         finally { setTicketsLoading(false); }
     }, [tenantId, raffleId]);
 
@@ -243,42 +238,54 @@ export default function RaffleDetailPage() {
         setPreviousDismissed(true);
     };
 
-    // Add ticket to list
-    const handleAddTicket = () => {
+    // Add ticket to list.
+    // Refresco automático inteligente: al dar "Agregar" recargamos el estado REAL
+    // de las boletas desde el servidor y validamos contra esos datos frescos, para
+    // que si otra persona liberó/ocupó la boleta justo antes, se refleje al instante
+    // sin recargar la página. Es una sola lectura puntual (barata).
+    const handleAddTicket = async () => {
         const num = parseInt(ticketInput);
         if (Number.isNaN(num) || num < 0 || num > 9999) { setAssignError("Ingresa un número entre 0 y 9999"); return; }
 
-        // Buscar la boleta que CONTIENE ese número (en rifas de 2 números la
-        // boleta juega una pareja [a, b]; cualquiera de los dos la identifica).
-        const ticket = tickets.find(t => (t.numbers ?? [t.number]).includes(num));
-        if (!ticket) { setAssignError(`El número ${formatTicketNumbers([num])} no existe`); return; }
-
-        // La boleta se identifica por su número base (min de la pareja). Si el
-        // usuario escribe cualquiera de los dos números, es la misma boleta.
-        if (assignList.includes(ticket.number)) { setAssignError(`Esa boleta ya está en la lista`); return; }
-
-        // Perspectiva de la rifa: "available" = sin vendedor, sin cliente y sin plata.
-        const derived = deriveRaffleTicketStatus(ticket);
-        const pairLabel = formatTicketNumbers(ticket.numbers, ticket.number);
-        const paid = (ticket.value ?? 0) - (ticket.pendingBalance ?? (ticket.value ?? 0));
-        if (assignMode === "assign") {
-            // Solo se asigna una boleta totalmente libre.
-            if (derived !== "available") {
-                const vendorName = ticket.vendorId ? vendors.find(v => v.id === ticket.vendorId)?.name || "otro vendedor" : "";
-                setAssignError(`La boleta ${pairLabel} no está disponible${vendorName ? ` — ya la tiene ${vendorName}` : ""}`);
-                return;
-            }
-        } else {
-            // Desasignar: tiene vendedor pero sin cliente y sin abono (se puede liberar).
-            if (!ticket.vendorId || ticket.customerId || paid > 0) {
-                setAssignError(`La boleta ${pairLabel} no se puede desasignar (ya tiene cliente o abonos).`);
-                return;
-            }
-        }
-
-        setAssignList(prev => [...prev, ticket.number]);
-        setTicketInput("");
+        setAddingTicket(true);
         setAssignError(null);
+        try {
+            const fresh = await reloadTickets();
+
+            // Buscar la boleta que CONTIENE ese número (en rifas de 2 números la
+            // boleta juega una pareja [a, b]; cualquiera de los dos la identifica).
+            const ticket = fresh.find(t => (t.numbers ?? [t.number]).includes(num));
+            if (!ticket) { setAssignError(`El número ${formatTicketNumbers([num])} no existe`); return; }
+
+            // La boleta se identifica por su número base (min de la pareja). Si el
+            // usuario escribe cualquiera de los dos números, es la misma boleta.
+            if (assignList.includes(ticket.number)) { setAssignError(`Esa boleta ya está en la lista`); return; }
+
+            // Perspectiva de la rifa: "available" = sin vendedor, sin cliente y sin plata.
+            const derived = deriveRaffleTicketStatus(ticket);
+            const pairLabel = formatTicketNumbers(ticket.numbers, ticket.number);
+            const paid = (ticket.value ?? 0) - (ticket.pendingBalance ?? (ticket.value ?? 0));
+            if (assignMode === "assign") {
+                // Solo se asigna una boleta totalmente libre.
+                if (derived !== "available") {
+                    const vendorName = ticket.vendorId ? vendors.find(v => v.id === ticket.vendorId)?.name || "otro vendedor" : "";
+                    setAssignError(`La boleta ${pairLabel} no está disponible${vendorName ? ` — ya la tiene ${vendorName}` : ""}`);
+                    return;
+                }
+            } else {
+                // Desasignar: tiene vendedor pero sin cliente y sin abono (se puede liberar).
+                if (!ticket.vendorId || ticket.customerId || paid > 0) {
+                    setAssignError(`La boleta ${pairLabel} no se puede desasignar (ya tiene cliente o abonos).`);
+                    return;
+                }
+            }
+
+            setAssignList(prev => [...prev, ticket.number]);
+            setTicketInput("");
+            setAssignError(null);
+        } finally {
+            setAddingTicket(false);
+        }
     };
 
     const handleRemoveFromList = (num: number) => setAssignList(prev => prev.filter(n => n !== num));
@@ -510,7 +517,7 @@ export default function RaffleDetailPage() {
                                     </div>
                                 </div>
                             )}
-                            <Button variant="outline" size="sm" onPress={handleAddTicket} isDisabled={!ticketInput || (assignMode === "assign" && !selectedVendor)}>Agregar</Button>
+                            <Button variant="outline" size="sm" onPress={handleAddTicket} isDisabled={addingTicket || !ticketInput || (assignMode === "assign" && !selectedVendor)}>{addingTicket ? "Verificando…" : "Agregar"}</Button>
                         </div>
 
                         {/* Aviso: reasignar boletas de la rifa anterior */}
