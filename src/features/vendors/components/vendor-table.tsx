@@ -31,13 +31,15 @@ interface VendorTableProps {
     vendors: Vendor[];
     /** Solo el admin puede eliminar. */
     canDelete?: boolean;
+    /** Mostrar la columna Documento (solo admin). El cajero no la ve. */
+    showDocument?: boolean;
     /** IDs de vendedores con boletas pendientes (no cerradas): no se pueden eliminar. */
     pendingIds?: Set<string>;
     /** Se llama tras eliminar para refrescar la lista. */
     onDeleted?: () => void;
 }
 
-export function VendorTable({ vendors, canDelete = false, pendingIds, onDeleted }: VendorTableProps) {
+export function VendorTable({ vendors, canDelete = false, showDocument = true, pendingIds, onDeleted }: VendorTableProps) {
     const [toDelete, setToDelete] = useState<Vendor | null>(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -64,7 +66,7 @@ export function VendorTable({ vendors, canDelete = false, pendingIds, onDeleted 
                         <tr>
                             <th className="px-4 py-3 text-left font-medium">Nombre</th>
                             <th className="px-4 py-3 text-left font-medium">Usuario</th>
-                            <th className="px-4 py-3 text-left font-medium">Documento</th>
+                            {showDocument && <th className="px-4 py-3 text-left font-medium">Documento</th>}
                             <th className="px-4 py-3 text-left font-medium">Teléfono</th>
                             <th className="px-4 py-3 text-left font-medium">Estado</th>
                             <th className="px-4 py-3 text-right font-medium">Acciones</th>
@@ -75,7 +77,7 @@ export function VendorTable({ vendors, canDelete = false, pendingIds, onDeleted 
                             <tr key={vendor.id} className="hover:bg-default-50">
                                 <td className="px-4 py-3 font-medium">{vendor.name}</td>
                                 <td className="px-4 py-3 font-mono text-default-600">{usernameFromName(vendor.name)}</td>
-                                <td className="px-4 py-3 text-default-600">{vendor.document}</td>
+                                {showDocument && <td className="px-4 py-3 text-default-600">{vendor.document}</td>}
                                 <td className="px-4 py-3 text-default-600">{vendor.phone}</td>
                                 <td className="px-4 py-3">
                                     <StatusBadge status={vendor.status} statusConfig={VENDOR_STATUS_CONFIG} />
