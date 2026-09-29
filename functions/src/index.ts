@@ -27,9 +27,6 @@ export { createCustomer, updateCustomer, deleteCustomer } from "./services/custo
 // Vendor service
 export { createVendor, updateVendor, getVendorMetrics, deleteVendor } from "./services/vendor.service";
 
-// Dashboard
-export { getDashboardMetrics } from "./services/dashboard.service";
-
 // Search
 export { globalSearch } from "./services/search.service";
 
@@ -47,9 +44,12 @@ export { savePairings, getPairings } from "./services/pairing.service";
 
 // Triggers
 export { onPaymentCreated, onAdjustmentCreated } from "./triggers/payment.triggers";
-export { onTicketStatusChanged } from "./triggers/ticket.triggers";
 
 // Scheduled
-export { aggregateMetrics } from "./scheduled/metrics.scheduled";
 export { cleanupExports } from "./scheduled/cleanup.scheduled";
 export { finishExpiredRaffles } from "./scheduled/finish-raffles.scheduled";
+
+// NOTA: se eliminó aggregateMetrics (scheduled cada 5 min), getDashboardMetrics y
+// onTicketStatusChanged. Alimentaban/leían la colección metrics/*, que el front NO
+// consulta (el dashboard calcula bajo demanda al abrirse). aggregateMetrics leía las
+// ~10.000 boletas repetidamente cada 5 min y disparó millones de lecturas de Firestore.
