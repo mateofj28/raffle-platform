@@ -123,31 +123,41 @@ export default function AdminDashboardPage() {
                 customersSnap.docs.forEach(d => cMap.set(d.id, d.data().name));
                 setCustomersMap(cMap);
 
-                // Load all tickets for this raffle
+                // OPTIMIZACIÓN DE COSTO: en lugar de leer TODAS las boletas (p. ej.
+                // 10.000), se leen SOLO las que ya tienen dueño (vendorId != null).
+                // Una boleta sin vendedor está "Disponible" por definición del negocio
+                // (no puede tener cliente ni abono sin vendedor, validado en backend),
+                // así que las disponibles se calculan por RESTA. Al inicio de una rifa
+                // esto lee decenas de docs en vez de miles.
                 const ticketsCol = tenantCollection(tenantId, `raffles/${activeRaffle.id}/tickets`);
-                const ticketsSnap = await getDocs(query(ticketsCol, orderBy("number", "asc")));
+                const ownedSnap = await getDocs(query(ticketsCol, where("vendorId", "!=", null)));
 
-                let available = 0, assigned = 0, sold = 0, paid = 0, installment = 0;
+                let assigned = 0, sold = 0, installment = 0;
+                const paid = 0;
                 let totalCollected = 0, totalPending = 0;
                 // Recaudado por vendedor (para el Top 3 vendedores).
                 const collectedByVendor = new Map<string, number>();
 
-                ticketsSnap.docs.forEach(d => {
+                ownedSnap.docs.forEach(d => {
                     const t = d.data();
-                    // Estado a nivel de rifa (Disponible = sin vendedor; Asignada = con vendedor).
+                    // Estado a nivel de rifa. Estas boletas ya tienen vendedor, así que
+                    // caen en assigned/installment/sold (nunca available).
                     switch (deriveRaffleTicketStatus(t as { vendorId?: string | null; customerId?: string | null; value?: number; pendingBalance?: number })) {
-                        case "available": available++; break;
                         case "assigned": assigned++; break;
                         case "sold": sold++; break;
                         case "installment": installment++; break;
                     }
-                    const collected = t.value - t.pendingBalance;
+                    const collected = (t.value ?? 0) - (t.pendingBalance ?? 0);
                     totalCollected += collected;
-                    totalPending += t.pendingBalance;
+                    totalPending += (t.pendingBalance ?? 0);
                     if (t.vendorId && collected > 0) {
                         collectedByVendor.set(t.vendorId, (collectedByVendor.get(t.vendorId) || 0) + collected);
                     }
                 });
+
+                // Disponibles = total de la rifa − las que ya tienen dueño.
+                const owned = ownedSnap.size;
+                const available = Math.max(0, activeRaffle.totalTickets - owned);
 
                 // Top 3 vendedores por recaudado.
                 const top = Array.from(collectedByVendor.entries())
@@ -182,7 +192,7 @@ export default function AdminDashboardPage() {
                 const companyProfit = collectedForRole - commissionGenerated;
 
                 setMetrics({
-                    totalTickets: ticketsSnap.size,
+                    totalTickets: activeRaffle.totalTickets,
                     available, assigned, sold, paid, installment,
                     totalCollected: collectedForRole, totalPending, totalPotential,
                     // Total REAL de vendedores/clientes registrados en el tenant,
@@ -219,7 +229,7 @@ export default function AdminDashboardPage() {
                 let ticketsSoldToday = 0;
                 if (isCashier) {
                     // El cajero ve las boletas que él dejó vendidas hoy con sus pagos.
-                    ticketsSnap.docs.forEach(d => {
+                    ownedSnap.docs.forEach(d => {
                         const t = d.data();
                         const value = t.value ?? 0;
                         const pending = t.pendingBalance ?? value;
@@ -227,7 +237,7 @@ export default function AdminDashboardPage() {
                         if (isSold && ticketIdsPaidToday.has(String(t.number).padStart(4, "0"))) ticketsSoldToday++;
                     });
                 } else {
-                    ticketsSnap.docs.forEach(d => {
+                    ownedSnap.docs.forEach(d => {
                         const t = d.data();
                         const value = t.value ?? 0;
                         const pending = t.pendingBalance ?? value;
