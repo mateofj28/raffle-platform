@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, CardContent, Separator, toast } from "@heroui/react";
+import { Button, Card, CardContent, Separator, toast, DatePicker, DateField, Calendar as HeroCalendar } from "@heroui/react";
+import { now, getLocalTimeZone, type CalendarDateTime, type ZonedDateTime } from "@internationalized/date";
 import { User, Mail, Shield, Trophy, DollarSign, Hash, Calendar, Ticket, Palette, LogOut, Pencil, X, Eye, EyeOff, Lock, Unlock, Clock } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -96,7 +97,8 @@ export default function SettingsPage() {
 
     // --- Control de cierre/apertura de la rifa (solo admin) ---
     const [savingLock, setSavingLock] = useState(false);
-    const [scheduleInput, setScheduleInput] = useState(""); // datetime-local "YYYY-MM-DDTHH:mm"
+    // Valor del selector fecha+hora (HeroUI). Se serializa a "YYYY-MM-DDTHH:mm" al guardar.
+    const [scheduleValue, setScheduleValue] = useState<CalendarDateTime | ZonedDateTime | null>(null);
 
     // Actualiza los campos de cierre en la rifa y refresca el estado local.
     const updateLock = async (fields: { manualClosed?: boolean; closeAt?: string | null }) => {
@@ -121,21 +123,25 @@ export default function SettingsPage() {
     const handleReopen = async () => {
         // Reabrir = quitar cierre manual y cualquier programación de cierre.
         await updateLock({ manualClosed: false, closeAt: null });
-        setScheduleInput("");
+        setScheduleValue(null);
         toast.success("Rifa reabierta. Ya se permiten operaciones.");
     };
 
+    // Convierte el valor del selector a "YYYY-MM-DDTHH:mm" (hora Colombia).
+    const toCloseAtString = (v: CalendarDateTime | ZonedDateTime): string => {
+        const p2 = (n: number) => String(n).padStart(2, "0");
+        return `${v.year}-${p2(v.month)}-${p2(v.day)}T${p2(v.hour)}:${p2(v.minute)}`;
+    };
+
     const handleSchedule = async () => {
-        if (!scheduleInput) { toast.danger("Elige una fecha y hora de cierre."); return; }
-        // datetime-local ya viene como "YYYY-MM-DDTHH:mm" (hora local del equipo,
-        // que asumimos Colombia). Se guarda tal cual para comparar en hora Bogotá.
-        await updateLock({ closeAt: scheduleInput.slice(0, 16), manualClosed: false });
+        if (!scheduleValue) { toast.danger("Elige una fecha y hora de cierre."); return; }
+        await updateLock({ closeAt: toCloseAtString(scheduleValue), manualClosed: false });
         toast.success("Cierre programado guardado.");
     };
 
     const handleCancelSchedule = async () => {
         await updateLock({ closeAt: null });
-        setScheduleInput("");
+        setScheduleValue(null);
         toast.success("Programación de cierre cancelada.");
     };
 
@@ -375,11 +381,45 @@ export default function SettingsPage() {
                                         </div>
                                     ) : (
                                         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                                            <div>
+                                                <div className="w-full sm:w-auto">
                                                 <label className="text-xs text-default-500 mb-1 block">Fecha y hora de cierre (Colombia)</label>
-                                                <Input type="datetime-local" value={scheduleInput} onChange={(e) => setScheduleInput(e.target.value)} className="w-full" />
+                                                    <DatePicker
+                                                        value={scheduleValue}
+                                                        onChange={setScheduleValue}
+                                                        granularity="minute"
+                                                        hourCycle={12}
+                                                        minValue={now(getLocalTimeZone())}
+                                                        aria-label="Fecha y hora de cierre"
+                                                        className="w-full sm:w-72"
+                                                    >
+                                                        <DateField.Group>
+                                                            <DateField.Input>
+                                                                {(segment) => <DateField.Segment segment={segment} />}
+                                                            </DateField.Input>
+                                                            <DatePicker.Trigger>
+                                                                <DatePicker.TriggerIndicator />
+                                                            </DatePicker.Trigger>
+                                                        </DateField.Group>
+                                                        <DatePicker.Popover>
+                                                            <HeroCalendar>
+                                                                <HeroCalendar.Header>
+                                                                    <HeroCalendar.NavButton slot="previous" />
+                                                                    <HeroCalendar.Heading />
+                                                                    <HeroCalendar.NavButton slot="next" />
+                                                                </HeroCalendar.Header>
+                                                                <HeroCalendar.Grid>
+                                                                    <HeroCalendar.GridHeader>
+                                                                        {() => <HeroCalendar.HeaderCell />}
+                                                                    </HeroCalendar.GridHeader>
+                                                                    <HeroCalendar.GridBody>
+                                                                        {(date) => <HeroCalendar.Cell date={date} />}
+                                                                    </HeroCalendar.GridBody>
+                                                                </HeroCalendar.Grid>
+                                                            </HeroCalendar>
+                                                        </DatePicker.Popover>
+                                                    </DatePicker>
                                             </div>
-                                            <Button variant="outline" isDisabled={savingLock || !scheduleInput} onPress={handleSchedule}>Programar</Button>
+                                                <Button variant="primary" isDisabled={savingLock || !scheduleValue} onPress={handleSchedule}>Programar</Button>
                                         </div>
                                     )}
                                     <p className="text-xs text-default-400 mt-2">Si no programas nada, la rifa se cierra sola el día del sorteo a las 8:00 p.m.</p>
