@@ -316,6 +316,69 @@ export const updateUser = onCall(
 );
 
 /**
+ * Activa o desactiva la cuenta de un usuario (cajero/vendedor/admin).
+ * Admin-only. Desactivar la deshabilita en Firebase Auth (no puede iniciar sesión)
+ * y marca disabled en el documento de Firestore. Reactivar hace lo inverso.
+ * Escribir en users solo se permite vía esta función (reglas: users write=false).
+ */
+export const setUserDisabled = onCall(
+    { region: "us-central1", timeoutSeconds: 120 },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const data = request.data as { uid: string; disabled: boolean };
+
+            if (!data.uid || typeof data.uid !== "string") {
+                throw new AppError(AppErrorCode.VALIDATION_ERROR, "El identificador del usuario es requerido.");
+            }
+            if (typeof data.disabled !== "boolean") {
+                throw new AppError(AppErrorCode.VALIDATION_ERROR, "El estado (disabled) es requerido.");
+            }
+
+            // No permitir que el admin se desactive a sí mismo (se quedaría sin acceso).
+            if (data.uid === context.uid) {
+                throw new AppError(
+                    AppErrorCode.INVALID_TRANSITION,
+                    "No puedes desactivar tu propia cuenta."
+                );
+            }
+
+            // Verificar que el usuario objetivo pertenezca al MISMO tenant del admin.
+            let targetUser;
+            try {
+                targetUser = await getAuth().getUser(data.uid);
+            } catch {
+                throw new AppError(AppErrorCode.NOT_FOUND, "El usuario no existe.");
+            }
+
+            const targetTenantId = (targetUser.customClaims as Record<string, unknown> | undefined)?.tenantId;
+            if (targetTenantId !== context.tenantId) {
+                throw new AppError(
+                    AppErrorCode.FORBIDDEN,
+                    "No tienes permiso para modificar este usuario."
+                );
+            }
+
+            // 1) Deshabilitar/habilitar en Firebase Auth (esto impide el inicio de sesión).
+            await getAuth().updateUser(data.uid, { disabled: data.disabled });
+
+            // 2) Reflejar el estado en el documento de Firestore.
+            const db = getDb();
+            await db.doc(`tenants/${context.tenantId}/users/${data.uid}`).update({
+                disabled: data.disabled,
+                updatedAt: FieldValue.serverTimestamp(),
+            });
+
+            return { success: true, disabled: data.disabled };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
+
+/**
  * Records a failed login attempt and enforces account lockout.
  * Locks the account after MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_DURATION_MS.
  */

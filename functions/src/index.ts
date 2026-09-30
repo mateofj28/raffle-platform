@@ -10,7 +10,7 @@ initAdmin();
 
 // Re-export all functions using direct imports
 // Auth service
-export { setCustomClaims, createUser, updateUser, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
+export { setCustomClaims, createUser, updateUser, setUserDisabled, recordLoginAttempt, checkAccountLock } from "./services/auth.service";
 
 // Raffle service
 export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber, deleteRaffle } from "./services/raffle.service";

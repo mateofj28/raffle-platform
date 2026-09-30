@@ -11,7 +11,7 @@ import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { useAuthStore } from "@/store/auth.store";
 import { callFunction } from "@/services/firebase-callable";
 import { getDocs, query, where } from "firebase/firestore";
-import { tenantCollection, getDb } from "@/lib/firebase/firestore";
+import { tenantCollection } from "@/lib/firebase/firestore";
 import { toast } from "@heroui/react";
 
 interface CashierUser {
@@ -437,14 +437,15 @@ export default function CashiersPage() {
                                 if (!deleteCashier || !tenantId) return;
                                 setEditingAction(true);
                                 try {
-                                    const { doc: firestoreDoc, updateDoc } = await import("firebase/firestore");
-                                    const userRef = firestoreDoc(getDb(), "tenants", tenantId, "users", deleteCashier.id);
-                                    await updateDoc(userRef, { disabled: true });
+                                    // Desactivar vía Cloud Function: deshabilita la cuenta en
+                                    // Firebase Auth (no puede iniciar sesión) y marca el doc.
+                                    await callFunction("setUserDisabled", { uid: deleteCashier.id, disabled: true });
                                     toast.success("Cajero desactivado");
                                     setDeleteCashier(null);
                                     await loadCashiers();
                                 } catch (e) {
-                                    toast.danger("Error al desactivar");
+                                    const msg = e instanceof Error ? e.message : "Error al desactivar";
+                                    toast.danger(msg);
                                 } finally { setEditingAction(false); }
                             }}>
                                 {editingAction ? "Eliminando..." : "Desactivar cajero"}
