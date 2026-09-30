@@ -111,7 +111,7 @@ export default function VendorsPage() {
                             {filtered.length === 0 ? (
                                 <p className="text-sm text-default-500 py-8 text-center">No se encontraron vendedores con "{search}"</p>
                             ) : (
-                                    <VendorTable vendors={filtered} canDelete={isAdmin && pendingReady} showDocument={isAdmin} pendingIds={pendingVendorIds} onDeleted={() => refetch()} />
+                                    <VendorTable vendors={filtered} canDelete={isAdmin && pendingReady} showSensitiveColumns={isAdmin} pendingIds={pendingVendorIds} onDeleted={() => refetch()} />
                             )}
                         </>
           )}
