@@ -140,3 +140,15 @@ export function formatRafflePeriod(semester?: 1 | 2, endDate?: string): string {
     const year = endDate && /^\d{4}/.test(endDate) ? endDate.slice(0, 4) : "";
     return [sem, year].filter(Boolean).join(" ");
 }
+
+/**
+ * Formatea un teléfono con su indicativo de país: "+57 3001234567".
+ * Si no hay indicativo (clientes antiguos), asume Colombia (+57).
+ * Si no hay número, devuelve "—".
+ */
+export function formatPhone(phone?: string | null, phoneCountry?: string | null): string {
+    const num = (phone ?? "").trim();
+    if (!num) return "—";
+    const code = (phoneCountry ?? "").trim() || "+57";
+    return `${code} ${num}`;
+}

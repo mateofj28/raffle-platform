@@ -11,7 +11,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency, formatDateTimeParts, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
+import { formatCurrency, formatDateTimeParts, formatTicketNumber, formatTicketNumbers, formatPhone } from "@/utils/formatters";
 import { deriveTicketStatus } from "@/utils/ticket-status";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -214,7 +214,7 @@ export default function CustomerDetailPage() {
                       </div>
                       <div className="flex items-center gap-3">
                           <div className="p-2 rounded-lg bg-success/10"><Phone className="h-5 w-5 text-success" /></div>
-                          <div><p className="text-xs text-default-500">Teléfono</p><p className="font-semibold text-sm">{customer.phone}</p></div>
+                            <div><p className="text-xs text-default-500">Teléfono</p><p className="font-semibold text-sm">{formatPhone(customer.phone, (customer as { phoneCountry?: string }).phoneCountry)}</p></div>
                       </div>
                       {customer.city && (
                           <div className="flex items-center gap-3">

@@ -21,6 +21,7 @@ import { customerSchema, type CustomerFormData } from "../schemas/customer.schem
 import { FormField } from "@/components/ui/form-field";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { DEPARTMENT_LIST, getCitiesByDepartment } from "@/constants/colombia-locations";
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, getPhoneCountry } from "@/constants/phone-countries";
 import { makeCapitalizedRegister } from "@/utils/capitalize-field";
 import { capitalizeWords } from "@/utils/formatters";
 
@@ -50,6 +51,7 @@ export function CustomerForm({
     defaultValues: {
       name: "",
       document: "",
+      phoneCountry: DEFAULT_PHONE_COUNTRY,
       phone: "",
       department: "",
       city: "",
@@ -63,6 +65,10 @@ export function CustomerForm({
 
   const selectedDepartment = useWatch({ control, name: "department" });
   const cities = selectedDepartment ? getCitiesByDepartment(selectedDepartment) : [];
+
+  // País del teléfono seleccionado: define cuántos dígitos se permiten/exigen.
+  const selectedPhoneCountry = useWatch({ control, name: "phoneCountry" });
+  const phoneDigits = getPhoneCountry(selectedPhoneCountry).digits;
 
   // Reset city when department changes
   useEffect(() => {
@@ -122,19 +128,58 @@ export function CustomerForm({
               Contacto
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Teléfono / WhatsApp"
-                {...register("phone")}
-                type="tel"
-                placeholder="3001234567"
-                hint="Solo números, máximo 10 dígitos"
-                error={errors.phone?.message}
-                disabled={busy}
-                required
-                maxLength={10}
-                inputMode="numeric"
-                onKeyDown={numericOnly}
-              />
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">
+                  Teléfono / WhatsApp<span className="text-danger ml-0.5">*</span>
+                </label>
+                <div className="flex gap-2">
+                  {/* Selector de país (indicativo) */}
+                  <Controller
+                    name="phoneCountry"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        aria-label="Indicativo de país"
+                        selectedKey={field.value || DEFAULT_PHONE_COUNTRY}
+                        onSelectionChange={(key) => field.onChange(String(key ?? DEFAULT_PHONE_COUNTRY))}
+                        isDisabled={busy}
+                        className="w-32 shrink-0"
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                          <SelectIndicator>
+                            <ChevronDown className="h-4 w-4" />
+                          </SelectIndicator>
+                        </SelectTrigger>
+                        <SelectPopover>
+                          <ListBox>
+                            {PHONE_COUNTRIES.map((c) => (
+                              <ListBoxItem key={c.code} id={c.code} textValue={`${c.name} ${c.code}`}>
+                                {c.flag} {c.code}
+                              </ListBoxItem>
+                            ))}
+                          </ListBox>
+                        </SelectPopover>
+                      </Select>
+                    )}
+                  />
+                  {/* Número local */}
+                  <input
+                    {...register("phone")}
+                    type="tel"
+                    placeholder="3001234567"
+                    disabled={busy}
+                    maxLength={phoneDigits}
+                    inputMode="numeric"
+                    onKeyDown={numericOnly}
+                    className="flex-1 rounded-lg border border-default-200 bg-default-50 px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
+                  />
+                </div>
+                <p className="text-xs text-default-500">Solo números, {phoneDigits} dígitos.</p>
+                {errors.phone && (
+                  <p className="text-xs text-danger" role="alert">{errors.phone.message}</p>
+                )}
+              </div>
             </div>
           </div>
 

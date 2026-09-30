@@ -62,6 +62,8 @@ export interface Customer {
     id: string;
     name: string;
     document: string;
+    /** Indicativo del país, ej. "+57". Ausente en clientes antiguos (se asume +57). */
+    phoneCountry?: string;
     phone: string;
     whatsapp: string;
     address: string;

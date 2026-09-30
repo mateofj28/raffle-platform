@@ -19,7 +19,10 @@ import { getDb, getOfficialRaffleId } from "../utils/firestore";
 const createCustomerSchema = z.object({
     name: z.string().min(1).max(100),
     document: z.string().min(1).max(20),
-    phone: z.string().min(1).max(15),
+    // Indicativo del país (ej. "+57"). Validación básica de formato.
+    phoneCountry: z.string().regex(/^\+\d{1,4}$/, "Indicativo inválido").optional().default("+57"),
+    // Número local: solo dígitos, longitud flexible (la exacta la valida el front por país).
+    phone: z.string().min(6).max(15).regex(/^\d+$/, "Solo dígitos"),
     whatsapp: z.string().max(15).optional().default(""),
     address: z.string().max(200).optional().default(""),
     city: z.string().max(50).optional().default(""),
@@ -30,7 +33,8 @@ const updateCustomerSchema = z.object({
     customerId: z.string().min(1),
     name: z.string().min(1).max(100).optional(),
     document: z.string().min(1).max(20).optional(),
-    phone: z.string().min(1).max(15).optional(),
+    phoneCountry: z.string().regex(/^\+\d{1,4}$/, "Indicativo inválido").optional(),
+    phone: z.string().min(6).max(15).regex(/^\d+$/, "Solo dígitos").optional(),
     whatsapp: z.string().max(15).optional(),
     address: z.string().max(200).optional(),
     city: z.string().max(50).optional(),
@@ -79,6 +83,7 @@ export const createCustomer = onCall(
             await newCustomerRef.set({
                 name: data.name,
                 document: data.document,
+                phoneCountry: data.phoneCountry,
                 phone: data.phone,
                 whatsapp: data.whatsapp,
                 address: data.address,

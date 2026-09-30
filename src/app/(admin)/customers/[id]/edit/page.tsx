@@ -101,6 +101,7 @@ export default function EditCustomerPage() {
                 defaultValues={{
                     name: customer.name,
                     document: customer.document,
+                    phoneCountry: customer.phoneCountry || "+57",
                     phone: customer.phone,
                     department: parsedDepartment,
                     city: parsedCity,
