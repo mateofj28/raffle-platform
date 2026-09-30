@@ -44,6 +44,8 @@ export default function RafflesPage() {
             semester: raffle.semester,
             endDate: raffle.endDate,
             numbersPerTicket: raffle.numbersPerTicket,
+            manualClosed: (raffle as { manualClosed?: boolean }).manualClosed,
+            closeAt: (raffle as { closeAt?: string | null }).closeAt,
         });
         router.push("/dashboard");
     };

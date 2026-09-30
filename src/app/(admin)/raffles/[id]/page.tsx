@@ -102,7 +102,7 @@ export default function RaffleDetailPage() {
                 if (raffleDoc.exists()) {
                     const data = raffleDoc.data();
                     setRaffle({ id: raffleDoc.id, ...data } as Raffle);
-                    setActiveRaffle({ id: raffleDoc.id, name: data.name, status: data.status, ticketPrice: data.ticketPrice, totalTickets: data.totalTickets, semester: data.semester, endDate: data.endDate, numbersPerTicket: data.numbersPerTicket });
+                    setActiveRaffle({ id: raffleDoc.id, name: data.name, status: data.status, ticketPrice: data.ticketPrice, totalTickets: data.totalTickets, semester: data.semester, endDate: data.endDate, numbersPerTicket: data.numbersPerTicket, manualClosed: data.manualClosed, closeAt: data.closeAt });
                 }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
@@ -356,8 +356,13 @@ export default function RaffleDetailPage() {
     if (!raffle) return <div><PageHeader title="Rifa no encontrada" /><p className="text-default-500">No se encontró la rifa.</p></div>;
 
     const statusCounts = tickets.reduce((acc, t) => { const s = deriveRaffleTicketStatus(t); acc[s] = (acc[s] || 0) + 1; return acc; }, {} as Record<string, number>);
-    // Rifa cerrada por el sorteo (después de las 8pm del día del sorteo).
-    const drawLocked = isRaffleDrawLocked((raffle as { endDate?: string }).endDate);
+    // Rifa cerrada: manual, programada o por el día del sorteo (8pm).
+    const drawLocked = isRaffleDrawLocked({
+        endDate: raffle.endDate,
+        drawDate: (raffle as { drawDate?: string }).drawDate,
+        manualClosed: (raffle as { manualClosed?: boolean }).manualClosed,
+        closeAt: (raffle as { closeAt?: string | null }).closeAt,
+    });
 
     return (
         <div>

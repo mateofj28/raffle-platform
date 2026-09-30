@@ -9,7 +9,10 @@ export const raffleService = {
     create: (data: CreateRaffleInput) =>
         callFunction<{ raffleId: string }>("createRaffle", { ...data }),
 
-    update: (raffleId: string, data: Partial<CreateRaffleInput>) =>
+    update: (
+        raffleId: string,
+        data: Partial<CreateRaffleInput> & { manualClosed?: boolean; closeAt?: string | null }
+    ) =>
         callFunction<{ success: boolean }>("updateRaffle", { raffleId, ...data }),
 
     delete: (raffleId: string) =>

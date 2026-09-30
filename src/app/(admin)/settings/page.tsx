@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent, Separator, toast } from "@heroui/react";
-import { User, Mail, Shield, Trophy, DollarSign, Hash, Calendar, Ticket, Palette, LogOut, Pencil, X, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Shield, Trophy, DollarSign, Hash, Calendar, Ticket, Palette, LogOut, Pencil, X, Eye, EyeOff, Lock, Unlock, Clock } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -10,6 +10,7 @@ import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { formatCurrency, formatDate } from "@/utils/formatters";
+import { getRaffleCloseReason } from "@/utils/raffle-lock";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useAuthStore } from "@/store/auth.store";
 import { useRaffleStore } from "@/store/raffle.store";
@@ -91,6 +92,51 @@ export default function SettingsPage() {
         } finally {
             setSavingRaffle(false);
         }
+    };
+
+    // --- Control de cierre/apertura de la rifa (solo admin) ---
+    const [savingLock, setSavingLock] = useState(false);
+    const [scheduleInput, setScheduleInput] = useState(""); // datetime-local "YYYY-MM-DDTHH:mm"
+
+    // Actualiza los campos de cierre en la rifa y refresca el estado local.
+    const updateLock = async (fields: { manualClosed?: boolean; closeAt?: string | null }) => {
+        if (!raffle) return;
+        setSavingLock(true);
+        try {
+            const { raffleService } = await import("@/features/raffles/services/raffle.service");
+            await raffleService.update(raffle.id, fields);
+            setRaffle({ ...raffle, ...fields } as Raffle);
+        } catch (e) {
+            toast.danger(e instanceof Error ? e.message : "No se pudo actualizar el estado de la rifa");
+        } finally {
+            setSavingLock(false);
+        }
+    };
+
+    const handleCloseNow = async () => {
+        await updateLock({ manualClosed: true });
+        toast.success("Rifa cerrada. Nadie puede operar hasta que la reabras.");
+    };
+
+    const handleReopen = async () => {
+        // Reabrir = quitar cierre manual y cualquier programación de cierre.
+        await updateLock({ manualClosed: false, closeAt: null });
+        setScheduleInput("");
+        toast.success("Rifa reabierta. Ya se permiten operaciones.");
+    };
+
+    const handleSchedule = async () => {
+        if (!scheduleInput) { toast.danger("Elige una fecha y hora de cierre."); return; }
+        // datetime-local ya viene como "YYYY-MM-DDTHH:mm" (hora local del equipo,
+        // que asumimos Colombia). Se guarda tal cual para comparar en hora Bogotá.
+        await updateLock({ closeAt: scheduleInput.slice(0, 16), manualClosed: false });
+        toast.success("Cierre programado guardado.");
+    };
+
+    const handleCancelSchedule = async () => {
+        await updateLock({ closeAt: null });
+        setScheduleInput("");
+        toast.success("Programación de cierre cancelada.");
     };
 
     // --- Editar perfil ---
@@ -267,6 +313,81 @@ export default function SettingsPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Estado de la rifa: cerrar/reabrir/programar (solo admin) */}
+                {raffle && user?.role === "admin" && (() => {
+                    const r = raffle as Raffle & { manualClosed?: boolean; closeAt?: string | null };
+                    const reason = getRaffleCloseReason({ endDate: r.endDate, drawDate: r.drawDate, manualClosed: r.manualClosed, closeAt: r.closeAt });
+                    const closed = reason !== null;
+                    const reasonText = reason === "manual"
+                        ? "Cerrada manualmente por el administrador."
+                        : reason === "scheduled"
+                            ? "Cerrada por la fecha/hora programada."
+                            : reason === "draw"
+                                ? "Cerrada por el día del sorteo (8:00 p.m.)."
+                                : "";
+                    // Cierre programado pendiente (aún no llegó la hora).
+                    const scheduledPending = !!r.closeAt && reason !== "scheduled";
+                    return (
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                                        {closed ? <Lock className="h-4 w-4 text-danger" /> : <Unlock className="h-4 w-4 text-emerald-500" />}
+                                        Estado de la rifa
+                                    </h3>
+                                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${closed ? "bg-danger/10 text-danger" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"}`}>
+                                        {closed ? "CERRADA" : "ABIERTA"}
+                                    </span>
+                                </div>
+
+                                {closed && (
+                                    <p className="text-sm text-default-500 mb-4">{reasonText} Nadie puede asignar, vender ni registrar pagos hasta reabrirla.</p>
+                                )}
+                                {!closed && (
+                                    <p className="text-sm text-default-500 mb-4">La rifa está operativa. Puedes cerrarla ahora o programar un cierre a una fecha y hora.</p>
+                                )}
+
+                                {/* Cerrar ahora / Reabrir */}
+                                <div className="flex flex-wrap items-center gap-3">
+                                    {closed ? (
+                                        <Button variant="primary" isDisabled={savingLock} onPress={handleReopen}>
+                                            <Unlock className="h-4 w-4" /> {savingLock ? "Procesando..." : "Reabrir rifa"}
+                                        </Button>
+                                    ) : (
+                                        <Button variant="danger" isDisabled={savingLock} onPress={handleCloseNow}>
+                                            <Lock className="h-4 w-4" /> {savingLock ? "Procesando..." : "Cerrar ahora"}
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <Separator className="my-5" />
+
+                                {/* Programar cierre */}
+                                <div>
+                                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2"><Clock className="h-4 w-4 text-default-500" /> Programar cierre</h4>
+                                    {scheduledPending ? (
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                                            <p className="text-sm text-default-600">
+                                                Cierre programado para <span className="font-semibold">{r.closeAt?.replace("T", " ")}</span> (hora Colombia).
+                                            </p>
+                                            <Button variant="outline" size="sm" isDisabled={savingLock} onPress={handleCancelSchedule}>Cancelar programación</Button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                                            <div>
+                                                <label className="text-xs text-default-500 mb-1 block">Fecha y hora de cierre (Colombia)</label>
+                                                <Input type="datetime-local" value={scheduleInput} onChange={(e) => setScheduleInput(e.target.value)} className="w-full" />
+                                            </div>
+                                            <Button variant="outline" isDisabled={savingLock || !scheduleInput} onPress={handleSchedule}>Programar</Button>
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-default-400 mt-2">Si no programas nada, la rifa se cierra sola el día del sorteo a las 8:00 p.m.</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })()}
 
                 {/* Usuario en sesión */}
                 <Card>

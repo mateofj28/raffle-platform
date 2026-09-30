@@ -44,7 +44,7 @@ export default function SellTicketPage() {
       const snap = await getDocs(q);
       if (!snap.empty) {
         const r = snap.docs[0];
-        setActiveRaffle({ id: r.id, name: r.data().name, status: r.data().status, ticketPrice: r.data().ticketPrice, totalTickets: r.data().totalTickets, semester: r.data().semester, endDate: r.data().endDate, numbersPerTicket: r.data().numbersPerTicket });
+        setActiveRaffle({ id: r.id, name: r.data().name, status: r.data().status, ticketPrice: r.data().ticketPrice, totalTickets: r.data().totalTickets, semester: r.data().semester, endDate: r.data().endDate, numbersPerTicket: r.data().numbersPerTicket, manualClosed: r.data().manualClosed, closeAt: r.data().closeAt });
       } else {
         router.push("/vendor/dashboard");
       }

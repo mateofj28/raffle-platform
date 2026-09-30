@@ -14,6 +14,10 @@ interface ActiveRaffle {
   endDate?: string;
   /** Números por boleta: 1 (número simple) o 2 (pareja). */
   numbersPerTicket?: number;
+  /** Cierre manual del admin: true = cerrada de inmediato. */
+  manualClosed?: boolean;
+  /** Cierre programado (hora Colombia) "YYYY-MM-DDTHH:mm"; null/ausente = sin programar. */
+  closeAt?: string | null;
 }
 
 interface RaffleStore {

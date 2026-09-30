@@ -23,6 +23,10 @@ export interface Raffle {
     totalTickets: number;
     numbersPerTicket: number;
     semester: 1 | 2;
+    /** Cierre manual del admin: true = cerrada de inmediato. */
+    manualClosed?: boolean;
+    /** Cierre programado (hora Colombia) "YYYY-MM-DDTHH:mm"; null/ausente = sin programar. */
+    closeAt?: string | null;
     createdAt: string;
     updatedAt: string;
     createdBy: string;

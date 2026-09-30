@@ -56,7 +56,7 @@ export default function EditTicketPage() {
         }
         const r = snap.docs[0];
         const d = r.data();
-        setActiveRaffle({ id: r.id, name: d.name, status: d.status, ticketPrice: d.ticketPrice, totalTickets: d.totalTickets, semester: d.semester, endDate: d.endDate, numbersPerTicket: d.numbersPerTicket });
+        setActiveRaffle({ id: r.id, name: d.name, status: d.status, ticketPrice: d.ticketPrice, totalTickets: d.totalTickets, semester: d.semester, endDate: d.endDate, numbersPerTicket: d.numbersPerTicket, manualClosed: d.manualClosed, closeAt: d.closeAt });
       } catch (e) {
         console.error(e);
         if (!cancelled) router.push(userRole === "vendor" ? "/vendor/dashboard" : "/raffles");

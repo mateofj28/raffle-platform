@@ -45,6 +45,11 @@ const updateRaffleSchema = z.object({
     lottery: z.string().min(1).optional(),
     ticketPrice: z.number().int().positive().optional(),
     numbersPerTicket: z.number().int().min(1).max(2).optional(),
+    // Control manual de cierre por el admin:
+    //  - manualClosed: true = cerrar ya; false = reabrir.
+    //  - closeAt: "YYYY-MM-DDTHH:mm" (hora Bogotá) para programar cierre; null = quitar.
+    manualClosed: z.boolean().optional(),
+    closeAt: z.string().max(16).nullable().optional(),
 });
 
 const transitionRaffleStateSchema = z.object({
@@ -195,9 +200,21 @@ export const updateRaffle = onCall(
                 );
             }
 
-            // Bloqueo por sorteo: tras las 8pm del día del sorteo la rifa no se puede
-            // editar (evita mover la fecha para burlar el cierre de transparencia).
-            assertRaffleNotDrawLocked(raffleDoc.data()?.endDate ?? raffleDoc.data()?.drawDate);
+            // ¿El update SOLO cambia el control de cierre (cerrar/reabrir/programar)?
+            // En ese caso NO aplicamos el bloqueo por sorteo, para que el admin pueda
+            // REABRIR incluso después del día del sorteo. Si toca otros campos
+            // (nombre, precio, fechas...), sí se respeta el bloqueo de transparencia.
+            const lockControlKeys = new Set(["manualClosed", "closeAt"]);
+            const touchedKeys = Object.keys(updateFields).filter(
+                (k) => (updateFields as Record<string, unknown>)[k] !== undefined
+            );
+            const onlyLockControl = touchedKeys.length > 0 && touchedKeys.every((k) => lockControlKeys.has(k));
+
+            if (!onlyLockControl) {
+                // Bloqueo por cierre (manual/programado/sorteo): la rifa no se puede
+                // editar mientras esté cerrada (evita burlar el cierre de transparencia).
+                assertRaffleNotDrawLocked(raffleDoc.data()?.endDate ?? raffleDoc.data()?.drawDate);
+            }
 
             // Build update object with only provided fields
             const updateData: Record<string, unknown> = {

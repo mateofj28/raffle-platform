@@ -288,8 +288,12 @@ export default function VendorDetailPage() {
         } finally { setProcessing(false); }
     };
 
-    // ¿La rifa está cerrada por el sorteo (después de las 8pm del día del sorteo)?
-    const drawLocked = isRaffleDrawLocked(activeRaffle?.endDate);
+    // ¿La rifa está cerrada? Manual, programada o por el día del sorteo (8pm).
+    const drawLocked = isRaffleDrawLocked({
+        endDate: activeRaffle?.endDate,
+        manualClosed: activeRaffle?.manualClosed,
+        closeAt: activeRaffle?.closeAt,
+    });
     // Solo se permiten operaciones si la rifa es la oficial y no está cerrada.
     // (isOfficial === null mientras se determina: no mostrar acciones aún.)
     const canOperate = isOfficial === true && !drawLocked;
