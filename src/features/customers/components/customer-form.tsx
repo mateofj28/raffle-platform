@@ -21,7 +21,7 @@ import { customerSchema, type CustomerFormData } from "../schemas/customer.schem
 import { FormField } from "@/components/ui/form-field";
 import { FormErrorBanner } from "@/components/ui/form-error-banner";
 import { DEPARTMENT_LIST, getCitiesByDepartment } from "@/constants/colombia-locations";
-import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, getPhoneCountry } from "@/constants/phone-countries";
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, getPhoneCountry, getPhoneCountryByKey, phoneCountryKey } from "@/constants/phone-countries";
 import { makeCapitalizedRegister } from "@/utils/capitalize-field";
 import { capitalizeWords } from "@/utils/formatters";
 
@@ -133,35 +133,44 @@ export function CustomerForm({
                   Teléfono / WhatsApp<span className="text-danger ml-0.5">*</span>
                 </label>
                 <div className="flex gap-2">
-                  {/* Selector de país (indicativo) */}
+                  {/* Selector de país (indicativo). La key es iso|code (única,
+                      porque +1 lo comparten varios países); se guarda solo el code. */}
                   <Controller
                     name="phoneCountry"
                     control={control}
-                    render={({ field }) => (
-                      <Select
-                        aria-label="Indicativo de país"
-                        selectedKey={field.value || DEFAULT_PHONE_COUNTRY}
-                        onSelectionChange={(key) => field.onChange(String(key ?? DEFAULT_PHONE_COUNTRY))}
-                        isDisabled={busy}
-                        className="w-32 shrink-0"
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                          <SelectIndicator>
-                            <ChevronDown className="h-4 w-4" />
-                          </SelectIndicator>
-                        </SelectTrigger>
-                        <SelectPopover>
-                          <ListBox>
-                            {PHONE_COUNTRIES.map((c) => (
-                              <ListBoxItem key={c.code} id={c.code} textValue={`${c.name} ${c.code}`}>
-                                {c.flag} {c.code}
-                              </ListBoxItem>
-                            ))}
-                          </ListBox>
-                        </SelectPopover>
-                      </Select>
-                    )}
+                    render={({ field }) => {
+                      // País seleccionado: el primero que coincide con el code guardado.
+                      const current = PHONE_COUNTRIES.find((c) => c.code === (field.value || DEFAULT_PHONE_COUNTRY)) ?? PHONE_COUNTRIES[0];
+                      return (
+                        <Select
+                          aria-label="Indicativo de país"
+                          selectedKey={phoneCountryKey(current)}
+                          onSelectionChange={(key) => {
+                            const picked = getPhoneCountryByKey(String(key ?? ""));
+                            field.onChange(picked.code);
+                          }}
+                          isDisabled={busy}
+                          className="w-40 shrink-0"
+                        >
+                          <SelectTrigger className="w-full">
+                            {/* Mostramos una etiqueta compacta (ISO + indicativo) en el trigger. */}
+                            <span className="text-sm">{current.iso} {current.code}</span>
+                            <SelectIndicator>
+                              <ChevronDown className="h-4 w-4" />
+                            </SelectIndicator>
+                          </SelectTrigger>
+                          <SelectPopover>
+                            <ListBox>
+                              {PHONE_COUNTRIES.map((c) => (
+                                <ListBoxItem key={phoneCountryKey(c)} id={phoneCountryKey(c)} textValue={`${c.name} ${c.code}`}>
+                                  {c.iso} {c.code} · {c.name}
+                                </ListBoxItem>
+                              ))}
+                            </ListBox>
+                          </SelectPopover>
+                        </Select>
+                      );
+                    }}
                   />
                   {/* Número local */}
                   <input
