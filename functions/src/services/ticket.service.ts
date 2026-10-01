@@ -525,3 +525,113 @@ export const updateTicketClient = onCall(
         }
     }
 );
+
+/**
+ * Agrega (vende) varias boletas a un cliente de una sola vez. Admin o cajero.
+ *
+ * Caso de uso: tras crear un cliente, asignarle sus boletas sin ir una por una.
+ * Reglas (por boleta):
+ *  - La boleta debe EXISTIR en la rifa oficial.
+ *  - Debe TENER vendedor (no se puede poner cliente sin vendedor responsable).
+ *  - Si ya tiene OTRO cliente, se OMITE y se avisa (no se reasigna).
+ *  - Si ya es de ESTE cliente, se omite como "ya estaba" (idempotente).
+ *  - No se registran abonos ni pagos: solo se asocia el cliente. La boleta
+ *    conserva su vendedor y su saldo pendiente.
+ * Funciona para rifas de 1 y 2 números (resuelve cualquiera de la pareja).
+ */
+const assignTicketsToCustomerSchema = z.object({
+    raffleId: z.string().min(1),
+    customerId: z.string().min(1),
+    ticketNumbers: z.array(z.number().int().min(0).max(9999)).min(1).max(500),
+});
+
+export const assignTicketsToCustomer = onCall(
+    { region: "us-central1", timeoutSeconds: 300 },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdminOrCashier(context);
+
+            const data = validateData(assignTicketsToCustomerSchema, request.data);
+            const { raffleId, customerId, ticketNumbers } = data;
+
+            // Solo la rifa oficial (la actual) y no cerrada.
+            await assertOfficialRaffle(context.tenantId, raffleId);
+            await assertRaffleNotLockedById(context.tenantId, raffleId);
+
+            const db = getDb();
+
+            // El cliente debe existir.
+            const customerSnap = await db.doc(`tenants/${context.tenantId}/customers/${customerId}`).get();
+            if (!customerSnap.exists) {
+                throw new AppError(AppErrorCode.NOT_FOUND, "Cliente no encontrado.");
+            }
+
+            // Resolver cada número a su boleta real (deduplica parejas).
+            const { refs } = await resolveTicketRefs(context.tenantId, raffleId, ticketNumbers);
+
+            let assigned = 0;
+            let skipped = 0;
+            const results: { number: number; status: "ok" | "skipped"; reason?: string }[] = [];
+
+            for (const ticketRef of refs) {
+                try {
+                    const outcome = await db.runTransaction(async (transaction) => {
+                        const snap = await transaction.get(ticketRef);
+                        if (!snap.exists) {
+                            return { ok: false, number: -1, reason: "La boleta no existe." };
+                        }
+                        const ticket = snap.data()!;
+                        const num = (ticket.number as number) ?? -1;
+
+                        if (ticket.status === "cancelled") {
+                            return { ok: false, number: num, reason: "La boleta está cancelada." };
+                        }
+                        // Debe tener vendedor.
+                        if (!ticket.vendorId) {
+                            return { ok: false, number: num, reason: "La boleta no tiene vendedor asignado." };
+                        }
+                        // Ya es de ESTE cliente: idempotente, se omite sin error.
+                        if (ticket.customerId === customerId) {
+                            return { ok: false, number: num, reason: "La boleta ya es de este cliente." };
+                        }
+                        // Ya es de OTRO cliente: se omite y avisa.
+                        if (ticket.customerId) {
+                            return { ok: false, number: num, reason: "Ya es de otro cliente." };
+                        }
+
+                        // Asignar el cliente conservando el vendedor. Recalcular status.
+                        const newStatus = computeTicketStatus({ ...ticket, customerId });
+                        transaction.update(ticketRef, {
+                            customerId,
+                            status: newStatus,
+                            saleDate: ticket.saleDate ?? FieldValue.serverTimestamp(),
+                            updatedAt: FieldValue.serverTimestamp(),
+                        });
+                        return { ok: true, number: num };
+                    });
+
+                    if (outcome.ok) {
+                        assigned++;
+                        results.push({ number: outcome.number, status: "ok" });
+                    } else {
+                        skipped++;
+                        results.push({ number: outcome.number, status: "skipped", reason: outcome.reason });
+                    }
+                } catch {
+                    skipped++;
+                    results.push({ number: -1, status: "skipped", reason: "No se pudo procesar (error temporal)." });
+                }
+            }
+
+            // Auditoría del lote.
+            await createAuditEntry(context.tenantId, "tickets_assigned_to_customer", "customer", customerId, context.uid, null, {
+                raffleId, assigned, skipped, total: refs.length,
+            });
+
+            return { assigned, skipped, results };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);

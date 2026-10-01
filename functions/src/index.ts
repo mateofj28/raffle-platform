@@ -16,7 +16,7 @@ export { setCustomClaims, createUser, updateUser, setUserDisabled, recordLoginAt
 export { createRaffle, updateRaffle, transitionRaffleState, setWinningNumber, deleteRaffle } from "./services/raffle.service";
 
 // Ticket service
-export { assignTickets, sellTicket, unassignTickets, updateTicketClient, generateTickets } from "./services/ticket.service";
+export { assignTickets, sellTicket, unassignTickets, updateTicketClient, assignTicketsToCustomer, generateTickets } from "./services/ticket.service";
 
 // Payment service
 export { registerPayment, reversePayment, correctPayment } from "./services/payment.service";

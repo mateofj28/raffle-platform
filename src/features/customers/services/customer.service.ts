@@ -1,7 +1,7 @@
 import { callFunction } from "@/services/firebase-callable";
 
 export const customerService = {
-    create: (data: { name: string; document: string; phone: string; whatsapp?: string; address?: string; city?: string }) =>
+    create: (data: { name: string; document: string; phone: string; phoneCountry?: string; whatsapp?: string; address?: string; city?: string; department?: string }) =>
         callFunction<{ customerId: string }>("createCustomer", data),
 
     update: (customerId: string, data: Record<string, unknown>) =>
