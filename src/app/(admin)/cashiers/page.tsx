@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent, AlertDialog } from "@heroui/react";
 import { Input } from "@/components/ui/input";
-import { UserCog, Plus, Trash2, Pencil, Copy, Eye, EyeOff } from "lucide-react";
+import { UserCog, Plus, Trash2, Pencil, Copy, Eye, EyeOff, Lock, Unlock } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -49,6 +49,7 @@ export default function CashiersPage() {
     const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string } | null>(null);
     const [editingCashier, setEditingCashier] = useState<CashierUser | null>(null);
     const [deleteCashier, setDeleteCashier] = useState<CashierUser | null>(null);
+    const [toggleCashier, setToggleCashier] = useState<CashierUser | null>(null); // activar/desactivar
     const [editName, setEditName] = useState("");
     const [editEmail, setEditEmail] = useState("");
     const [editPassword, setEditPassword] = useState("");
@@ -314,7 +315,13 @@ export default function CashiersPage() {
                                         }} aria-label="Editar">
                                             <Pencil className="h-4 w-4 text-amber-400" />
                                         </Button>
-                                        <Button variant="ghost" size="sm" isIconOnly onPress={() => setDeleteCashier(cashier)} aria-label="Eliminar">
+                                                        {/* Activar / Desactivar según el estado actual */}
+                                                        <Button variant="ghost" size="sm" isIconOnly onPress={() => setToggleCashier(cashier)} aria-label={cashier.disabled ? "Activar" : "Desactivar"}>
+                                                            {cashier.disabled
+                                                                ? <Unlock className="h-4 w-4 text-emerald-500" />
+                                                                : <Lock className="h-4 w-4 text-default-500" />}
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" isIconOnly onPress={() => setDeleteCashier(cashier)} aria-label="Eliminar">
                                             <Trash2 className="h-4 w-4 text-danger" />
                                         </Button>
                                     </div>
@@ -419,7 +426,46 @@ export default function CashiersPage() {
                 </AlertDialog.Container>
             </AlertDialog.Backdrop>
 
-            {/* Delete confirmation */}
+            {/* Activar / Desactivar */}
+            <AlertDialog.Backdrop isOpen={toggleCashier !== null} onOpenChange={(open) => { if (!open) setToggleCashier(null); }} isDismissable>
+                <AlertDialog.Container placement="center" size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.CloseTrigger />
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status={toggleCashier?.disabled ? "success" : "warning"} />
+                            <AlertDialog.Heading>{toggleCashier?.disabled ? "¿Activar cajero?" : "¿Desactivar cajero?"}</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            {toggleCashier?.disabled ? (
+                                <p>Se reactivará la cuenta de <strong>{toggleCashier?.displayName}</strong>. Podrá volver a iniciar sesión.</p>
+                            ) : (
+                                <p>Se desactivará la cuenta de <strong>{toggleCashier?.displayName}</strong>. No podrá iniciar sesión hasta reactivarla.</p>
+                            )}
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">Cancelar</Button>
+                            <Button variant="primary" isDisabled={editingAction} onPress={async () => {
+                                if (!toggleCashier || !tenantId) return;
+                                const makeDisabled = !toggleCashier.disabled; // nuevo estado
+                                setEditingAction(true);
+                                try {
+                                    await callFunction("setUserDisabled", { uid: toggleCashier.id, disabled: makeDisabled });
+                                    toast.success(makeDisabled ? "Cajero desactivado" : "Cajero activado");
+                                    setToggleCashier(null);
+                                    await loadCashiers();
+                                } catch (e) {
+                                    const msg = e instanceof Error ? e.message : "No se pudo cambiar el estado";
+                                    toast.danger(msg);
+                                } finally { setEditingAction(false); }
+                            }}>
+                                {editingAction ? "Procesando..." : (toggleCashier?.disabled ? "Activar" : "Desactivar")}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
+
+            {/* Eliminar de verdad */}
             <AlertDialog.Backdrop isOpen={deleteCashier !== null} onOpenChange={(open) => { if (!open) setDeleteCashier(null); }} isDismissable>
                 <AlertDialog.Container placement="center" size="sm">
                     <AlertDialog.Dialog>
@@ -429,7 +475,8 @@ export default function CashiersPage() {
                             <AlertDialog.Heading>¿Eliminar cajero?</AlertDialog.Heading>
                         </AlertDialog.Header>
                         <AlertDialog.Body>
-                            <p>Se desactivará la cuenta de <strong>{deleteCashier?.displayName}</strong>. Ya no podrá iniciar sesión.</p>
+                            <p>Se eliminará por completo la cuenta de <strong>{deleteCashier?.displayName}</strong>. Esta acción no se puede deshacer.</p>
+                            <p className="text-sm text-default-500 mt-2">Si solo quieres impedir que entre temporalmente, usa <strong>Desactivar</strong> en su lugar.</p>
                         </AlertDialog.Body>
                         <AlertDialog.Footer>
                             <Button slot="close" variant="tertiary">Cancelar</Button>
@@ -437,18 +484,17 @@ export default function CashiersPage() {
                                 if (!deleteCashier || !tenantId) return;
                                 setEditingAction(true);
                                 try {
-                                    // Desactivar vía Cloud Function: deshabilita la cuenta en
-                                    // Firebase Auth (no puede iniciar sesión) y marca el doc.
-                                    await callFunction("setUserDisabled", { uid: deleteCashier.id, disabled: true });
-                                    toast.success("Cajero desactivado");
+                                    // Elimina de Firebase Auth + documento en Firestore.
+                                    await callFunction("deleteUser", { uid: deleteCashier.id });
+                                    toast.success("Cajero eliminado");
                                     setDeleteCashier(null);
                                     await loadCashiers();
                                 } catch (e) {
-                                    const msg = e instanceof Error ? e.message : "Error al desactivar";
+                                    const msg = e instanceof Error ? e.message : "No se pudo eliminar";
                                     toast.danger(msg);
                                 } finally { setEditingAction(false); }
                             }}>
-                                {editingAction ? "Eliminando..." : "Desactivar cajero"}
+                                {editingAction ? "Eliminando..." : "Eliminar cajero"}
                             </Button>
                         </AlertDialog.Footer>
                     </AlertDialog.Dialog>

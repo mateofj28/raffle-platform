@@ -379,6 +379,63 @@ export const setUserDisabled = onCall(
 );
 
 /**
+ * Elimina por completo un usuario (cajero/vendedor): lo borra de Firebase Auth
+ * y su documento en Firestore. Admin-only. Opción A: se permite siempre, aunque
+ * el usuario ya haya registrado operaciones (sus registros conservan el createdBy
+ * con el UID, pero el usuario ya no existirá). No permite auto-eliminarse.
+ */
+export const deleteUser = onCall(
+    { region: "us-central1", timeoutSeconds: 120 },
+    async (request: CallableRequest) => {
+        try {
+            const context: AuthContext = validateAuth(request);
+            requireAdmin(context);
+
+            const data = request.data as { uid: string };
+
+            if (!data.uid || typeof data.uid !== "string") {
+                throw new AppError(AppErrorCode.VALIDATION_ERROR, "El identificador del usuario es requerido.");
+            }
+
+            if (data.uid === context.uid) {
+                throw new AppError(
+                    AppErrorCode.INVALID_TRANSITION,
+                    "No puedes eliminar tu propia cuenta."
+                );
+            }
+
+            // Verificar que el usuario objetivo pertenezca al MISMO tenant del admin.
+            let targetUser;
+            try {
+                targetUser = await getAuth().getUser(data.uid);
+            } catch {
+                // Si ya no existe en Auth, igual intentamos limpiar el doc de Firestore.
+                targetUser = null;
+            }
+
+            if (targetUser) {
+                const targetTenantId = (targetUser.customClaims as Record<string, unknown> | undefined)?.tenantId;
+                if (targetTenantId !== context.tenantId) {
+                    throw new AppError(
+                        AppErrorCode.FORBIDDEN,
+                        "No tienes permiso para eliminar este usuario."
+                    );
+                }
+                // 1) Borrar de Firebase Auth (deja de poder iniciar sesión y libera el correo).
+                await getAuth().deleteUser(data.uid);
+            }
+
+            // 2) Borrar el documento del usuario en Firestore.
+            await getDb().doc(`tenants/${context.tenantId}/users/${data.uid}`).delete();
+
+            return { success: true };
+        } catch (error) {
+            handleError(error);
+        }
+    }
+);
+
+/**
  * Records a failed login attempt and enforces account lockout.
  * Locks the account after MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_DURATION_MS.
  */
