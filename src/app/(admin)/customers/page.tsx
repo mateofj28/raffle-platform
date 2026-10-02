@@ -63,10 +63,15 @@ export default function CustomersPage() {
     }, [isAdmin, tenantId, activeRaffle, customers]);
 
     const filtered = search.length >= 2
-        ? customers.filter(c =>
-            c.name.toLowerCase().includes(search.toLowerCase()) ||
-            c.document.includes(search)
-        )
+        ? customers.filter(c => {
+            const term = search.toLowerCase();
+            const digits = search.replace(/\D/g, "");
+            const byName = c.name.toLowerCase().includes(term);
+            const byDoc = c.document.includes(search);
+            // Por teléfono: compara solo dígitos (ignora espacios/indicativo).
+            const byPhone = digits !== "" && (c.phone || "").replace(/\D/g, "").includes(digits);
+            return byName || byDoc || byPhone;
+        })
         : customers;
 
     return (
@@ -100,7 +105,7 @@ export default function CustomersPage() {
                         <>
                             <div className="mb-4">
                                 <Input
-                                    placeholder="Buscar por nombre o documento..."
+                                    placeholder="Buscar por nombre, documento o teléfono..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="w-full max-w-xs"
