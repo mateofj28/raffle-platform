@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, Chip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, Tooltip } from "@heroui/react";
-import { Ticket, ChevronDown, ShoppingCart, DollarSign, Pencil } from "lucide-react";
+import { Ticket, ChevronDown, ShoppingCart, DollarSign, Pencil, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
-import { deriveTicketStatus } from "@/utils/ticket-status";
+import { deriveTicketStatus, DERIVED_STATUS_CONFIG } from "@/utils/ticket-status";
+import { printTicketsReport, type PrintTicketRow } from "@/utils/print-tickets";
 import { vendorCommission } from "@/utils/money";
 import { useAuthStore } from "@/store/auth.store";
 import { getDocs, query, where, orderBy, onSnapshot } from "firebase/firestore";
@@ -120,11 +121,47 @@ export default function VendorTicketsPage() {
     const recaudadoAbonadas = tickets.filter(t => t.status === "installment").reduce((sum, t) => sum + (t.value - t.pendingBalance), 0);
     const commission = vendorCommission(totalCollected);
 
+    // Imprimir TODAS mis boletas (ignora filtros de pantalla), orden numérico.
+    const handlePrint = () => {
+        const rows: PrintTicketRow[] = tickets.map((t) => {
+            const paid = (t.value ?? 0) - (t.pendingBalance ?? 0);
+            return {
+                numbers: formatTicketNumbers(t.numbers, t.number),
+                sortNumber: t.number,
+                status: DERIVED_STATUS_CONFIG[deriveTicketStatus(t)].label,
+                customer: t.customerId ? customers.get(t.customerId) || "Sin cliente" : "Sin cliente",
+                paid,
+                pending: t.pendingBalance ?? 0,
+            };
+        });
+        printTicketsReport({
+            vendorName: user?.displayName || "Mis boletas",
+            raffleLabel: raffleName ? `Rifa: ${raffleName}` : "",
+            totals: [
+                { label: "Total recaudado", value: formatCurrency(totalCollected) },
+                { label: "Recaudado (pagadas)", value: formatCurrency(recaudadoPagadas) },
+                { label: "Recaudado (abonadas)", value: formatCurrency(recaudadoAbonadas) },
+                { label: "Mi comisión (30%)", value: formatCurrency(commission) },
+            ],
+            rows,
+        });
+    };
+
     if (loading) return <div><PageHeader title="Mis Boletas" /><LoadingSkeleton rows={6} /></div>;
 
     return (
         <div>
-            <PageHeader title="Mis Boletas" description={raffleName ? `Rifa: ${raffleName}` : "Boletas asignadas a ti"} />
+            <PageHeader
+                title="Mis Boletas"
+                description={raffleName ? `Rifa: ${raffleName}` : "Boletas asignadas a ti"}
+                actions={
+                    tickets.length > 0 ? (
+                        <Button variant="outline" size="sm" onPress={handlePrint}>
+                            <Printer className="h-4 w-4" /> Imprimir
+                        </Button>
+                    ) : undefined
+                }
+            />
 
           {tickets.length === 0 ? (
               <EmptyState title="Sin boletas" description="Aún no te han asignado boletas" icon={<Ticket className="h-12 w-12" />} />

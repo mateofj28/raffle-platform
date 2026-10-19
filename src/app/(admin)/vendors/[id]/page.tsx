@@ -4,14 +4,15 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent, Separator, Chip, AlertDialog, Tooltip, Select, SelectTrigger, SelectValue, SelectIndicator, SelectPopover, ListBox, ListBoxItem, toast } from "@heroui/react";
-import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil, ChevronDown, X, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, User, Phone, Hash, Ticket, UserMinus, ShoppingCart, DollarSign, Pencil, ChevronDown, X, Trash2, Loader2, Printer } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatCurrency, formatTicketNumber, formatTicketNumbers } from "@/utils/formatters";
-import { deriveTicketStatus } from "@/utils/ticket-status";
+import { formatCurrency, formatTicketNumber, formatTicketNumbers, formatRafflePeriod } from "@/utils/formatters";
+import { deriveTicketStatus, DERIVED_STATUS_CONFIG } from "@/utils/ticket-status";
+import { printTicketsReport, type PrintTicketRow } from "@/utils/print-tickets";
 import { splitPayment, vendorCommission } from "@/utils/money";
 import { isRaffleDrawLocked } from "@/utils/raffle-lock";
 import { useAuthStore } from "@/store/auth.store";
@@ -298,6 +299,32 @@ export default function VendorDetailPage() {
     // (isOfficial === null mientras se determina: no mostrar acciones aún.)
     const canOperate = isOfficial === true && !drawLocked;
 
+    // Imprimir TODAS las boletas del vendedor (ignora el filtro de pantalla).
+    const handlePrint = () => {
+        const rows: PrintTicketRow[] = tickets.map((t) => {
+            const paid = (t.value ?? 0) - (t.pendingBalance ?? 0);
+            return {
+                numbers: formatTicketNumbers(t.numbers, t.number),
+                sortNumber: t.number,
+                status: DERIVED_STATUS_CONFIG[deriveTicketStatus(t)].label,
+                customer: t.customerName || "Sin cliente",
+                paid,
+                pending: t.pendingBalance ?? 0,
+            };
+        });
+        printTicketsReport({
+            vendorName: vendor!.name,
+            raffleLabel: `${activeRaffle!.name}${formatRafflePeriod(activeRaffle!.semester, activeRaffle!.endDate) ? ` — ${formatRafflePeriod(activeRaffle!.semester, activeRaffle!.endDate)}` : ""}`,
+            totals: [
+                { label: "Total abonado", value: formatCurrency(totalAbonado) },
+                { label: "Recaudado (pagadas)", value: formatCurrency(recaudadoPagadas) },
+                { label: "Recaudado (abonadas)", value: formatCurrency(recaudadoAbonadas) },
+                { label: "Comisión acumulada", value: formatCurrency(commission) },
+            ],
+            rows,
+        });
+    };
+
     return (
       <div>
           <PageHeader
@@ -316,6 +343,9 @@ export default function VendorDetailPage() {
                                 </Link>
                             </>
                         )}
+                        <Button variant="outline" size="sm" isDisabled={tickets.length === 0} onPress={handlePrint}>
+                            <Printer className="h-4 w-4" /> Imprimir
+                        </Button>
                         <Link href="/vendors">
                             <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Volver</Button>
                         </Link>
