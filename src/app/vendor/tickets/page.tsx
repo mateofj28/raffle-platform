@@ -140,6 +140,8 @@ export default function VendorTicketsPage() {
             totals: [
                 { label: "Total abonado", value: formatCurrency(totalCollected) },
                 { label: "Comisión acumulada", value: formatCurrency(commission) },
+                // Valor que se le entrega a la empresa = total abonado − comisión (30%).
+                { label: "Para la empresa", value: formatCurrency(totalCollected - commission) },
             ],
             rows,
         });

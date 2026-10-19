@@ -318,6 +318,9 @@ export default function VendorDetailPage() {
             totals: [
                 { label: "Total abonado", value: formatCurrency(totalAbonado) },
                 { label: "Comisión acumulada", value: formatCurrency(commission) },
+                // Valor que se le entrega a la empresa = total abonado − comisión (30%).
+                // Se resta la comisión ya calculada para que ambos cuadren exactos.
+                { label: "Para la empresa", value: formatCurrency(totalAbonado - commission) },
             ],
             rows,
         });
