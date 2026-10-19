@@ -317,8 +317,6 @@ export default function VendorDetailPage() {
             raffleLabel: `${activeRaffle!.name}${formatRafflePeriod(activeRaffle!.semester, activeRaffle!.endDate) ? ` — ${formatRafflePeriod(activeRaffle!.semester, activeRaffle!.endDate)}` : ""}`,
             totals: [
                 { label: "Total abonado", value: formatCurrency(totalAbonado) },
-                { label: "Recaudado (pagadas)", value: formatCurrency(recaudadoPagadas) },
-                { label: "Recaudado (abonadas)", value: formatCurrency(recaudadoAbonadas) },
                 { label: "Comisión acumulada", value: formatCurrency(commission) },
             ],
             rows,

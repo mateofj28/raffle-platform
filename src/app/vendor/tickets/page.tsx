@@ -138,10 +138,8 @@ export default function VendorTicketsPage() {
             vendorName: user?.displayName || "Mis boletas",
             raffleLabel: raffleName ? `Rifa: ${raffleName}` : "",
             totals: [
-                { label: "Total recaudado", value: formatCurrency(totalCollected) },
-                { label: "Recaudado (pagadas)", value: formatCurrency(recaudadoPagadas) },
-                { label: "Recaudado (abonadas)", value: formatCurrency(recaudadoAbonadas) },
-                { label: "Mi comisión (30%)", value: formatCurrency(commission) },
+                { label: "Total abonado", value: formatCurrency(totalCollected) },
+                { label: "Comisión acumulada", value: formatCurrency(commission) },
             ],
             rows,
         });
