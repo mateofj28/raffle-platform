@@ -243,8 +243,9 @@ function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; ven
 function UnsoldTickets({ tickets, vendors }: { tickets: Ticket[]; vendors: Map<string, Vendor> }) {
     const [selectedVendorId, setSelectedVendorId] = useState<string>("");
 
-    // Boletas asignadas a un vendedor pero aún sin vender.
-    const unsold = tickets.filter(t => deriveRaffleTicketStatus(t) === "assigned");
+    // Boletas que TIENEN vendedor pero NO tienen cliente.
+    // "Sin vender" = asignada a un vendedor pero aún sin cliente asignado.
+    const unsold = tickets.filter(t => !!t.vendorId && !t.customerId);
 
     // Agrupar por vendedor (igual que Cartera pendiente).
     const byVendor = new Map<string, Ticket[]>();
@@ -271,7 +272,7 @@ function UnsoldTickets({ tickets, vendors }: { tickets: Ticket[]; vendors: Map<s
             <h2 className="text-lg font-bold mb-2">Boletas sin vender</h2>
             <div className="mb-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-warning/10 border border-warning/20">
                 <span className="text-base font-medium text-default-600">Total sin vender:</span>
-                <span className="text-xl font-bold text-amber-500">{unsold.length}</span>
+                <span className="text-xl font-bold text-amber-500">{unsold.length.toLocaleString("es-CO")}</span>
                 <span className="text-sm text-default-500">boletas asignadas</span>
             </div>
 
