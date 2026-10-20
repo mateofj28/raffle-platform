@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, CardContent, Chip } from "@heroui/react";
+import { Button, Card, CardContent } from "@heroui/react";
 import { BarChart3, Download, Printer, Users, DollarSign, ShoppingCart, FileText, TrendingUp, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { PaymentMethodBadge } from "@/components/shared/payment-method-badge";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatCurrency, formatDateTime, formatTicketNumber, formatRafflePeriod } from "@/utils/formatters";
+import { formatCurrency, formatDateTime, formatTicketNumber, formatTicketNumbers, formatRafflePeriod } from "@/utils/formatters";
 import { deriveTicketStatus, deriveRaffleTicketStatus } from "@/utils/ticket-status";
 import { vendorCommission } from "@/utils/money";
 import { useAuthStore } from "@/store/auth.store";
@@ -241,19 +241,80 @@ function SalesByVendor({ tickets, vendors, customers }: { tickets: Ticket[]; ven
 }
 
 function UnsoldTickets({ tickets, vendors }: { tickets: Ticket[]; vendors: Map<string, Vendor> }) {
+    const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+
+    // Boletas asignadas a un vendedor pero aún sin vender.
     const unsold = tickets.filter(t => deriveRaffleTicketStatus(t) === "assigned");
+
+    // Agrupar por vendedor (igual que Cartera pendiente).
+    const byVendor = new Map<string, Ticket[]>();
+    unsold.forEach(t => {
+        const vid = t.vendorId || "__none__";
+        const arr = byVendor.get(vid) || [];
+        arr.push(t);
+        byVendor.set(vid, arr);
+    });
+
+    const vendorList = Array.from(byVendor.entries())
+        .map(([id, arr]) => ({
+            id,
+            name: id === "__none__" ? "Sin asignar" : (vendors.get(id)?.name || id),
+            count: arr.length,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    const selectedTickets = selectedVendorId ? (byVendor.get(selectedVendorId) || []) : [];
+    const selectedName = selectedVendorId === "__none__" ? "Sin asignar" : (vendors.get(selectedVendorId)?.name || selectedVendorId);
+
     return (
         <div>
             <h2 className="text-lg font-bold mb-2">Boletas sin vender</h2>
-            <Chip size="sm" variant="soft" color="warning" className="px-3 py-1 mb-4">{unsold.length} boletas asignadas sin vender</Chip>
-            <Table headers={["#", "Vendedor"]}>
-                {unsold.map(t => (
-                    <tr key={t.number}>
-                        <td className="px-3 py-2 font-mono">{formatTicketNumber(t.number)}</td>
-                        <td className="px-3 py-2">{t.vendorId ? vendors.get(t.vendorId)?.name || "—" : "Sin asignar"}</td>
-                    </tr>
-                ))}
-            </Table>
+            <div className="mb-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-warning/10 border border-warning/20">
+                <span className="text-base font-medium text-default-600">Total sin vender:</span>
+                <span className="text-xl font-bold text-amber-500">{unsold.length}</span>
+                <span className="text-sm text-default-500">boletas asignadas</span>
+            </div>
+
+            {!selectedVendorId ? (
+                <>
+                    <p className="text-sm text-default-500 mb-4">Selecciona un vendedor para ver sus boletas sin vender:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {vendorList.map(v => (
+                            <button
+                                key={v.id}
+                                onClick={() => setSelectedVendorId(v.id)}
+                                className="text-left p-4 rounded-xl border border-default-200 hover:border-warning hover:bg-warning/5 transition-all"
+                            >
+                                <p className="font-semibold text-sm">{v.name}</p>
+                                <p className="text-xs text-default-500 mt-1">{v.count} boleta(s) sin vender</p>
+                            </button>
+                        ))}
+                    </div>
+                    {vendorList.length === 0 && <p className="text-default-500">No hay boletas sin vender</p>}
+                </>
+            ) : (
+                <>
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 className="font-semibold">{selectedName}</h3>
+                            <p className="text-xs text-default-500">{selectedTickets.length} boleta(s) sin vender</p>
+                        </div>
+                        <div className="flex items-center gap-3 print:hidden">
+                            <Button variant="outline" size="sm" onPress={() => window.print()}><Printer className="h-4 w-4" /> Imprimir</Button>
+                            <button onClick={() => setSelectedVendorId("")} className="text-sm text-primary hover:underline">
+                                ← Volver a vendedores
+                            </button>
+                        </div>
+                    </div>
+                    <Table headers={["#"]}>
+                        {[...selectedTickets].sort((a, b) => a.number - b.number).map(t => (
+                            <tr key={t.number}>
+                                <td className="px-3 py-2 font-mono">{formatTicketNumbers(t.numbers, t.number)}</td>
+                            </tr>
+                        ))}
+                        </Table>
+                </>
+            )}
         </div>
     );
 }
